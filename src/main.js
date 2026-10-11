@@ -71,18 +71,15 @@
         okBtn.removeEventListener('click', onOk);
         cancelBtn.removeEventListener('click', onCancel);
         mask.removeEventListener('click', onMask);
-        document.removeEventListener('keydown', onKey);
         resolve(result);
       }
       function onOk() { cleanup(true); }
       function onCancel() { cleanup(false); }
       function onMask(e) { if (e.target === mask) cleanup(false); }
-      function onKey(e) { if (e.key === 'Escape') cleanup(false); }
 
       okBtn.addEventListener('click', onOk);
       cancelBtn.addEventListener('click', onCancel);
       mask.addEventListener('click', onMask);
-      document.addEventListener('keydown', onKey);
     });
   };
 
@@ -373,7 +370,7 @@
     } catch (e) { /* ignore */ }
   }
 
-  // 安全提示弹窗（Windows Hello 不可用时说明原因；点「知道了」/ 遮罩 / Esc / Enter 关闭）
+  // 安全提示弹窗（Windows Hello 不可用时说明原因；点「知道了」/ 遮罩关闭）
   function showAuthNotice(tip) {
     return new Promise(function (resolve) {
       authTipEl.textContent = tip;
@@ -383,17 +380,12 @@
         authMask.classList.add('hidden');
         authOkBtn.removeEventListener('click', cleanup);
         authMask.removeEventListener('click', onMask);
-        document.removeEventListener('keydown', onKey);
         resolve();
       }
       function onMask(e) { if (e.target === authMask) cleanup(); }
-      function onKey(e) {
-        if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); cleanup(); }
-      }
 
       authOkBtn.addEventListener('click', cleanup);
       authMask.addEventListener('click', onMask);
-      document.addEventListener('keydown', onKey);
       setTimeout(function () { authOkBtn.focus(); }, 30);
     });
   }
@@ -643,12 +635,6 @@
   });
   authMask.addEventListener('click', function (e) {
     e.stopPropagation();
-  });
-  document.addEventListener('keydown', function (e) {
-    // 校验弹窗打开时，Esc 只关闭校验弹窗（由校验弹窗自身的监听处理）
-    if (e.key === 'Escape' && !settingsMask.classList.contains('hidden') && authMask.classList.contains('hidden')) {
-      closeSettings();
-    }
   });
 
   // 开关切换：先回滚视觉状态，校验通过后再应用（开启/关闭都需要校验）

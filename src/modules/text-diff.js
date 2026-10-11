@@ -411,16 +411,6 @@
     await window.copyText(resultText, '已复制对比结果');
   });
 
-  // 快捷键：Ctrl+Enter 触发对比
-  [leftEl, rightEl].forEach((el) => {
-    el.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'Enter') {
-        e.preventDefault();
-        run();
-      }
-    });
-  });
-
   // ---------- 历史记录 ----------
 
   window.historyStore.bindPanel({

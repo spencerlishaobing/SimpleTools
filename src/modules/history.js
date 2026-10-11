@@ -345,11 +345,8 @@
     render(kind);
   }
 
-  // 点击空白处或按 Esc 关闭弹层
+  // 点击空白处关闭弹层
   document.addEventListener('click', function () { closePop(); });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closePop();
-  });
 
   window.historyStore = {
     add: add,

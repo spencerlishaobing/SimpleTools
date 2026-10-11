@@ -134,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.26.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.27.0 <span class="version-stack">· Tauri + Rust</span></div>
     </div>
   </aside>
 
@@ -155,8 +155,8 @@
             </select>
           </label>
           <span class="divider"></span>
-          <button class="btn primary" id="json-format" title="快捷键 Ctrl+Enter">格式化</button>
-          <button class="btn" id="json-minify" title="快捷键 Ctrl+Shift+Enter">压缩</button>
+          <button class="btn primary" id="json-format">格式化</button>
+          <button class="btn" id="json-minify">压缩</button>
           <button class="btn" id="json-clear">清空</button>
           <div class="hist-anchor">
             <button class="btn" id="json-history-btn" title="查看格式化历史记录（点击记录可恢复）">历史记录</button>
@@ -176,7 +176,7 @@
             <button class="pane-copy" id="json-copy-input" title="复制输入内容">复制</button>
           </div>
           <textarea id="json-input" spellcheck="false"
-            placeholder="粘贴 JSON 文本，支持 Ctrl+V&#10;示例：{&quot;name&quot;:&quot;test&quot;,&quot;list&quot;:[1,2,3]}"></textarea>
+            placeholder="粘贴 JSON 文本&#10;示例：{&quot;name&quot;:&quot;test&quot;,&quot;list&quot;:[1,2,3]}"></textarea>
         </div>
         <div class="split-pane">
           <div class="pane-label"><span>输出</span>
@@ -195,7 +195,7 @@
         <h2>文本对比</h2>
         <div class="panel-actions">
           <label class="checkbox"><input type="checkbox" id="diff-ignore-space" />忽略首尾空白</label>
-          <button class="btn primary" id="diff-run" title="快捷键 Ctrl+Enter">对比</button>
+          <button class="btn primary" id="diff-run">对比</button>
           <button class="btn" id="diff-swap">交换左右</button>
           <button class="btn" id="diff-clear">清空</button>
           <div class="hist-anchor">
@@ -433,7 +433,7 @@
           <span class="md-doc-name" id="md-doc-name" title="当前打开的文档">未命名</span>
           <span class="divider"></span>
           <button class="btn" id="md-open" title="打开本地 Markdown 文件（也可直接把文件拖入面板）">打开文件</button>
-          <button class="btn" id="md-save" title="保存为 .md 文件（Ctrl+S；已打开的文件直接覆盖保存）">保存</button>
+          <button class="btn" id="md-save" title="保存为 .md 文件（已打开的文件直接覆盖保存）">保存</button>
           <button class="btn" id="md-clear">清空</button>
         </div>
       </header>

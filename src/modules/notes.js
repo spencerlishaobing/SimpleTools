@@ -423,17 +423,6 @@
     noteSearchTimer = setTimeout(() => applyNoteSearch(noteMdSearchInput.value), 280);
   });
 
-  noteMdSearchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!noteMarks.length) applyNoteSearch(noteMdSearchInput.value);
-      else noteNavTo(noteMarkIdx + (e.shiftKey ? -1 : 1));
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      closeNoteSearch();
-    }
-  });
-
   document.getElementById('note-md-search-prev').addEventListener('click', () => noteNavTo(noteMarkIdx - 1));
   document.getElementById('note-md-search-next').addEventListener('click', () => noteNavTo(noteMarkIdx + 1));
   document.getElementById('note-md-search-close').addEventListener('click', closeNoteSearch);
@@ -776,14 +765,6 @@
     state.filter = searchEl.value;
     searchClearEl.classList.toggle('hidden', !state.filter.trim());
     renderList();
-  });
-
-  searchEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && searchEl.value) {
-      e.stopPropagation();
-      clearNoteSearch();
-      renderList();
-    }
   });
 
   searchClearEl.addEventListener('click', () => {

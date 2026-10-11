@@ -151,15 +151,6 @@
     input.focus();
   });
 
-  // 快捷键：Ctrl+Enter 格式化；Ctrl+Shift+Enter 压缩
-  input.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      if (e.shiftKey) minify();
-      else format();
-    }
-  });
-
   // 输入变化时清除旧状态提示
   input.addEventListener('input', () => {
     if (statusEl.classList.contains('error')) setStatus('');

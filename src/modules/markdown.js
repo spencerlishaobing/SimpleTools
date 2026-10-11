@@ -581,17 +581,6 @@
     searchTimer = setTimeout(() => applySearch(searchInput.value), SEARCH_DEBOUNCE);
   });
 
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!marks.length) applySearch(searchInput.value);
-      else navTo(markIdx + (e.shiftKey ? -1 : 1));
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      closeSearch();
-    }
-  });
-
   document.getElementById('md-search-prev').addEventListener('click', () => navTo(markIdx - 1));
   document.getElementById('md-search-next').addEventListener('click', () => navTo(markIdx + 1));
   document.getElementById('md-search-close').addEventListener('click', closeSearch);
@@ -761,14 +750,6 @@
   }
 
   document.getElementById('md-save').addEventListener('click', saveFile);
-
-  // Ctrl+S 快捷保存
-  inputEl.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      saveFile();
-    }
-  });
 
   document.getElementById('md-copy-src').addEventListener('click', () => {
     if (!inputEl.value) {

@@ -565,13 +565,6 @@
     }, 120);
   });
 
-  searchEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && searchEl.value) {
-      e.stopPropagation();
-      clearSearch();
-    }
-  });
-
   searchClearEl.addEventListener('click', clearSearch);
 
   // 显示 / 隐藏密码
