@@ -70,8 +70,14 @@ $sizeMB = [math]::Round($inst.Length / 1MB, 2)
 $gitArgs = @('-C', $RepoDir)
 if ($Proxy) { $gitArgs += @('-c', "http.proxy=$Proxy", '-c', "https.proxy=$Proxy") }
 function Invoke-Git([string[]]$argv) {
+  # git 的进度信息（push/fetch）写 stderr；在 ErrorActionPreference=Stop 下经 2>&1 捕获会被
+  # 误判为 NativeCommandError 终止错误，故调用期间临时降级 EAP（PowerShell 5.1 已知行为，勿删）
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
   $out = & git @gitArgs @argv 2>&1
-  if ($LASTEXITCODE -ne 0) { Fail "git $($argv -join ' ') failed: $($out -join ' | ')" }
+  $code = $LASTEXITCODE
+  $ErrorActionPreference = $prev
+  if ($code -ne 0) { Fail "git $($argv -join ' ') failed: $($out -join ' | ')" }
   return ($out -join "`n")
 }
 
