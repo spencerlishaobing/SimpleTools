@@ -35,6 +35,9 @@
       <button class="nav-item" data-panel="md5">
         <span class="nav-dot"></span>MD5 计算
       </button>
+      <button class="nav-item" data-panel="str">
+        <span class="nav-dot"></span>字符串转换
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="theme-toggle" id="theme-toggle" title="切换深色 / 浅色模式">
@@ -56,7 +59,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.1.0 · Tauri + Rust</div>
+      <div class="version">v0.2.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -197,6 +200,22 @@
         </div>
       </div>
     </section>
+
+    <!-- ===== 字符串转换 ===== -->
+    <section id="panel-str" class="panel">
+      <header class="panel-header">
+        <h2>字符串转换</h2>
+        <div class="panel-actions">
+          <span class="str-tip">大小写 / 驼峰 / 下划线 / 中划线 / 常量，输入即生成</span>
+        </div>
+      </header>
+      <div class="str-layout">
+        <div class="pane-label"><span>输入（多行将按行分别转换）</span></div>
+        <textarea id="str-input" class="str-input" spellcheck="false"
+          placeholder="输入或粘贴字符串，例如：user_login_count"></textarea>
+        <div class="str-results" id="str-results"></div>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -217,6 +236,7 @@
   <script src="modules/text-diff.js"></script>
   <script src="modules/notes.js"></script>
   <script src="modules/md5.js"></script>
+  <script src="modules/str.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
