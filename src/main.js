@@ -450,10 +450,30 @@
     return false;
   }
 
-  // 设置弹窗
+  // 设置弹窗（v0.31.0：横版左右布局 — 左侧分类导航切换右侧内容）
+  const settingsNav = document.getElementById('settings-nav');
+  const settingsPanes = document.querySelectorAll('#settings-modal .settings-pane');
+
+  function setSettingsTab(tab) {
+    settingsNav.querySelectorAll('.settings-nav-item').forEach((b) => {
+      const on = b.dataset.settingsTab === tab;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    settingsPanes.forEach((p) => {
+      p.classList.toggle('is-active', p.dataset.settingsPane === tab);
+    });
+  }
+
+  settingsNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.settings-nav-item');
+    if (btn) setSettingsTab(btn.dataset.settingsTab);
+  });
+
   function openSettings() {
     accLockSwitch.checked = accLockEnabled();
     refreshDataDirInfo();
+    setSettingsTab('display'); // 每次打开回到首个分类（不记忆上次停留位置）
     settingsMask.classList.remove('hidden');
     settingsCloseBtn.focus();
   }

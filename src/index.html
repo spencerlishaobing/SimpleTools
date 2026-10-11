@@ -134,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.30.1 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.31.0 <span class="version-stack">· Tauri + Rust</span></div>
     </div>
   </aside>
 
@@ -521,67 +521,79 @@
 
   <div id="toast" class="toast"></div>
 
-  <!-- 应用设置弹窗 -->
+  <!-- 应用设置弹窗（v0.31.0：横版左右布局 — 左侧分类导航 + 右侧内容区） -->
   <div id="settings-modal" class="modal-mask hidden">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="modal-title" id="settings-title">应用设置</div>
-      <div class="settings-label">功能显示</div>
-      <div class="settings-row settings-row-col">
-        <div class="settings-row-title">侧边栏导航样式</div>
-        <div class="nav-style-group" id="nav-style-group" role="radiogroup" aria-label="侧边栏导航样式">
-          <button type="button" class="nav-style-item" data-nav-style="both">图标 + 名称</button>
-          <button type="button" class="nav-style-item" data-nav-style="icon">仅图标</button>
-          <button type="button" class="nav-style-item" data-nav-style="label">仅名称</button>
+      <div class="settings-layout">
+        <div class="settings-nav" id="settings-nav" role="tablist" aria-label="设置分类">
+          <button type="button" class="settings-nav-item" role="tab" data-settings-tab="display">功能显示</button>
+          <button type="button" class="settings-nav-item" role="tab" data-settings-tab="security">安全</button>
+          <button type="button" class="settings-nav-item" role="tab" data-settings-tab="storage">存储</button>
         </div>
-      </div>
-      <div class="settings-row settings-row-col">
-        <div class="settings-row-title">显示的功能</div>
-        <div class="settings-row-desc">取消勾选后该功能从侧边栏隐藏（数据不受影响），至少保留一个功能</div>
-        <div class="nav-feature-grid" id="nav-feature-grid">
-          <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><span>JSON 格式化</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><span>文本对比</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><span>记事本</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><span>账号密码</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><span>MD5 计算</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><span>字符串转换</span></label>
-          <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><span>Markdown 预览</span></label>
+        <div class="settings-main">
+          <div class="settings-pane" data-settings-pane="display" role="tabpanel">
+            <div class="settings-row settings-row-col">
+              <div class="settings-row-title">侧边栏导航样式</div>
+              <div class="nav-style-group" id="nav-style-group" role="radiogroup" aria-label="侧边栏导航样式">
+                <button type="button" class="nav-style-item" data-nav-style="both">图标 + 名称</button>
+                <button type="button" class="nav-style-item" data-nav-style="icon">仅图标</button>
+                <button type="button" class="nav-style-item" data-nav-style="label">仅名称</button>
+              </div>
+            </div>
+            <div class="settings-row settings-row-col">
+              <div class="settings-row-title">显示的功能</div>
+              <div class="settings-row-desc">取消勾选后该功能从侧边栏隐藏（数据不受影响），至少保留一个功能</div>
+              <div class="nav-feature-grid" id="nav-feature-grid">
+                <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><span>JSON 格式化</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><span>文本对比</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><span>记事本</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><span>账号密码</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><span>MD5 计算</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><span>字符串转换</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><span>Markdown 预览</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="settings-pane" data-settings-pane="security" role="tabpanel">
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">查看账号密码需 Windows Hello 验证</div>
+                <div class="settings-row-desc">开启后，进入「账号密码」需先通过 PIN / 指纹等 Windows Hello 方式验证；打开或关闭本开关同样需要验证</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="acc-lock-switch" />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-pane" data-settings-pane="storage" role="tabpanel">
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">数据存储位置</div>
+                <div class="settings-row-desc" id="data-dir-path">读取中…</div>
+              </div>
+              <div class="settings-actions">
+                <button class="btn" id="data-dir-help" title="查看各数据文件的位置与用途">说明</button>
+                <button class="btn" id="data-dir-change">更改位置</button>
+                <button class="btn hidden" id="data-dir-reset">恢复默认</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">数据导入导出</div>
+                <div class="settings-row-desc">一键备份 / 恢复全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份）与应用配置，支持 ZIP 压缩包或文件夹</div>
+              </div>
+              <div class="settings-actions">
+                <button class="btn" id="data-export-btn">导出</button>
+                <button class="btn" id="data-import-btn">导入</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="settings-close">关闭</button>
+          </div>
         </div>
-      </div>
-      <div class="settings-label">安全</div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-title">查看账号密码需 Windows Hello 验证</div>
-          <div class="settings-row-desc">开启后，进入「账号密码」需先通过 PIN / 指纹等 Windows Hello 方式验证；打开或关闭本开关同样需要验证</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="acc-lock-switch" />
-          <span class="switch-slider"></span>
-        </label>
-      </div>
-      <div class="settings-label">存储</div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-title">数据存储位置</div>
-          <div class="settings-row-desc" id="data-dir-path">读取中…</div>
-        </div>
-        <div class="settings-actions">
-          <button class="btn" id="data-dir-help" title="查看各数据文件的位置与用途">说明</button>
-          <button class="btn" id="data-dir-change">更改位置</button>
-          <button class="btn hidden" id="data-dir-reset">恢复默认</button>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-title">数据导入导出</div>
-          <div class="settings-row-desc">一键备份 / 恢复全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份）与应用配置，支持 ZIP 压缩包或文件夹</div>
-        </div>
-        <div class="settings-actions">
-          <button class="btn" id="data-export-btn">导出</button>
-          <button class="btn" id="data-import-btn">导入</button>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn" id="settings-close">关闭</button>
       </div>
     </div>
   </div>
