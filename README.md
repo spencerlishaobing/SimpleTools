@@ -76,7 +76,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.9.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.9.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -139,6 +139,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.9.1（2026-10-11）
+
+- 侧边栏功能导航新增线性图标（JSON 格式化 / 文本对比 / 记事本 / MD5 计算 / 字符串转换 / Markdown 预览），随主题自动变色
 
 ### v0.9.0（2026-10-11）
 
