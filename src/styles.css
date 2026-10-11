@@ -1094,14 +1094,18 @@ textarea[readonly] {
 }
 
 /* 数据导入导出菜单（v0.30.0，设置弹窗内弹出）：图标 + 名称；层级需盖过 modal-mask（z-index 1000） */
+/* v0.30.1：菜单项上下留白偏紧，整体加高（容器 4→6px、项上下 8→10px、项间 2px 间隙） */
 .dataio-menu {
   z-index: 1100;
+  padding: 6px;
+  gap: 2px;
 }
 
 .dataio-menu button {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 12px;
 }
 
 .dataio-menu button > svg {

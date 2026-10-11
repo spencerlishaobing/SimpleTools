@@ -113,7 +113,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.30.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.30.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -184,6 +184,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.30.1（2026-10-11）
+
+- 「数据导入导出」菜单（应用设置内点「导出 / 导入」弹出）上下间距优化：菜单项上下内边距由 8px 增至 10px、容器内边距由 4px 增至 6px，选项之间增加 2px 间隙，缓解拥挤感
 
 ### v0.30.0（2026-10-11）
 
