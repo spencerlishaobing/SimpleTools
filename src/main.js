@@ -98,9 +98,9 @@
   navItems.forEach((btn) => {
     btn.addEventListener('click', async () => {
       const target = btn.dataset.panel;
-      // 「账号密码」安全锁：开启后需先校验电脑登录密码
+      // 「账号密码」安全锁：开启后需先通过 Windows Hello 验证
       if (target === 'accounts' && accLockEnabled()) {
-        const ok = await requireWinPassword('查看「账号密码」需要验证电脑登录密码');
+        const ok = await requireHelloVerify('验证以查看「账号密码」');
         if (!ok) return;
       }
       navItems.forEach((b) => b.classList.toggle('active', b === btn));
@@ -228,10 +228,10 @@
   updateToggleUI(currentTheme());
   syncTitlebar(currentTheme());
 
-  // ---------- 应用设置：账号密码安全锁（v0.15.0） ----------
+  // ---------- 应用设置：账号密码安全锁（v0.15.0；v0.19.0 起改为 Windows Hello 验证） ----------
   // - 账号密码数据由 Rust 侧 DPAPI 加密落盘（见 src-tauri/winsec.rs）
-  // - 开启本开关后进入「账号密码」需校验电脑登录密码，开关的开启/关闭同样需要校验
-  // - 未设置电脑登录密码时给出提示
+  // - 开启本开关后进入「账号密码」需完成 Windows Hello 验证（PIN / 指纹 / 面容），开关的开启/关闭同样需要验证
+  // - Windows Hello 不可用（未配置 PIN 等）时给出提示
   const ACC_LOCK_KEY = 'simpletools-acc-lock';
   const settingsBtn = document.getElementById('settings-btn');
   const settingsMask = document.getElementById('settings-modal');
@@ -239,10 +239,7 @@
   const accLockSwitch = document.getElementById('acc-lock-switch');
   const authMask = document.getElementById('auth-modal');
   const authTipEl = document.getElementById('auth-tip');
-  const authInputEl = document.getElementById('auth-input');
-  const authErrorEl = document.getElementById('auth-error');
   const authOkBtn = document.getElementById('auth-ok');
-  const authCancelBtn = document.getElementById('auth-cancel');
 
   function accLockEnabled() {
     try {
@@ -259,87 +256,77 @@
     } catch (e) { /* ignore */ }
   }
 
-  // 校验弹窗：needInput=true 输入电脑登录密码（确认返回输入值，取消返回 null）；
-  // needInput=false 为纯提示（任意关闭均返回 null）
-  function showAuthPrompt(opts) {
-    opts = opts || {};
+  // 安全提示弹窗（Windows Hello 不可用时说明原因；点「知道了」/ 遮罩 / Esc / Enter 关闭）
+  function showAuthNotice(tip) {
     return new Promise(function (resolve) {
-      const needInput = opts.needInput !== false;
-      authTipEl.textContent = opts.tip || '请输入电脑登录密码以继续';
-      authInputEl.classList.toggle('hidden', !needInput);
-      authCancelBtn.classList.toggle('hidden', !needInput);
-      authOkBtn.textContent = needInput ? '确认' : '知道了';
-      authInputEl.value = '';
-      if (opts.error) {
-        authErrorEl.textContent = opts.error;
-        authErrorEl.classList.remove('hidden');
-      } else {
-        authErrorEl.classList.add('hidden');
-      }
+      authTipEl.textContent = tip;
       authMask.classList.remove('hidden');
 
-      function cleanup(result) {
+      function cleanup() {
         authMask.classList.add('hidden');
-        authOkBtn.removeEventListener('click', onOk);
-        authCancelBtn.removeEventListener('click', onCancel);
+        authOkBtn.removeEventListener('click', cleanup);
         authMask.removeEventListener('click', onMask);
         document.removeEventListener('keydown', onKey);
-        resolve(result);
+        resolve();
       }
-      function onOk() { cleanup(needInput ? authInputEl.value : null); }
-      function onCancel() { cleanup(null); }
-      function onMask(e) { if (e.target === authMask) cleanup(null); }
+      function onMask(e) { if (e.target === authMask) cleanup(); }
       function onKey(e) {
-        if (e.key === 'Enter') { e.preventDefault(); onOk(); }
-        else if (e.key === 'Escape') { cleanup(null); }
+        if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); cleanup(); }
       }
 
-      authOkBtn.addEventListener('click', onOk);
-      authCancelBtn.addEventListener('click', onCancel);
+      authOkBtn.addEventListener('click', cleanup);
       authMask.addEventListener('click', onMask);
       document.addEventListener('keydown', onKey);
-      setTimeout(function () {
-        if (needInput) authInputEl.focus();
-        else authOkBtn.focus();
-      }, 30);
+      setTimeout(function () { authOkBtn.focus(); }, 30);
     });
   }
 
-  // 校验电脑登录密码：通过 true；取消 / 校验失败 / 未设置电脑密码均 false
-  async function requireWinPassword(tip) {
+  // Windows Hello 身份校验：verified → true；取消 / 失败 / 环境不可用均 false
+  // （验证交互由系统 Hello 弹窗接管，自绘弹窗仅用于展示不可用原因）
+  async function requireHelloVerify(tip) {
     if (!invokeApi) return false;
-    let hasPwd;
+    let avail;
     try {
-      hasPwd = await invokeApi('windows_password_set');
+      avail = await invokeApi('hello_availability');
     } catch (e) {
-      window.toast('无法检测电脑密码状态，请稍后重试');
+      window.toast('无法检测 Windows Hello 状态，请稍后重试');
       return false;
     }
-    if (!hasPwd) {
-      await showAuthPrompt({
-        tip: '此功能需要先设置电脑登录密码：请在「Windows 设置 → 账户 → 登录选项」中为当前电脑账户创建密码',
-        needInput: false,
-      });
+    if (avail === 'not_configured') {
+      await showAuthNotice('此功能需要先配置 Windows Hello：请在「Windows 设置 → 账户 → 登录选项」中设置 PIN 码、指纹或面容');
       return false;
     }
-    let error = '';
-    for (;;) {
-      const pwd = await showAuthPrompt({ tip: tip, error: error });
-      if (pwd === null) return false;
-      if (!pwd) {
-        error = '请输入电脑登录密码';
-        continue;
-      }
-      let ok;
-      try {
-        ok = await invokeApi('verify_windows_password', { password: pwd });
-      } catch (e) {
-        error = '校验失败，请重试';
-        continue;
-      }
-      if (ok === true) return true;
-      error = '电脑登录密码错误，请重试';
+    if (avail === 'device_not_present') {
+      await showAuthNotice('当前电脑不支持 Windows Hello 验证（未检测到可用的验证设备）');
+      return false;
     }
+    if (avail === 'disabled_by_policy') {
+      await showAuthNotice('Windows Hello 已被系统策略禁用，无法完成验证');
+      return false;
+    }
+    if (avail === 'device_busy') {
+      await showAuthNotice('Windows Hello 当前被占用，请稍后重试');
+      return false;
+    }
+    if (avail !== 'available') {
+      await showAuthNotice('Windows Hello 当前不可用，无法完成验证');
+      return false;
+    }
+    let result;
+    try {
+      result = await invokeApi('hello_verify', { message: tip });
+    } catch (e) {
+      window.toast('Windows Hello 验证失败，请重试');
+      return false;
+    }
+    if (result === 'verified') return true;
+    if (result === 'canceled') return false;
+    if (result === 'retries_exhausted') {
+      window.toast('验证失败次数过多，请稍后重试');
+      return false;
+    }
+    window.toast('Windows Hello 验证未通过，请重试');
+    return false;
   }
 
   // 设置弹窗
@@ -378,11 +365,11 @@
     accLockSwitch.checked = !want;
     accLockSwitch.disabled = true;
     try {
-      const ok = await requireWinPassword(want ? '开启此功能需要验证电脑登录密码' : '关闭此功能需要验证电脑登录密码');
+      const ok = await requireHelloVerify(want ? '验证以开启查看校验' : '验证以关闭查看校验');
       if (ok) {
         accLockSwitch.checked = want;
         setAccLock(want);
-        window.toast(want ? '已开启：查看「账号密码」需校验电脑登录密码' : '已关闭查看校验');
+        window.toast(want ? '已开启：查看「账号密码」需 Windows Hello 验证' : '已关闭查看校验');
       }
     } finally {
       accLockSwitch.disabled = false;

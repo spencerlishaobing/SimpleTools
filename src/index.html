@@ -124,7 +124,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.18.2 · Tauri + Rust</div>
+      <div class="version">v0.19.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -461,8 +461,8 @@
       <div class="settings-label">安全</div>
       <div class="settings-row">
         <div class="settings-row-text">
-          <div class="settings-row-title">查看账号密码需校验电脑登录密码</div>
-          <div class="settings-row-desc">开启后，进入「账号密码」需先输入电脑登录密码；打开或关闭本开关同样需要校验</div>
+          <div class="settings-row-title">查看账号密码需 Windows Hello 验证</div>
+          <div class="settings-row-desc">开启后，进入「账号密码」需先通过 PIN / 指纹等 Windows Hello 方式验证；打开或关闭本开关同样需要验证</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="acc-lock-switch" />
@@ -475,16 +475,13 @@
     </div>
   </div>
 
-  <!-- 电脑登录密码校验弹窗 -->
+  <!-- 安全提示弹窗（Windows Hello 不可用时说明原因；验证本身由系统 Hello 弹窗接管） -->
   <div id="auth-modal" class="modal-mask hidden">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
       <div class="modal-title" id="auth-title">安全校验</div>
-      <div class="modal-message" id="auth-tip">请输入电脑登录密码以继续</div>
-      <input class="auth-input" id="auth-input" type="password" placeholder="电脑登录密码" autocomplete="off" spellcheck="false" />
-      <div class="auth-error hidden" id="auth-error"></div>
+      <div class="modal-message" id="auth-tip">请完成 Windows Hello 验证以继续</div>
       <div class="modal-actions">
-        <button class="btn" id="auth-cancel">取消</button>
-        <button class="btn primary" id="auth-ok">确认</button>
+        <button class="btn primary" id="auth-ok">知道了</button>
       </div>
     </div>
   </div>

@@ -2055,30 +2055,6 @@ textarea[readonly] {
   transform: translateX(16px);
 }
 
-/* ===== 电脑登录密码校验弹窗（v0.15.0） ===== */
-.auth-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 12.5px;
-  font-family: var(--sans);
-  outline: none;
-}
-
-.auth-input:focus {
-  border-color: var(--primary);
-}
-
-.auth-error {
-  color: var(--danger);
-  font-size: 11.5px;
-  margin-top: 8px;
-}
-
 @keyframes modal-fade {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -26,8 +26,8 @@ pub fn run() {
             textfile::read_text_file,
             textfile::write_text_file,
             titlebar::set_titlebar_color,
-            winsec::windows_password_set,
-            winsec::verify_windows_password
+            winsec::hello_availability,
+            winsec::hello_verify
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
