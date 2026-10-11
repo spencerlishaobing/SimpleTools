@@ -4,6 +4,7 @@ mod md5calc;
 mod notes;
 mod textfile;
 mod titlebar;
+mod winsec;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +25,9 @@ pub fn run() {
             md5calc::md5_file,
             textfile::read_text_file,
             textfile::write_text_file,
-            titlebar::set_titlebar_color
+            titlebar::set_titlebar_color,
+            winsec::windows_password_set,
+            winsec::verify_windows_password
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

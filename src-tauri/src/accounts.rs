@@ -1,3 +1,4 @@
+use crate::winsec;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -33,20 +34,30 @@ fn accounts_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// 读取全部分组（文件不存在时返回空列表）
+/// v0.15.0 起数据文件为 DPAPI 密文；兼容读取旧版明文（下次保存自动转为密文）
 #[tauri::command]
 pub fn accounts_load(app: AppHandle) -> Result<Vec<AccountGroup>, String> {
     let path = accounts_path(&app)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let data = fs::read_to_string(&path).map_err(|e| format!("读取失败: {e}"))?;
+    let raw = fs::read(&path).map_err(|e| format!("读取失败: {e}"))?;
+    if raw.is_empty() {
+        return Ok(Vec::new());
+    }
+    let data = match winsec::dpapi_decrypt(&raw) {
+        Ok(plain) => String::from_utf8(plain).map_err(|e| format!("解码失败: {e}"))?,
+        Err(_) => String::from_utf8(raw).map_err(|_| {
+            "账号数据无法解密（可能由其他 Windows 用户创建或文件已损坏）".to_string()
+        })?,
+    };
     if data.trim().is_empty() {
         return Ok(Vec::new());
     }
     serde_json::from_str(&data).map_err(|e| format!("解析失败: {e}"))
 }
 
-/// 全量保存分组（先写临时文件再重命名，避免写入中断损坏数据）
+/// 全量保存分组（v0.15.0 起 DPAPI 加密落盘；先写临时文件再重命名，避免写入中断损坏数据）
 #[tauri::command]
 pub fn accounts_save(app: AppHandle, groups: Vec<AccountGroup>) -> Result<(), String> {
     let path = accounts_path(&app)?;
@@ -54,8 +65,9 @@ pub fn accounts_save(app: AppHandle, groups: Vec<AccountGroup>) -> Result<(), St
         fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
     }
     let data = serde_json::to_string_pretty(&groups).map_err(|e| format!("序列化失败: {e}"))?;
+    let encrypted = winsec::dpapi_encrypt(data.as_bytes())?;
     let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, data).map_err(|e| format!("写入失败: {e}"))?;
+    fs::write(&tmp, encrypted).map_err(|e| format!("写入失败: {e}"))?;
     fs::rename(&tmp, &path).map_err(|e| format!("保存失败: {e}"))?;
     Ok(())
 }

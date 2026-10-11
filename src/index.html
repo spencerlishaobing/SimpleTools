@@ -116,7 +116,15 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.14.0 · Tauri + Rust</div>
+      <button class="theme-toggle" id="settings-btn" title="应用设置（安全选项）">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>设置</span>
+      </button>
+      <div class="version">v0.15.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -440,6 +448,41 @@
   </main>
 
   <div id="toast" class="toast"></div>
+
+  <!-- 应用设置弹窗 -->
+  <div id="settings-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-title" id="settings-title">应用设置</div>
+      <div class="settings-label">安全</div>
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <div class="settings-row-title">查看账号密码需校验电脑登录密码</div>
+          <div class="settings-row-desc">开启后，进入「账号密码」需先输入电脑登录密码；打开或关闭本开关同样需要校验</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="acc-lock-switch" />
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="settings-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 电脑登录密码校验弹窗 -->
+  <div id="auth-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div class="modal-title" id="auth-title">安全校验</div>
+      <div class="modal-message" id="auth-tip">请输入电脑登录密码以继续</div>
+      <input class="auth-input" id="auth-input" type="password" placeholder="电脑登录密码" autocomplete="off" spellcheck="false" />
+      <div class="auth-error hidden" id="auth-error"></div>
+      <div class="modal-actions">
+        <button class="btn" id="auth-cancel">取消</button>
+        <button class="btn primary" id="auth-ok">确认</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 通用确认弹窗 -->
   <div id="confirm-modal" class="modal-mask hidden">

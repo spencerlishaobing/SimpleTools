@@ -96,8 +96,13 @@
   const panels = document.querySelectorAll('.panel');
 
   navItems.forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const target = btn.dataset.panel;
+      // 「账号密码」安全锁：开启后需先校验电脑登录密码
+      if (target === 'accounts' && accLockEnabled()) {
+        const ok = await requireWinPassword('查看「账号密码」需要验证电脑登录密码');
+        if (!ok) return;
+      }
       navItems.forEach((b) => b.classList.toggle('active', b === btn));
       panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + target));
     });
@@ -156,4 +161,167 @@
 
   updateToggleUI(currentTheme());
   syncTitlebar(currentTheme());
+
+  // ---------- 应用设置：账号密码安全锁（v0.15.0） ----------
+  // - 账号密码数据由 Rust 侧 DPAPI 加密落盘（见 src-tauri/winsec.rs）
+  // - 开启本开关后进入「账号密码」需校验电脑登录密码，开关的开启/关闭同样需要校验
+  // - 未设置电脑登录密码时给出提示
+  const ACC_LOCK_KEY = 'simpletools-acc-lock';
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsMask = document.getElementById('settings-modal');
+  const settingsCloseBtn = document.getElementById('settings-close');
+  const accLockSwitch = document.getElementById('acc-lock-switch');
+  const authMask = document.getElementById('auth-modal');
+  const authTipEl = document.getElementById('auth-tip');
+  const authInputEl = document.getElementById('auth-input');
+  const authErrorEl = document.getElementById('auth-error');
+  const authOkBtn = document.getElementById('auth-ok');
+  const authCancelBtn = document.getElementById('auth-cancel');
+
+  function accLockEnabled() {
+    try {
+      return localStorage.getItem(ACC_LOCK_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setAccLock(on) {
+    try {
+      if (on) localStorage.setItem(ACC_LOCK_KEY, '1');
+      else localStorage.removeItem(ACC_LOCK_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  // 校验弹窗：needInput=true 输入电脑登录密码（确认返回输入值，取消返回 null）；
+  // needInput=false 为纯提示（任意关闭均返回 null）
+  function showAuthPrompt(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      const needInput = opts.needInput !== false;
+      authTipEl.textContent = opts.tip || '请输入电脑登录密码以继续';
+      authInputEl.classList.toggle('hidden', !needInput);
+      authCancelBtn.classList.toggle('hidden', !needInput);
+      authOkBtn.textContent = needInput ? '确认' : '知道了';
+      authInputEl.value = '';
+      if (opts.error) {
+        authErrorEl.textContent = opts.error;
+        authErrorEl.classList.remove('hidden');
+      } else {
+        authErrorEl.classList.add('hidden');
+      }
+      authMask.classList.remove('hidden');
+
+      function cleanup(result) {
+        authMask.classList.add('hidden');
+        authOkBtn.removeEventListener('click', onOk);
+        authCancelBtn.removeEventListener('click', onCancel);
+        authMask.removeEventListener('click', onMask);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onOk() { cleanup(needInput ? authInputEl.value : null); }
+      function onCancel() { cleanup(null); }
+      function onMask(e) { if (e.target === authMask) cleanup(null); }
+      function onKey(e) {
+        if (e.key === 'Enter') { e.preventDefault(); onOk(); }
+        else if (e.key === 'Escape') { cleanup(null); }
+      }
+
+      authOkBtn.addEventListener('click', onOk);
+      authCancelBtn.addEventListener('click', onCancel);
+      authMask.addEventListener('click', onMask);
+      document.addEventListener('keydown', onKey);
+      setTimeout(function () {
+        if (needInput) authInputEl.focus();
+        else authOkBtn.focus();
+      }, 30);
+    });
+  }
+
+  // 校验电脑登录密码：通过 true；取消 / 校验失败 / 未设置电脑密码均 false
+  async function requireWinPassword(tip) {
+    if (!invokeApi) return false;
+    let hasPwd;
+    try {
+      hasPwd = await invokeApi('windows_password_set');
+    } catch (e) {
+      window.toast('无法检测电脑密码状态，请稍后重试');
+      return false;
+    }
+    if (!hasPwd) {
+      await showAuthPrompt({
+        tip: '此功能需要先设置电脑登录密码：请在「Windows 设置 → 账户 → 登录选项」中为当前电脑账户创建密码',
+        needInput: false,
+      });
+      return false;
+    }
+    let error = '';
+    for (;;) {
+      const pwd = await showAuthPrompt({ tip: tip, error: error });
+      if (pwd === null) return false;
+      if (!pwd) {
+        error = '请输入电脑登录密码';
+        continue;
+      }
+      let ok;
+      try {
+        ok = await invokeApi('verify_windows_password', { password: pwd });
+      } catch (e) {
+        error = '校验失败，请重试';
+        continue;
+      }
+      if (ok === true) return true;
+      error = '电脑登录密码错误，请重试';
+    }
+  }
+
+  // 设置弹窗
+  function openSettings() {
+    accLockSwitch.checked = accLockEnabled();
+    settingsMask.classList.remove('hidden');
+    settingsCloseBtn.focus();
+  }
+
+  function closeSettings() {
+    settingsMask.classList.add('hidden');
+  }
+
+  settingsBtn.addEventListener('click', openSettings);
+  settingsCloseBtn.addEventListener('click', closeSettings);
+  settingsMask.addEventListener('click', function (e) {
+    if (e.target === settingsMask) closeSettings();
+  });
+  // 弹窗内点击不冒泡到 document（避免误触发其他组件的“点击空白关闭”逻辑）
+  settingsMask.addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+  authMask.addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+  document.addEventListener('keydown', function (e) {
+    // 校验弹窗打开时，Esc 只关闭校验弹窗（由校验弹窗自身的监听处理）
+    if (e.key === 'Escape' && !settingsMask.classList.contains('hidden') && authMask.classList.contains('hidden')) {
+      closeSettings();
+    }
+  });
+
+  // 开关切换：先回滚视觉状态，校验通过后再应用（开启/关闭都需要校验）
+  accLockSwitch.addEventListener('change', async function () {
+    const want = accLockSwitch.checked;
+    accLockSwitch.checked = !want;
+    accLockSwitch.disabled = true;
+    try {
+      const ok = await requireWinPassword(want ? '开启此功能需要验证电脑登录密码' : '关闭此功能需要验证电脑登录密码');
+      if (ok) {
+        accLockSwitch.checked = want;
+        setAccLock(want);
+        window.toast(want ? '已开启：查看「账号密码」需校验电脑登录密码' : '已关闭查看校验');
+      }
+    } finally {
+      accLockSwitch.disabled = false;
+    }
+  });
+
+  accLockSwitch.checked = accLockEnabled();
 })();
