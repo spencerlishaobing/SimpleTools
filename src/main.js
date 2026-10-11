@@ -240,6 +240,16 @@
     } catch (e) { /* ignore */ }
   }
 
+  // 窗口（标题栏左上角 / 任务栏）小图标随主题切换：与侧边栏品牌图标同款（v0.29.0）
+  // light / dark / mix → 蓝紫渐变；khaki → 卡其金渐变（Rust 端按 theme 选择内置图标）
+  function syncWindowIcon(theme) {
+    if (!invokeApi) return;
+    try {
+      const p = invokeApi('set_window_icon', { theme });
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
+
   function currentTheme() {
     const t = document.documentElement.getAttribute('data-theme');
     return t === 'dark' || t === 'khaki' || t === 'mix' ? t : 'light';
@@ -261,6 +271,7 @@
     } catch (e) { /* ignore */ }
     updateToggleUI(theme);
     syncTitlebar(theme);
+    syncWindowIcon(theme);
   }
 
   // ---------- 主题选择菜单（点按钮弹出，直接点选；复用导出菜单样式与关闭机制） ----------
@@ -337,6 +348,7 @@
 
   updateToggleUI(currentTheme());
   syncTitlebar(currentTheme());
+  syncWindowIcon(currentTheme());
 
   // ---------- 应用设置：账号密码安全锁（v0.15.0；v0.19.0 起改为 Windows Hello 验证） ----------
   // - 账号密码数据由 Rust 侧 DPAPI 加密落盘（见 src-tauri/winsec.rs）

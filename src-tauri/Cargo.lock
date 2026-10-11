@@ -3032,7 +3032,7 @@ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
 
 [[package]]
 name = "simpletools"
-version = "0.28.0"
+version = "0.29.0"
 dependencies = [
  "md-5",
  "serde",
@@ -3308,6 +3308,7 @@ dependencies = [
  "heck 0.5.0",
  "http",
  "http-range",
+ "image",
  "jni",
  "libc",
  "log",

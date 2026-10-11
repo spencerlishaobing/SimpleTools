@@ -31,6 +31,7 @@ pub fn run() {
             textfile::read_text_file,
             textfile::write_text_file,
             titlebar::set_titlebar_color,
+            titlebar::set_window_icon,
             winsec::hello_availability,
             winsec::hello_verify
         ])

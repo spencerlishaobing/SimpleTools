@@ -1,4 +1,4 @@
-/* ===== 系统标题栏颜色（跟随应用主题切换，Windows 11 22H2+） ===== */
+/* ===== 系统标题栏颜色与窗口图标（跟随应用主题切换，Windows 11 22H2+） ===== */
 #[cfg(target_os = "windows")]
 use std::ffi::c_void;
 
@@ -59,4 +59,17 @@ pub fn set_titlebar_color(
         let _ = (window, bg, text, border);
     }
     Ok(())
+}
+
+/// 随主题切换窗口图标（标题栏左上角小图标 + 任务栏 + Alt+Tab，Windows 下同一 HWND 图标）。
+/// 与侧边栏品牌图标同款样式：blue=蓝紫渐变（浅色 / 深色 / 深浅混搭共用），khaki=卡其金渐变。
+#[tauri::command]
+pub fn set_window_icon(window: tauri::WebviewWindow, theme: String) -> Result<(), String> {
+    let bytes: &[u8] = if theme == "khaki" {
+        include_bytes!("../icons/theme/icon-khaki.png")
+    } else {
+        include_bytes!("../icons/theme/icon-blue.png")
+    };
+    let icon = tauri::image::Image::from_bytes(bytes).map_err(|e| format!("图标解码失败: {e}"))?;
+    window.set_icon(icon).map_err(|e| format!("设置窗口图标失败: {e}"))
 }
