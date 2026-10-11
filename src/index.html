@@ -134,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.27.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.28.0 <span class="version-stack">· Tauri + Rust</span></div>
     </div>
   </aside>
 
@@ -291,10 +291,40 @@
                 <label class="md-search-sync" title="勾选后，切换命中时左侧源文件同步滚动到对应位置">
                   <input type="checkbox" id="note-md-search-sync" checked />同步源文件
                 </label>
-                <button class="md-tool-btn" id="note-md-search-prev" title="上一个（Shift+Enter）">↑</button>
-                <button class="md-tool-btn" id="note-md-search-next" title="下一个（Enter）">↓</button>
-                <button class="md-tool-btn" id="note-md-search-close" title="关闭搜索（Esc）">×</button>
+                <button class="md-tool-btn" id="note-md-search-prev" title="上一个">↑</button>
+                <button class="md-tool-btn" id="note-md-search-next" title="下一个">↓</button>
+                <button class="md-tool-btn" id="note-md-search-close" title="关闭搜索">×</button>
               </div>
+            </div>
+            <div class="note-task-wrap" id="note-task-wrap">
+              <div class="task-bar">
+                <label class="task-auto-label" title="勾选后任务前显示自动递增序号">
+                  <input type="checkbox" id="task-auto-no" checked />自动序号
+                </label>
+                <span class="task-count" id="task-count"></span>
+                <div class="task-bar-actions">
+                  <button class="btn small" id="task-add-simple" title="添加一条纯文本任务">+ 简单任务</button>
+                  <button class="btn small primary" id="task-add-rich" title="添加一条富文本任务（标题 + 富文本内容）">+ 富文本任务</button>
+                </div>
+              </div>
+              <ul class="task-list" id="task-list"></ul>
+              <div class="task-empty" id="task-empty">暂无任务，点击上方按钮添加</div>
+            </div>
+            <div class="task-detail hidden" id="task-detail">
+              <div class="task-detail-bar">
+                <button class="btn small" id="task-detail-back" title="保存并返回任务组列表">← 返回任务组</button>
+                <span class="task-detail-hint">富文本任务</span>
+              </div>
+              <input id="task-detail-title" class="note-title-input" placeholder="任务标题（必填）" />
+              <div class="task-toolbar">
+                <button class="task-tool-btn" id="task-tool-bold" title="加粗"><span class="tt-bold">B</span></button>
+                <button class="task-tool-btn" id="task-tool-italic" title="斜体"><span class="tt-italic">I</span></button>
+                <button class="task-tool-btn" id="task-tool-underline" title="下划线"><span class="tt-underline">U</span></button>
+                <button class="task-tool-btn" id="task-tool-ul" title="无序列表">• 列表</button>
+                <button class="task-tool-btn" id="task-tool-ol" title="有序列表">1. 列表</button>
+                <button class="task-tool-btn" id="task-tool-image" title="插入本地图片">图片</button>
+              </div>
+              <div class="task-rich-editor" id="task-rich-editor" contenteditable="true" spellcheck="false"></div>
             </div>
           </div>
           <div class="notes-editor-footer">

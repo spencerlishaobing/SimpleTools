@@ -35,9 +35,19 @@
   const noteMdSearchInput = document.getElementById('note-md-search-input');
   const noteMdSearchCount = document.getElementById('note-md-search-count');
   const noteMdSearchSyncEl = document.getElementById('note-md-search-sync');
+  const taskWrapEl = document.getElementById('note-task-wrap');
+  const taskListEl = document.getElementById('task-list');
+  const taskEmptyEl = document.getElementById('task-empty');
+  const taskCountEl = document.getElementById('task-count');
+  const taskAutoNoEl = document.getElementById('task-auto-no');
+  const taskDetailEl = document.getElementById('task-detail');
+  const taskDetailTitleEl = document.getElementById('task-detail-title');
+  const taskRichEditorEl = document.getElementById('task-rich-editor');
 
   const state = {
-    notes: [],      // [{ id, title, content, type: 'text' | 'md', updated_at }]
+    // [{ id, title, content, type: 'text' | 'md' | 'task', tasks, auto_no, updated_at }]
+    //   type='task' 任务笔记：tasks 为任务列表（简单 / 富文本任务），auto_no 是否启用自动序号
+    notes: [],
     currentId: null,
     filter: '',     // 搜索关键字（过滤列表显示）
     searchMode: 'title',  // 搜索范围：'title' 标题（默认）/ 'content' 内容（模糊）
@@ -64,9 +74,14 @@
     '<rect x="3" y="3" width="18" height="18" rx="4.5"/>' +
     '<path d="M7 15.5V8.5l3 3 3-3v7"/>' +
     '<path d="M17 8.5v6.5m0 0l-2-2m2 2l2-2"/></svg>';
+  const ICON_TASK = '<svg class="note-type-icon is-task" ' + ICON_ATTRS + '>' +
+    '<rect x="3" y="4" width="18" height="16" rx="3"/>' +
+    '<polyline points="7.5 12.5 10.5 15.5 16 9.5"/></svg>';
 
   function noteIcon(type) {
-    return type === 'md' ? ICON_MD : ICON_TEXT;
+    if (type === 'md') return ICON_MD;
+    if (type === 'task') return ICON_TASK;
+    return ICON_TEXT;
   }
 
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -161,11 +176,13 @@
 
   function renderList() {
     // 搜索过滤：按当前范围（标题 / 内容）仅显示匹配记录（过滤状态下禁用拖动排序）
+    // 内容模式下任务笔记按任务级命中（简单任务文本 / 富文本标题 / 富文本内容）匹配
     const raw = state.filter.trim();
     const kw = raw.toLowerCase();
     const isContent = state.searchMode === 'content';
     const visible = kw
       ? state.notes.filter((n) => {
+        if (isContent && n.type === 'task') return taskHits(n, kw).length > 0;
         const src = isContent ? (n.content || '') : (n.title || '');
         return src.toLowerCase().indexOf(kw) >= 0;
       })
@@ -178,14 +195,30 @@
         (selected ? ' selected' : '');
       li.dataset.id = n.id;
       li.draggable = !multi.active && !kw;
-      // 搜索时：标题命中片段高亮；内容模式额外展示命中摘要行
+      // 搜索时：标题命中片段高亮；内容模式额外展示命中摘要行（任务笔记改为命中任务行）
       const titleHtml = kw ? hlHtml(n.title || '未命名', raw) : esc(n.title || '未命名');
-      const snippet = kw && isContent ? pickSnippet(n.content, raw) : '';
+      const snippet = kw && isContent && n.type !== 'task' ? pickSnippet(n.content, raw) : '';
+      let hitsHtml = '';
+      if (kw && isContent && n.type === 'task' && !multi.active) {
+        hitsHtml = taskHits(n, kw).map((h) => {
+          if (h.kind === 'content') {
+            // 富文本内容命中：只显示标题 + 「内容匹配」标记，点击进入详情并高亮命中词
+            return '<div class="note-task-hit" data-task-id="' + h.taskId + '" data-hit="content" title="点击进入富文本详情">' +
+              '<span class="task-hit-name">' + esc(h.task.title || '未命名任务') + '</span>' +
+              '<span class="task-hit-badge">内容匹配</span></div>';
+          }
+          const label = h.kind === 'title' ? (h.task.title || '未命名任务') : h.task.text;
+          return '<div class="note-task-hit" data-task-id="' + h.taskId + '" data-hit="' + h.kind + '" title="点击查看任务">' +
+            '<span class="task-hit-name">' + hlHtml(label, raw) + '</span>' +
+            (h.kind === 'title' ? '<span class="task-hit-badge is-rich">富文本</span>' : '') + '</div>';
+        }).join('');
+      }
       li.innerHTML =
         (multi.active ? '<span class="note-check">' + (selected ? '✓' : '') + '</span>' : '') +
         '<div class="note-item-title">' + noteIcon(n.type) +
         '<span class="note-item-name">' + titleHtml + '</span></div>' +
         (snippet ? '<div class="note-item-snippet">' + hlHtml(snippet, raw) + '</div>' : '') +
+        (hitsHtml ? '<div class="note-item-hits">' + hitsHtml + '</div>' : '') +
         '<div class="note-item-meta">' + formatTime(n.updated_at) + '</div>' +
         '<button class="note-item-remove" title="删除该记录">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -202,6 +235,13 @@
       li.querySelector('.note-item-remove').addEventListener('click', (e) => {
         e.stopPropagation();
         removeNote(n.id);
+      });
+      // 命中任务行：点击进入任务组定位 / 打开富文本详情
+      li.querySelectorAll('.note-task-hit').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!multi.active) openTaskHit(n.id, el.dataset.taskId, el.dataset.hit, raw);
+        });
       });
       listEl.appendChild(li);
     }
@@ -220,12 +260,13 @@
   function selectNote(id) {
     const note = state.notes.find((n) => n.id === id);
     if (!note) return;
+    if (id !== state.currentId && taskDetailId) syncTaskRichContent(); // 离开前落盘未保存的富文本编辑
     state.currentId = id;
     titleEl.value = note.title;
     contentEl.value = note.content;
     metaEl.textContent = '最后更新:' + formatTime(note.updated_at);
     editorEl.classList.remove('hidden');
-    setEditorMode(note.type === 'md');
+    setEditorMode(note.type);
     renderList();
   }
 
@@ -258,10 +299,19 @@
     updateNoteActiveHeading();
   }
 
-  function setEditorMode(isMd) {
+  function setEditorMode(type) {
+    const isMd = type === 'md';
+    const isTask = type === 'task';
     bodyWrapEl.classList.toggle('is-md', isMd);
+    bodyWrapEl.classList.toggle('is-task', isTask);
     clearTimeout(mdPreviewTimer);
+    // 切换笔记 / 模式时回到任务组列表视图
+    taskDetailId = null;
+    taskHighlightTerm = '';
+    taskDetailEl.classList.add('hidden');
+    taskWrapEl.classList.remove('hidden');
     if (isMd) renderMdPreview();
+    if (isTask) renderTaskList();
   }
 
   // ---- 目录 ----
@@ -427,17 +477,468 @@
   document.getElementById('note-md-search-next').addEventListener('click', () => noteNavTo(noteMarkIdx + 1));
   document.getElementById('note-md-search-close').addEventListener('click', closeNoteSearch);
 
+  // ---------- 任务笔记（v0.28.0：任务组 + 简单 / 富文本任务 + 完成状态 + 自动序号） ----------
+
+  let taskDetailId = null;      // 当前打开的富文本任务 id（null = 停留任务组列表视图）
+  let taskHighlightTerm = '';   // 搜索命中富文本内容后进入详情时的高亮词（仅展示用，不落盘）
+
+  // 富文本内容白名单：仅保留编辑器产生的行内 / 列表 / 图片标签，其余标签解包为文本
+  const RICH_TAG_WHITELIST = {
+    B: 1, STRONG: 1, I: 1, EM: 1, U: 1, S: 1, DEL: 1,
+    UL: 1, OL: 1, LI: 1, BR: 1, DIV: 1, P: 1, IMG: 1,
+  };
+  const RICH_DROP_TAGS = {
+    SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1,
+    LINK: 1, META: 1, SVG: 1, MATH: 1, TEMPLATE: 1,
+  };
+
+  function sanitizeRichHtml(html) {
+    const root = document.createElement('div');
+    root.innerHTML = String(html == null ? '' : html);
+    const walk = (node) => {
+      for (const child of Array.from(node.childNodes)) {
+        if (child.nodeType !== 1) continue;
+        const tag = child.tagName;
+        if (RICH_DROP_TAGS[tag]) { child.remove(); continue; }
+        if (!RICH_TAG_WHITELIST[tag]) {
+          walk(child);
+          while (child.firstChild) node.insertBefore(child.firstChild, child);   // 解包：保留文本与子元素
+          child.remove();
+          continue;
+        }
+        if (tag === 'IMG') {
+          const src = child.getAttribute('src') || '';
+          const path = child.getAttribute('data-path') || '';
+          const keepPath = path && !/^(javascript|vbscript|blob):/i.test(path) ? path : '';
+          const keepSrc = src && !/^(javascript|vbscript|blob):/i.test(src) ? src : '';
+          for (const a of Array.from(child.attributes)) child.removeAttribute(a.name);
+          if (!keepSrc && !keepPath) { child.remove(); continue; }
+          child.setAttribute('src', keepSrc || keepPath);
+          if (keepPath) child.setAttribute('data-path', keepPath);
+          continue;
+        }
+        for (const a of Array.from(child.attributes)) child.removeAttribute(a.name);
+        walk(child);
+      }
+    };
+    walk(root);
+    return root.innerHTML;
+  }
+
+  // 富文本 HTML → 纯文本（搜索匹配 / 复制 / 导出用；块级元素与 <br> 转行）
+  function htmlToText(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = sanitizeRichHtml(html);
+    tmp.querySelectorAll('br').forEach((br) => br.parentNode.replaceChild(document.createTextNode('\n'), br));
+    tmp.querySelectorAll('div, p, li').forEach((el) => el.appendChild(document.createTextNode('\n')));
+    return String(tmp.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  // 任务笔记整体纯文本（复制 / TXT 导出）
+  function taskNoteToText(n) {
+    const lines = [];
+    (n.tasks || []).forEach((t, i) => {
+      const no = n.auto_no !== false ? (i + 1) + '. ' : '';
+      const box = t.done ? '[x] ' : '[ ] ';
+      if (t.kind === 'rich') {
+        lines.push(no + box + (t.title || '未命名任务'));
+        const plain = htmlToText(t.content);
+        if (plain) plain.split('\n').forEach((l) => lines.push('    ' + l));
+      } else {
+        lines.push(no + box + (t.text || ''));
+      }
+    });
+    return lines.join('\n');
+  }
+
+  // 从磁盘读入的任务数据归一化（兼容缺字段的旧数据）
+  function normTask(t) {
+    return {
+      id: t.id || genId(),
+      kind: t.kind === 'rich' ? 'rich' : 'simple',
+      text: String(t.text == null ? '' : t.text),
+      title: String(t.title == null ? '' : t.title),
+      content: String(t.content == null ? '' : t.content),
+      done: !!t.done,
+    };
+  }
+
+  function isTaskNote(n) { return !!n && n.type === 'task'; }
+
+  function getTask(note, id) {
+    if (!isTaskNote(note) || !id) return null;
+    return note.tasks.find((t) => t.id === id) || null;
+  }
+
+  // 内容模式下任务笔记的命中（富文本标题命中优先，不再重复计入内容命中）
+  function taskHits(note, kw) {
+    const hits = [];
+    for (const t of (note.tasks || [])) {
+      if (t.kind === 'rich') {
+        if ((t.title || '').toLowerCase().indexOf(kw) >= 0) {
+          hits.push({ taskId: t.id, kind: 'title', task: t });
+        } else {
+          const plain = htmlToText(t.content);
+          if (plain && plain.toLowerCase().indexOf(kw) >= 0) {
+            hits.push({ taskId: t.id, kind: 'content', task: t });
+          }
+        }
+      } else if ((t.text || '').toLowerCase().indexOf(kw) >= 0) {
+        hits.push({ taskId: t.id, kind: 'text', task: t });
+      }
+    }
+    return hits;
+  }
+
+  // ---- 任务组列表视图 ----
+
+  function updateTaskCount() {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    const total = note.tasks.length;
+    const done = note.tasks.filter((t) => t.done).length;
+    taskCountEl.textContent = total ? '已完成 ' + done + ' / ' + total : '';
+  }
+
+  function renderTaskList() {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    taskAutoNoEl.checked = note.auto_no !== false;
+    taskListEl.innerHTML = '';
+    note.tasks.forEach((t, i) => {
+      const li = document.createElement('li');
+      li.className = 'task-item' + (t.kind === 'rich' ? ' is-rich' : '') + (t.done ? ' done' : '');
+      li.dataset.id = t.id;
+      const noHtml = note.auto_no !== false ? '<span class="task-no">' + (i + 1) + '.</span>' : '';
+      const checkHtml = '<label class="task-check" title="标记完成 / 未完成">' +
+        '<input type="checkbox" class="task-done"' + (t.done ? ' checked' : '') + ' /></label>';
+      if (t.kind === 'rich') {
+        li.innerHTML = noHtml + checkHtml +
+          '<div class="task-main">' +
+          '<button type="button" class="task-open" title="打开富文本详情">' + esc(t.title || '未命名任务') + '</button>' +
+          '<span class="task-badge">富文本</span></div>' +
+          '<div class="task-actions"><button class="task-btn danger" data-act="remove" title="删除该任务">删除</button></div>';
+      } else {
+        li.innerHTML = noHtml + checkHtml +
+          '<div class="task-main"><span class="task-text" title="点击编辑">' +
+          (t.text ? esc(t.text) : '<span class="task-text-empty">点击编辑内容</span>') +
+          '</span></div>' +
+          '<div class="task-actions"><button class="task-btn danger" data-act="remove" title="删除该任务">删除</button></div>';
+      }
+      taskListEl.appendChild(li);
+    });
+    updateTaskCount();
+    taskEmptyEl.style.display = note.tasks.length ? 'none' : 'block';
+  }
+
+  taskListEl.addEventListener('click', (e) => {
+    const li = e.target.closest('.task-item');
+    if (!li || li.classList.contains('editing')) return;
+    if (e.target.closest('.task-check')) return;   // 勾选框由 change 处理，不触发编辑 / 详情
+    const note = getCurrent();
+    const task = getTask(note, li.dataset.id);
+    if (!task) return;
+    if (e.target.closest('[data-act="remove"]')) { removeTask(task.id); return; }
+    if (task.kind === 'rich') openTaskDetail(task.id);
+    else startEditSimple(li, task);
+  });
+
+  taskListEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('.task-done');
+    if (!cb) return;
+    const li = cb.closest('.task-item');
+    const note = getCurrent();
+    const task = getTask(note, li.dataset.id);
+    if (!task) return;
+    task.done = cb.checked;
+    note.updated_at = Date.now();
+    li.classList.toggle('done', task.done);
+    updateTaskCount();
+    scheduleSave();
+  });
+
+  // 简单任务行内编辑（保存 / 取消按钮提交，无键盘快捷操作）
+  function startEditSimple(li, task) {
+    li.classList.add('editing');
+    const mainEl = li.querySelector('.task-main');
+    mainEl.innerHTML = '<input class="task-inline-input" spellcheck="false" />' +
+      '<button class="task-btn primary" data-inline="ok">保存</button>' +
+      '<button class="task-btn" data-inline="cancel">取消</button>';
+    const input = mainEl.querySelector('.task-inline-input');
+    input.value = task.text;
+    input.focus();
+    const finish = (save) => {
+      if (save) {
+        task.text = input.value.trim();
+        const note = getCurrent();
+        if (note) note.updated_at = Date.now();
+        scheduleSave();
+      }
+      renderTaskList();
+    };
+    mainEl.querySelector('[data-inline="ok"]').addEventListener('click', () => finish(true));
+    mainEl.querySelector('[data-inline="cancel"]').addEventListener('click', () => finish(false));
+  }
+
+  async function removeTask(taskId) {
+    const note = getCurrent();
+    const idx = isTaskNote(note) ? note.tasks.findIndex((t) => t.id === taskId) : -1;
+    if (idx < 0) return;
+    const task = note.tasks[idx];
+    const label = (task.kind === 'rich' ? task.title : task.text) || '未命名任务';
+    const ok = await window.showConfirm('确定删除任务「' + label + '」吗？删除后无法恢复。', {
+      title: '删除任务',
+      okText: '删除',
+    });
+    if (!ok) return;
+    note.tasks.splice(idx, 1);
+    note.updated_at = Date.now();
+    renderTaskList();
+    scheduleSave();
+  }
+
+  function addSimpleTask() {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    const task = { id: genId(), kind: 'simple', text: '', title: '', content: '', done: false };
+    note.tasks.push(task);
+    note.updated_at = Date.now();
+    renderTaskList();
+    scheduleSave();
+    const li = taskListEl.querySelector('.task-item[data-id="' + task.id + '"]');
+    if (li) startEditSimple(li, task);
+  }
+
+  function addRichTask() {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    const task = { id: genId(), kind: 'rich', text: '', title: '新任务', content: '', done: false };
+    note.tasks.push(task);
+    note.updated_at = Date.now();
+    renderTaskList();
+    scheduleSave();
+    openTaskDetail(task.id);
+    taskDetailTitleEl.focus();
+    taskDetailTitleEl.select();
+  }
+
+  taskAutoNoEl.addEventListener('change', () => {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    note.auto_no = taskAutoNoEl.checked;
+    note.updated_at = Date.now();
+    renderTaskList();
+    scheduleSave();
+  });
+
+  document.getElementById('task-add-simple').addEventListener('click', addSimpleTask);
+  document.getElementById('task-add-rich').addEventListener('click', addRichTask);
+
+  // ---- 富文本任务详情（所见即所得编辑） ----
+
+  // 本地路径 → Tauri asset 协议 URL（无 Tauri 接口时返回空）
+  function toAssetUrl(p) {
+    const api = window.__TAURI__ && window.__TAURI__.core;
+    if (api && typeof api.convertFileSrc === 'function') {
+      try { return api.convertFileSrc(p); } catch (e) { return ''; }
+    }
+    return '';
+  }
+
+  // 编辑器内图片：data-path 记录原始路径（落盘用），src 换为 asset URL 显示
+  function hydrateTaskImages() {
+    taskRichEditorEl.querySelectorAll('img').forEach((img) => {
+      const p = img.getAttribute('data-path');
+      if (p) {
+        const url = toAssetUrl(p);
+        if (url) img.setAttribute('src', url);
+        return;
+      }
+      const src = img.getAttribute('src') || '';
+      if (src && !/^(https?|data):/i.test(src)) {
+        const url = toAssetUrl(src);
+        if (url) { img.setAttribute('data-path', src); img.setAttribute('src', url); }
+      }
+    });
+  }
+
+  // 序列化编辑器内容：图片 src 还原为原始路径；mark 高亮由白名单清洗自动解包
+  function serializeTaskContent() {
+    const clone = taskRichEditorEl.cloneNode(true);
+    clone.querySelectorAll('img').forEach((img) => {
+      const p = img.getAttribute('data-path');
+      if (p) { img.setAttribute('src', p); img.removeAttribute('data-path'); }
+    });
+    return sanitizeRichHtml(clone.innerHTML);
+  }
+
+  function syncTaskRichContent() {
+    const note = getCurrent();
+    const task = getTask(note, taskDetailId);
+    if (!task) return;
+    task.content = serializeTaskContent();
+    note.updated_at = Date.now();
+    scheduleSave();
+  }
+
+  function openTaskDetail(id) {
+    const note = getCurrent();
+    const task = getTask(note, id);
+    if (!task || task.kind !== 'rich') return;
+    taskDetailId = id;
+    taskDetailTitleEl.value = task.title || '';
+    taskRichEditorEl.innerHTML = sanitizeRichHtml(task.content || '');
+    hydrateTaskImages();
+    taskWrapEl.classList.add('hidden');
+    taskDetailEl.classList.remove('hidden');
+    applyTaskDetailHighlight();
+  }
+
+  function closeTaskDetail() {
+    if (!taskDetailId) return;
+    syncTaskRichContent();   // 返回前最终落盘一次
+    taskDetailId = null;
+    taskHighlightTerm = '';
+    taskDetailEl.classList.add('hidden');
+    taskWrapEl.classList.remove('hidden');
+    renderTaskList();
+  }
+
+  document.getElementById('task-detail-back').addEventListener('click', closeTaskDetail);
+
+  taskDetailTitleEl.addEventListener('input', () => {
+    const note = getCurrent();
+    const task = getTask(note, taskDetailId);
+    if (!task) return;
+    task.title = taskDetailTitleEl.value;
+    note.updated_at = Date.now();
+    scheduleSave();
+  });
+
+  taskRichEditorEl.addEventListener('input', syncTaskRichContent);
+
+  // 粘贴统一转纯文本插入，避免带入外部样式与危险标签
+  taskRichEditorEl.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+    if (!text) return;
+    const html = text.split(/\r\n|\r|\n/).map((line) => esc(line)).join('<br>');
+    document.execCommand('insertHTML', false, html);
+    syncTaskRichContent();
+  });
+
+  // 工具栏：mousedown 阻止默认，避免点击按钮时编辑器选区丢失
+  const richCommands = [
+    ['task-tool-bold', 'bold'],
+    ['task-tool-italic', 'italic'],
+    ['task-tool-underline', 'underline'],
+    ['task-tool-ul', 'insertUnorderedList'],
+    ['task-tool-ol', 'insertOrderedList'],
+  ];
+  richCommands.forEach(([id, cmd]) => {
+    const btn = document.getElementById(id);
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      taskRichEditorEl.focus();
+      document.execCommand(cmd, false, null);
+      syncTaskRichContent();
+    });
+  });
+
+  const taskImageBtn = document.getElementById('task-tool-image');
+  taskImageBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  taskImageBtn.addEventListener('click', async () => {
+    if (!dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    let picked = null;
+    try {
+      picked = await dialogApi.open({
+        multiple: false,
+        title: '选择图片',
+        filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
+      });
+    } catch (e) {
+      window.toast('打开文件选择器失败：' + e);
+      return;
+    }
+    const p = typeof picked === 'string' ? picked : (picked && picked.path) || (Array.isArray(picked) ? picked[0] : null);
+    if (!p) return;
+    taskRichEditorEl.focus();
+    // 折叠选区到末尾，避免选中文本时插图直接替换选区内容
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      const r = sel.getRangeAt(0).cloneRange();
+      r.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    const url = toAssetUrl(p) || p;
+    document.execCommand('insertHTML', false,
+      '<img src="' + esc(url) + '" data-path="' + esc(p) + '">');
+    syncTaskRichContent();
+  });
+
+  // 搜索命中富文本内容进入详情：正文中高亮命中词（序列化时自动清除，不落盘）
+  function applyTaskDetailHighlight() {
+    if (!taskHighlightTerm) return;
+    const q = taskHighlightTerm.toLowerCase();
+    const walker = document.createTreeWalker(taskRichEditorEl, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const text = node.nodeValue;
+      const tl = text.toLowerCase();
+      let idx = tl.indexOf(q);
+      if (idx === -1) continue;
+      const frag = document.createDocumentFragment();
+      let pos = 0;
+      while (idx !== -1) {
+        if (idx > pos) frag.appendChild(document.createTextNode(text.slice(pos, idx)));
+        const mk = document.createElement('mark');
+        mk.className = 'md-mark';
+        mk.textContent = text.slice(idx, idx + q.length);
+        frag.appendChild(mk);
+        pos = idx + q.length;
+        idx = tl.indexOf(q, pos);
+      }
+      if (pos < text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag, node);
+    }
+    const first = taskRichEditorEl.querySelector('mark.md-mark');
+    if (first) first.scrollIntoView({ block: 'center' });
+  }
+
+  // 任务级搜索命中：文本 / 标题命中进入任务组并定位高亮；内容命中进入富文本详情并高亮
+  function openTaskHit(noteId, taskId, hitKind, keyword) {
+    selectNote(noteId);
+    if (hitKind === 'content') {
+      taskHighlightTerm = keyword;
+      openTaskDetail(taskId);
+      return;
+    }
+    const li = taskListEl.querySelector('.task-item[data-id="' + taskId + '"]');
+    if (li) {
+      li.classList.add('hit');
+      li.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
   // ---------- 操作 ----------
 
-  // 新建记录（type: 'text' 普通文本 / 'md' Markdown 笔记）
+  // 新建记录（type: 'text' 普通文本 / 'md' Markdown 笔记 / 'task' 任务笔记）
   function createNote(type) {
     const isMd = type === 'md';
+    const isTask = type === 'task';
     const now = Date.now();
     const note = {
       id: genId(),
-      title: isMd ? '新 Markdown 笔记' : '新记录',
+      title: isMd ? '新 Markdown 笔记' : (isTask ? '新任务组' : '新记录'),
       content: '',
-      type: isMd ? 'md' : 'text',
+      type: isMd ? 'md' : (isTask ? 'task' : 'text'),
+      tasks: [],
+      auto_no: true,
       updated_at: now,
     };
     state.notes.unshift(note);
@@ -470,7 +971,7 @@
         titleEl.value = '';
         contentEl.value = '';
         metaEl.textContent = '';
-        setEditorMode(false);
+        setEditorMode('text');
       }
     }
     renderList();
@@ -550,13 +1051,13 @@
         contentEl.value = next.content;
         metaEl.textContent = '最后更新:' + formatTime(next.updated_at);
         editorEl.classList.remove('hidden');
-        setEditorMode(next.type === 'md');
+        setEditorMode(next.type);
       } else {
         editorEl.classList.add('hidden');
         titleEl.value = '';
         contentEl.value = '';
         metaEl.textContent = '';
-        setEditorMode(false);
+        setEditorMode('text');
       }
     }
     exitMulti();
@@ -614,14 +1115,15 @@
     }, 0);
   }
 
-  // 点「新建记录」后弹出类型菜单（普通文本 / Markdown 笔记；与导出菜单共用弹出 / 关闭机制）
+  // 点「新建记录」后弹出类型菜单（普通文本 / Markdown 笔记 / 任务笔记；与导出菜单共用弹出 / 关闭机制）
   function openNewNoteMenu(btn) {
     closeExportMenu();
     const menu = document.createElement('div');
     menu.className = 'export-menu note-type-menu';
     menu.innerHTML =
       '<button type="button" data-note-type="text">' + ICON_TEXT + '普通文本</button>' +
-      '<button type="button" data-note-type="md">' + ICON_MD + 'Markdown 笔记</button>';
+      '<button type="button" data-note-type="md">' + ICON_MD + 'Markdown 笔记</button>' +
+      '<button type="button" data-note-type="task">' + ICON_TASK + '任务笔记</button>';
     document.body.appendChild(menu);
     const rect = btn.getBoundingClientRect();
     let left = rect.left;
@@ -672,7 +1174,14 @@
   }
 
   function noteToJson(n) {
-    return { title: n.title, content: n.content, type: n.type || 'text', updated_at: n.updated_at };
+    const out = { title: n.title, content: n.content, type: n.type || 'text', updated_at: n.updated_at };
+    if (n.type === 'task') {
+      out.tasks = (n.tasks || []).map((t) => ({
+        id: t.id, kind: t.kind, text: t.text, title: t.title, content: t.content, done: !!t.done,
+      }));
+      out.auto_no = n.auto_no !== false;
+    }
+    return out;
   }
 
   // 组装待写入文件：JSON 单条为对象、批量为数组单文件；TXT 每篇一个文件（重名自动加序号）
@@ -696,7 +1205,8 @@
       let name = base;
       for (let i = 2; used.has(name.toLowerCase()); i++) name = base + '(' + i + ')';
       used.add(name.toLowerCase());
-      const body = (n.title ? n.title + '\n\n' : '') + (n.content || '');
+      const body = (n.title ? n.title + '\n\n' : '') +
+        (n.type === 'task' ? taskNoteToText(n) : (n.content || ''));
       files.push({ name: name + '.txt', content: '\uFEFF' + body });
     }
     return files;
@@ -821,7 +1331,8 @@
       window.toast('请先选择一条记录');
       return;
     }
-    const text = contentEl.value;
+    const note = getCurrent();
+    const text = isTaskNote(note) ? taskNoteToText(note) : contentEl.value;
     if (!text) {
       window.toast('内容为空，无可复制');
       return;
@@ -923,14 +1434,19 @@
     }
     try {
       const notes = await invoke('notes_load');
-      // 归一化：旧数据无 type 字段按 text 处理
-      state.notes = (Array.isArray(notes) ? notes : []).map((n) => ({
-        id: n.id,
-        title: n.title,
-        content: n.content,
-        type: n.type === 'md' ? 'md' : 'text',
-        updated_at: n.updated_at,
-      }));
+      // 归一化：旧数据无 type 字段按 text 处理；任务笔记补全 tasks / auto_no 缺省值
+      state.notes = (Array.isArray(notes) ? notes : []).map((n) => {
+        const type = n.type === 'md' ? 'md' : (n.type === 'task' ? 'task' : 'text');
+        return {
+          id: n.id,
+          title: n.title,
+          content: n.content,
+          type,
+          tasks: type === 'task' && Array.isArray(n.tasks) ? n.tasks.map(normTask) : [],
+          auto_no: n.auto_no === undefined ? true : !!n.auto_no,
+          updated_at: n.updated_at,
+        };
+      });
     } catch (e) {
       window.toast('加载记事本失败：' + e);
       state.notes = [];
