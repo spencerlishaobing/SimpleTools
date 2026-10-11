@@ -103,7 +103,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.24.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.24.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -172,6 +172,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.24.1（2026-10-11）
+
+- 各面板顶部操作区选项间距优化（JSON 格式化 / 文本对比 / MD5 计算等）：选项与按钮之间间距由 8px 增大至 12px，选项换行时上下行距同步加大；面板标题与操作区间距微调，缓解选项拥挤感
 
 ### v0.24.0（2026-10-11）
 

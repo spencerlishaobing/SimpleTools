@@ -397,7 +397,7 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .panel-header h2 {
@@ -409,7 +409,8 @@ body {
 .panel-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* 12px：选项与按钮之间（含换行后的上下行距）不再拥挤 */
+  gap: 12px;
   flex-wrap: wrap;
 }
 
