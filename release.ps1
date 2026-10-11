@@ -104,7 +104,10 @@ $localTag = (Invoke-Git @('tag', '--list', $tag)).Trim()
 if ($localTag) {
   $tagCommit = (Invoke-Git @('rev-list', '-n', '1', $tag)).Trim()
   $fullHead = (Invoke-Git @('rev-parse', 'HEAD')).Trim()
-  if ($tagCommit -ne $fullHead) { Fail "local tag $tag exists but points to $($tagCommit.Substring(0, 7)), not HEAD" }
+  if ($tagCommit -ne $fullHead) {
+    # 续跑场景（tag 已推、之后又有修复提交）：提示并复用，不中断
+    Write-Output "STEP tag $tag exists at $($tagCommit.Substring(0, 7)) (HEAD $($fullHead.Substring(0, 7))), reuse"
+  }
 }
 $remoteTag = (Invoke-Git @('ls-remote', '--tags', 'origin', "refs/tags/$tag")).Trim()
 
