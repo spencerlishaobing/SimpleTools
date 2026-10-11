@@ -97,7 +97,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.22.1_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.22.2_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -166,6 +166,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.22.2（2026-10-11）
+
+- 四个工具面板（JSON 格式化 / 文本对比 / MD5 计算 / 命名转换）的「历史」按钮统一改名为「历史记录」，文案更直观（按钮位置与功能不变）
 
 ### v0.22.1（2026-10-11）
 
