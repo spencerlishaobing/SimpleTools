@@ -59,7 +59,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.2.0 · Tauri + Rust</div>
+      <div class="version">v0.3.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -117,11 +117,15 @@
       </header>
       <div class="diff-inputs">
         <div class="split-pane">
-          <div class="pane-label label-left">左侧文本（旧）</div>
+          <div class="pane-label label-left"><span>左侧文本（旧）</span>
+            <button class="pane-copy" id="diff-copy-left" title="复制左侧文本">复制</button>
+          </div>
           <textarea id="diff-left" spellcheck="false" placeholder="输入或粘贴左侧文本..."></textarea>
         </div>
         <div class="split-pane">
-          <div class="pane-label label-right">右侧文本（新）</div>
+          <div class="pane-label label-right"><span>右侧文本（新）</span>
+            <button class="pane-copy" id="diff-copy-right" title="复制右侧文本">复制</button>
+          </div>
           <textarea id="diff-right" spellcheck="false" placeholder="输入或粘贴右侧文本..."></textarea>
         </div>
       </div>
@@ -132,6 +136,8 @@
           <i class="swatch swatch-green"></i>左侧差异
           <i class="swatch swatch-red"></i>右侧差异
         </span>
+        <button class="pane-copy" id="diff-copy-result"
+          title="复制对比结果（相同行原样，差异行以 - 左侧 / + 右侧标记）">复制结果</button>
       </div>
       <div id="diff-result" class="diff-result">
         <div class="diff-empty">在上方输入两段文本后点击"对比"，差异处左侧显示绿色、右侧显示红色</div>

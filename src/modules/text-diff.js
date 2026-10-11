@@ -8,6 +8,8 @@
   const statsEl = document.getElementById('diff-stats');
   const ignoreWs = document.getElementById('diff-ignore-space');
 
+  let resultText = ''; // 最近一次对比的纯文本形式（供复制）
+
   const MAX_MATRIX = 4_000_000;   // 行级 DP 规模上限（n*m）
   const MAX_CHAR_MATRIX = 250_000; // 行内字符 DP 规模上限
   const SIM_THRESHOLD = 0.25;      // 判定为"修改行"的最低相似度
@@ -274,6 +276,7 @@
 
   function renderResult(paireOps, aRaw, bRaw) {
     const rows = [];
+    const textLines = [];
     let sameCount = 0;
     let delCount = 0;
     let insCount = 0;
@@ -282,6 +285,7 @@
     for (const op of paireOps) {
       if (op.type === 'same') {
         sameCount++;
+        textLines.push(aRaw[op.li]);
         rows.push(
           '<div class="diff-row">' +
           cellHtml('left', '', op.li + 1, aRaw[op.li], false) +
@@ -290,6 +294,7 @@
         );
       } else if (op.type === 'del') {
         delCount++;
+        textLines.push('- ' + aRaw[op.li]);
         rows.push(
           '<div class="diff-row">' +
           cellHtml('left', 'del', op.li + 1, aRaw[op.li], false) +
@@ -298,6 +303,7 @@
         );
       } else if (op.type === 'ins') {
         insCount++;
+        textLines.push('+ ' + bRaw[op.ri]);
         rows.push(
           '<div class="diff-row">' +
           cellHtml('left', 'placeholder', '', null, false) +
@@ -306,6 +312,8 @@
         );
       } else {
         modCount++;
+        textLines.push('- ' + aRaw[op.del.li]);
+        textLines.push('+ ' + bRaw[op.ins.ri]);
         const { left, right } = segsToHtmlPair(diffChars(aRaw[op.del.li], bRaw[op.ins.ri]));
         rows.push(
           '<div class="diff-row">' +
@@ -316,6 +324,7 @@
       }
     }
 
+    resultText = textLines.join('\n');
     resultEl.innerHTML = '<div class="diff-table">' + rows.join('') + '</div>';
     statsEl.textContent =
       '相同 ' + sameCount + ' 行 · 左侧独有 ' + delCount +
@@ -344,6 +353,7 @@
     const paired = pairModified(ops, aKeys, bKeys);
 
     if (paired.length === 0) {
+      resultText = '';
       resultEl.innerHTML = '<div class="diff-empty">两段文本都为空</div>';
       statsEl.textContent = '';
       return;
@@ -364,9 +374,36 @@
   document.getElementById('diff-clear').addEventListener('click', () => {
     leftEl.value = '';
     rightEl.value = '';
+    resultText = '';
     statsEl.textContent = '';
     resultEl.innerHTML =
       '<div class="diff-empty">在上方输入两段文本后点击"对比"，差异处左侧显示绿色、右侧显示红色</div>';
+  });
+
+  // ---------- 复制 ----------
+
+  document.getElementById('diff-copy-left').addEventListener('click', async () => {
+    if (!leftEl.value) {
+      window.toast('左侧文本为空');
+      return;
+    }
+    await window.copyText(leftEl.value, '已复制左侧文本');
+  });
+
+  document.getElementById('diff-copy-right').addEventListener('click', async () => {
+    if (!rightEl.value) {
+      window.toast('右侧文本为空');
+      return;
+    }
+    await window.copyText(rightEl.value, '已复制右侧文本');
+  });
+
+  document.getElementById('diff-copy-result').addEventListener('click', async () => {
+    if (!resultText) {
+      window.toast('暂无对比结果');
+      return;
+    }
+    await window.copyText(resultText, '已复制对比结果');
   });
 
   // 快捷键：Ctrl+Enter 触发对比
