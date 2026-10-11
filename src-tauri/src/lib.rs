@@ -1,3 +1,4 @@
+mod history;
 mod md5calc;
 mod notes;
 
@@ -10,6 +11,8 @@ pub fn run() {
             notes::notes_load,
             notes::notes_save,
             notes::notes_backup,
+            history::history_load,
+            history::history_save,
             md5calc::md5_text,
             md5calc::md5_file
         ])

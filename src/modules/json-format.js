@@ -71,6 +71,13 @@
     return indentSelect.value === 'tab' ? '\t' : Number(indentSelect.value);
   }
 
+  /** 写入格式化历史记录（内容过大时提示并跳过） */
+  function recordHistory(raw, result) {
+    if (window.historyStore.add('json', { input: raw, output: result }) === 'too-large') {
+      window.toast('内容过大，未加入历史记录');
+    }
+  }
+
   function format() {
     const raw = input.value;
     if (!raw.trim()) {
@@ -90,6 +97,7 @@
       (usedUnescape ? '已自动去除转义，' : '') + '格式化成功 · ' + lines + ' 行',
       'success'
     );
+    recordHistory(raw, output.value);
   }
 
   function minify() {
@@ -110,6 +118,7 @@
       (usedUnescape ? '已自动去除转义，' : '') + '已压缩为单行 · ' + output.value.length + ' 字符',
       'success'
     );
+    recordHistory(raw, output.value);
   }
 
   async function copyResult() {
@@ -154,5 +163,22 @@
   // 输入变化时清除旧状态提示
   input.addEventListener('input', () => {
     if (statusEl.classList.contains('error')) setStatus('');
+  });
+
+  // ---------- 历史记录 ----------
+
+  window.historyStore.bindPanel({
+    kind: 'json',
+    label: '格式化记录',
+    btn: document.getElementById('json-history-btn'),
+    pop: document.getElementById('json-history-pop'),
+    list: document.getElementById('json-history-list'),
+    clear: document.getElementById('json-history-clear'),
+    onRestore(rec) {
+      input.value = rec.input;
+      output.value = rec.output;
+      setStatus('已恢复历史记录（' + (rec.output.split('\n').length) + ' 行）', 'success');
+      input.focus();
+    },
   });
 })();

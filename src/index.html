@@ -59,7 +59,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.3.0 · Tauri + Rust</div>
+      <div class="version">v0.4.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -83,6 +83,16 @@
           <button class="btn primary" id="json-format" title="快捷键 Ctrl+Enter">格式化</button>
           <button class="btn" id="json-minify" title="快捷键 Ctrl+Shift+Enter">压缩</button>
           <button class="btn" id="json-clear">清空</button>
+          <div class="hist-anchor">
+            <button class="btn" id="json-history-btn" title="查看格式化历史记录（点击记录可恢复）">历史</button>
+            <div class="hist-pop hidden" id="json-history-pop">
+              <div class="hist-head">
+                <span class="hist-title">格式化记录</span>
+                <button class="hist-clear" id="json-history-clear">清空全部</button>
+              </div>
+              <div class="hist-list" id="json-history-list"></div>
+            </div>
+          </div>
         </div>
       </header>
       <div class="split">
@@ -113,6 +123,16 @@
           <button class="btn primary" id="diff-run" title="快捷键 Ctrl+Enter">对比</button>
           <button class="btn" id="diff-swap">交换左右</button>
           <button class="btn" id="diff-clear">清空</button>
+          <div class="hist-anchor">
+            <button class="btn" id="diff-history-btn" title="查看对比历史记录（点击记录可恢复）">历史</button>
+            <div class="hist-pop hidden" id="diff-history-pop">
+              <div class="hist-head">
+                <span class="hist-title">对比记录</span>
+                <button class="hist-clear" id="diff-history-clear">清空全部</button>
+              </div>
+              <div class="hist-list" id="diff-history-list"></div>
+            </div>
+          </div>
         </div>
       </header>
       <div class="diff-inputs">
@@ -238,6 +258,7 @@
     </div>
   </div>
 
+  <script src="modules/history.js"></script>
   <script src="modules/json-format.js"></script>
   <script src="modules/text-diff.js"></script>
   <script src="modules/notes.js"></script>

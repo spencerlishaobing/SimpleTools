@@ -360,6 +360,11 @@
     }
 
     renderResult(paired, aRaw, bRaw);
+
+    // 写入对比历史记录（内容过大时提示并跳过；与最新一条重复时自动跳过）
+    if (window.historyStore.add('diff', { left: leftText, right: rightText }) === 'too-large') {
+      window.toast('内容过大，未加入历史记录');
+    }
   }
 
   document.getElementById('diff-run').addEventListener('click', run);
@@ -414,5 +419,21 @@
         run();
       }
     });
+  });
+
+  // ---------- 历史记录 ----------
+
+  window.historyStore.bindPanel({
+    kind: 'diff',
+    label: '对比记录',
+    btn: document.getElementById('diff-history-btn'),
+    pop: document.getElementById('diff-history-pop'),
+    list: document.getElementById('diff-history-list'),
+    clear: document.getElementById('diff-history-clear'),
+    onRestore(rec) {
+      leftEl.value = rec.left;
+      rightEl.value = rec.right;
+      run();
+    },
   });
 })();
