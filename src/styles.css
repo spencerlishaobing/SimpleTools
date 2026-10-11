@@ -113,6 +113,55 @@
   --stripe-b: #17223a;
 }
 
+/* ---------- 主题变量：卡其色（暖色暗调，复刻在线 MD 阅读器配色） ---------- */
+[data-theme="khaki"] {
+  color-scheme: dark;
+
+  --bg: #0f0e0c;               /* 窗口底色（近黑暖棕） */
+  --panel-bg: #1a1814;         /* 卡片 / 面板（深棕） */
+  --panel-bg-subtle: #15130f;  /* 次级底（只读区等） */
+  --sidebar-bg: #0a0908;
+  --sidebar-hover: #1a1814;
+  --sidebar-text: #a89a88;
+
+  --text: #e8e0d0;             /* 暖米白 */
+  --text-dim: #8a8070;         /* 暖灰 */
+  --border: #2e2b24;
+  --border-light: #24211c;
+
+  --primary: #c8a96e;          /* 卡其金（参考站强调色） */
+  --primary-hover: #d8ba82;
+  --primary-soft: rgba(200, 169, 110, 0.18);
+
+  --danger: #d47f7f;
+  --danger-soft: #3a2624;
+  --danger-solid: #a95250;
+  --danger-solid-hover: #c26060;
+  --success: #8fbc8f;
+  --saving: #c8a96e;
+
+  --input-bg: #14120e;
+  --hover-bg: #242118;
+  --active-item-bg: rgba(200, 169, 110, 0.12);
+  --active-item-border: rgba(200, 169, 110, 0.35);
+  --ln-bg: #15130f;
+  --ln-text: #6f6555;
+
+  --scrollbar: #2e2b24;
+  --scrollbar-hover: #4a4232;
+  --toast-bg: #2e2b24;
+  --toast-text: #e8e0d0;
+
+  --green-bg: #2b3b2b;
+  --green-inline: #5d8a5d;
+  --green-strong: #8fbc8f;
+  --red-bg: #422a28;
+  --red-inline: #ad6a6a;
+  --red-strong: #d47f7f;
+  --stripe-a: #15130f;
+  --stripe-b: #1a1814;
+}
+
 /* 主题切换的平滑过渡（颜色类属性） */
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -243,16 +292,26 @@ body {
   flex-shrink: 0;
 }
 
-.theme-toggle .icon-sun {
+/* 主题图标：始终显示“点击后将切换到的主题”（浅色→月亮 / 深色→卡其 / 卡其→太阳） */
+.theme-toggle .icon-sun,
+.theme-toggle .icon-khaki {
   display: none;
-}
-
-[data-theme="dark"] .theme-toggle .icon-sun {
-  display: block;
 }
 
 [data-theme="dark"] .theme-toggle .icon-moon {
   display: none;
+}
+
+[data-theme="dark"] .theme-toggle .icon-khaki {
+  display: block;
+}
+
+[data-theme="khaki"] .theme-toggle .icon-moon {
+  display: none;
+}
+
+[data-theme="khaki"] .theme-toggle .icon-sun {
+  display: block;
 }
 
 .version {
@@ -1132,7 +1191,8 @@ textarea[readonly] {
   overflow: hidden;
 }
 
-[data-theme="dark"] .hist-pop {
+[data-theme="dark"] .hist-pop,
+[data-theme="khaki"] .hist-pop {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
@@ -1888,6 +1948,8 @@ textarea[readonly] {
 }
 
 [data-theme="dark"] .md-toc,
-[data-theme="dark"] .md-search {
+[data-theme="dark"] .md-search,
+[data-theme="khaki"] .md-toc,
+[data-theme="khaki"] .md-search {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }

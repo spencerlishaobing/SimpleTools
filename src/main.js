@@ -103,31 +103,37 @@
     });
   });
 
-  // ---------- 主题切换（默认亮色，暗黑模式持久化） ----------
+  // ---------- 主题切换（浅色 / 深色 / 卡其色，三态循环，持久化） ----------
   const THEME_KEY = 'simpletools-theme';
+  const THEME_NEXT = { light: 'dark', dark: 'khaki', khaki: 'light' };
+  const THEME_LABEL = { light: '深色模式', dark: '卡其模式', khaki: '浅色模式' };
   const themeToggle = document.getElementById('theme-toggle');
   const themeLabel = document.getElementById('theme-label');
 
   function currentTheme() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const t = document.documentElement.getAttribute('data-theme');
+    return t === 'dark' || t === 'khaki' ? t : 'light';
   }
 
   function updateToggleUI(theme) {
     // 按钮文案/图标始终表示"点击后将切换到的模式"
-    themeLabel.textContent = theme === 'dark' ? '浅色模式' : '深色模式';
+    themeLabel.textContent = THEME_LABEL[theme];
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) { /* ignore */ }
+    updateToggleUI(theme);
   }
 
   themeToggle.addEventListener('click', () => {
-    const next = currentTheme() === 'dark' ? 'light' : 'dark';
-    if (next === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch (e) { /* ignore */ }
-    updateToggleUI(next);
+    applyTheme(THEME_NEXT[currentTheme()]);
   });
 
   updateToggleUI(currentTheme());
