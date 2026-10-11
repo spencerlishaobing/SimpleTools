@@ -34,3 +34,16 @@ pub fn read_text_file(path: String) -> Result<TextFile, String> {
         content: String::from_utf8_lossy(bytes).into_owned(),
     })
 }
+
+/// 将文本内容写入本地文件（供 Markdown 预览保存 .md 等文本文件）
+/// 返回写入的文件名（含扩展名）
+#[tauri::command]
+pub fn write_text_file(path: String, content: String) -> Result<String, String> {
+    let p = PathBuf::from(&path);
+    fs::write(&p, content.as_bytes()).map_err(|e| format!("写入失败: {e}"))?;
+    let name = p
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or(path);
+    Ok(name)
+}

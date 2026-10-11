@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "默认权限：主窗口核心能力",
   "windows": ["main"],
-  "permissions": ["core:default", "clipboard-manager:allow-write-text", "dialog:allow-open"]
+  "permissions": ["core:default", "clipboard-manager:allow-write-text", "dialog:allow-open", "dialog:allow-save"]
 }

@@ -28,6 +28,7 @@
   let headingEls = [];   // 标题对应的 DOM 元素（目录高亮用）
   let renderTimer = null;
   let docDir = '';       // 当前打开文档所在目录（本地图片相对路径的解析基准）
+  let docPath = '';      // 当前打开 / 保存的文档完整路径（保存时直接覆写；为空则另存为）
 
   // ---------- 基础工具 ----------
 
@@ -572,6 +573,7 @@
       inputEl.value = r.content || '';
       docNameEl.textContent = r.name || '未命名';
       docDir = String(path).replace(/[\\/][^\\/]*$/, '');
+      docPath = String(path);
       render();
       window.toast('已打开 ' + (r.name || path));
     } catch (e) {
@@ -625,8 +627,60 @@
     inputEl.value = '';
     docNameEl.textContent = '未命名';
     docDir = '';
+    docPath = '';
     render();
     inputEl.focus();
+  });
+
+  // ---------- 保存（已有路径直接覆写；无路径弹另存为） ----------
+
+  async function saveFile() {
+    if (!invoke) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    const content = inputEl.value;
+    if (!content) {
+      window.toast('暂无可保存的内容');
+      return;
+    }
+    let path = docPath;
+    if (!path) {
+      if (!dialogApi || !dialogApi.save) {
+        window.toast('Tauri 接口不可用（请通过应用运行）');
+        return;
+      }
+      try {
+        path = await dialogApi.save({
+          title: '保存 Markdown 文件',
+          defaultPath: (docNameEl.textContent || '未命名') + '.md',
+          filters: [{ name: 'Markdown / 文本', extensions: ['md', 'markdown', 'txt'] }],
+        });
+      } catch (e) {
+        window.toast('保存文件选择器失败：' + e);
+        return;
+      }
+      if (!path) return; // 用户取消
+    }
+    try {
+      const name = await invoke('write_text_file', { path, content });
+      docPath = path;
+      docDir = String(path).replace(/[\\/][^\\/]*$/, '');
+      docNameEl.textContent = name || '未命名';
+      window.toast('已保存到 ' + (name || path));
+    } catch (e) {
+      window.toast('保存失败：' + e);
+    }
+  }
+
+  document.getElementById('md-save').addEventListener('click', saveFile);
+
+  // Ctrl+S 快捷保存
+  inputEl.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      saveFile();
+    }
   });
 
   document.getElementById('md-copy-src').addEventListener('click', () => {

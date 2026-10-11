@@ -20,7 +20,8 @@ pub fn run() {
             history::history_save,
             md5calc::md5_text,
             md5calc::md5_file,
-            textfile::read_text_file
+            textfile::read_text_file,
+            textfile::write_text_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
