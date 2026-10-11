@@ -151,12 +151,16 @@
     itemEmptyEl.classList.toggle('hidden', g.items.length > 0);
   }
 
+  // 搜索匹配：分组名模糊匹配（组内条目全部列出）或账号模糊匹配（仅该条目）；
+  // 同一条目同时命中两者只保留一次（合并去重）
   function searchMatches() {
     const kw = state.keyword.trim().toLowerCase();
     const out = [];
     for (const g of state.groups) {
+      const groupHit = String(g.name || '').toLowerCase().indexOf(kw) >= 0;
       for (const it of g.items) {
-        if (it.account && it.account.toLowerCase().indexOf(kw) >= 0) {
+        const accountHit = !!(it.account && it.account.toLowerCase().indexOf(kw) >= 0);
+        if (groupHit || accountHit) {
           out.push({ group: g, item: it });
         }
       }
@@ -166,7 +170,7 @@
 
   function renderSearch() {
     const matches = searchMatches();
-    searchHeadEl.textContent = '找到 ' + matches.length + ' 条匹配（按账号关键字）';
+    searchHeadEl.textContent = '找到 ' + matches.length + ' 条匹配（按分组名 / 账号关键字）';
     searchListEl.innerHTML = matches.map((m) => {
       const it = m.item;
       const pwdText = it.password ? (state.showPwd ? it.password : '••••••') : '（空）';
