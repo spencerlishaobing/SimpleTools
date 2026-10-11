@@ -1,0 +1,13 @@
+{
+  "name": "simple-tools",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SimpleTools - 常用工具合集",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

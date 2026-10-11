@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimpleTools</title>
+  <script>
+    // 尽早应用已保存的主题，避免启动时闪屏（默认亮色）
+    (function () {
+      try {
+        if (localStorage.getItem('simpletools-theme') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">ST</div>
+      <div class="brand-name">SimpleTools</div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-panel="json">
+        <span class="nav-dot"></span>JSON 格式化
+      </button>
+      <button class="nav-item" data-panel="diff">
+        <span class="nav-dot"></span>文本对比
+      </button>
+      <button class="nav-item" data-panel="notes">
+        <span class="nav-dot"></span>记事本
+      </button>
+      <button class="nav-item" data-panel="md5">
+        <span class="nav-dot"></span>MD5 计算
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="theme-toggle" title="切换深色 / 浅色模式">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <span id="theme-label">深色模式</span>
+      </button>
+      <div class="version">v0.1.0 · Tauri + Rust</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- ===== JSON 格式化 ===== -->
+    <section id="panel-json" class="panel active">
+      <header class="panel-header">
+        <h2>JSON 格式化</h2>
+        <div class="panel-actions">
+          <label class="checkbox" title="对整体被转义的 JSON 字符串（如从日志/代码中复制）自动去除转义">
+            <input type="checkbox" id="json-unescape" checked />自动去转义
+          </label>
+          <label class="select-label">缩进
+            <select id="json-indent">
+              <option value="2" selected>2 空格</option>
+              <option value="4">4 空格</option>
+              <option value="tab">Tab</option>
+            </select>
+          </label>
+          <span class="divider"></span>
+          <button class="btn primary" id="json-format" title="快捷键 Ctrl+Enter">格式化</button>
+          <button class="btn" id="json-minify" title="快捷键 Ctrl+Shift+Enter">压缩</button>
+          <button class="btn" id="json-clear">清空</button>
+        </div>
+      </header>
+      <div class="split">
+        <div class="split-pane">
+          <div class="pane-label"><span>输入（原始 JSON 或被转义的 JSON 字符串）</span>
+            <button class="pane-copy" id="json-copy-input" title="复制输入内容">复制</button>
+          </div>
+          <textarea id="json-input" spellcheck="false"
+            placeholder="粘贴 JSON 文本，支持 Ctrl+V&#10;示例：{&quot;name&quot;:&quot;test&quot;,&quot;list&quot;:[1,2,3]}"></textarea>
+        </div>
+        <div class="split-pane">
+          <div class="pane-label"><span>输出</span>
+            <button class="pane-copy" id="json-copy-output" title="复制格式化结果">复制</button>
+          </div>
+          <textarea id="json-output" spellcheck="false" readonly
+            placeholder="格式化结果将显示在这里"></textarea>
+        </div>
+      </div>
+      <div id="json-status" class="status-bar"></div>
+    </section>
+
+    <!-- ===== 文本对比 ===== -->
+    <section id="panel-diff" class="panel">
+      <header class="panel-header">
+        <h2>文本对比</h2>
+        <div class="panel-actions">
+          <label class="checkbox"><input type="checkbox" id="diff-ignore-space" />忽略首尾空白</label>
+          <button class="btn primary" id="diff-run" title="快捷键 Ctrl+Enter">对比</button>
+          <button class="btn" id="diff-swap">交换左右</button>
+          <button class="btn" id="diff-clear">清空</button>
+        </div>
+      </header>
+      <div class="diff-inputs">
+        <div class="split-pane">
+          <div class="pane-label label-left">左侧文本（旧）</div>
+          <textarea id="diff-left" spellcheck="false" placeholder="输入或粘贴左侧文本..."></textarea>
+        </div>
+        <div class="split-pane">
+          <div class="pane-label label-right">右侧文本（新）</div>
+          <textarea id="diff-right" spellcheck="false" placeholder="输入或粘贴右侧文本..."></textarea>
+        </div>
+      </div>
+      <div class="diff-result-header">
+        <span class="diff-result-title">对比结果</span>
+        <span id="diff-stats" class="diff-stats"></span>
+        <span class="legend">
+          <i class="swatch swatch-green"></i>左侧差异
+          <i class="swatch swatch-red"></i>右侧差异
+        </span>
+      </div>
+      <div id="diff-result" class="diff-result">
+        <div class="diff-empty">在上方输入两段文本后点击"对比"，差异处左侧显示绿色、右侧显示红色</div>
+      </div>
+    </section>
+
+    <!-- ===== 记事本 ===== -->
+    <section id="panel-notes" class="panel">
+      <div class="notes-layout">
+        <aside class="notes-side">
+          <div class="notes-toolbar">
+            <button class="btn primary small" id="note-new">+ 新建记录</button>
+            <button class="btn small" id="note-backup" title="把数据文件复制一份备份">备份</button>
+          </div>
+          <ul id="notes-list" class="notes-list" title="按住拖动可排序"></ul>
+          <div class="notes-empty" id="notes-empty">暂无记录，点击"新建记录"开始</div>
+        </aside>
+        <div class="notes-editor" id="notes-editor">
+          <input id="note-title" class="note-title-input" placeholder="标题" />
+          <textarea id="note-content" class="note-content-input" spellcheck="false"
+            placeholder="正文内容..."></textarea>
+          <div class="notes-editor-footer">
+            <button class="btn small" id="note-copy" title="复制当前记录的正文内容">复制内容</button>
+            <span id="note-status" class="save-status">就绪</span>
+            <span id="note-meta" class="note-meta"></span>
+            <button class="btn small danger" id="note-delete">删除当前记录</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MD5 计算 ===== -->
+    <section id="panel-md5" class="panel">
+      <header class="panel-header">
+        <h2>MD5 计算</h2>
+        <div class="panel-actions">
+          <label class="select-label">结果格式
+            <select id="md5-format" title="选择输出格式">
+              <option value="lower" selected>小写（hex）</option>
+              <option value="upper">大写（HEX）</option>
+              <option value="base64">Base64</option>
+            </select>
+          </label>
+        </div>
+      </header>
+      <div class="md5-layout">
+        <div class="md5-block">
+          <div class="pane-label"><span>字符串（UTF-8 编码，输入即算）</span></div>
+          <textarea id="md5-text" class="md5-text-input" spellcheck="false"
+            placeholder="输入或粘贴任意文本，自动计算 MD5"></textarea>
+          <div class="md5-result-row">
+            <span class="md5-value empty" id="md5-text-result">—</span>
+            <button class="pane-copy" id="md5-text-copy" title="复制结果">复制</button>
+          </div>
+        </div>
+        <div class="md5-block grow">
+          <div class="pane-label"><span>文件（支持大文件，流式计算）</span></div>
+          <div class="md5-drop" id="md5-drop" title="点击选择文件，或把文件拖到这里">
+            <div class="md5-drop-hint">把文件拖到这里，或 <b>点击选择文件</b></div>
+            <div class="md5-file-info" id="md5-file-info"></div>
+          </div>
+          <div class="md5-result-row">
+            <span class="md5-value empty" id="md5-file-result">—</span>
+            <button class="pane-copy" id="md5-file-copy" title="复制结果">复制</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- 通用确认弹窗 -->
+  <div id="confirm-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-title" id="confirm-title">确认操作</div>
+      <div class="modal-message" id="confirm-message"></div>
+      <div class="modal-actions">
+        <button class="btn" id="confirm-cancel">取消</button>
+        <button class="btn danger-solid" id="confirm-ok">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="modules/json-format.js"></script>
+  <script src="modules/text-diff.js"></script>
+  <script src="modules/notes.js"></script>
+  <script src="modules/md5.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
