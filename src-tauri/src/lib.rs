@@ -31,6 +31,7 @@ pub fn run() {
             notes::notes_save,
             notes::notes_backup,
             notes::notes_export,
+            notes::note_image_import,
             history::history_load,
             history::history_save,
             md5calc::md5_text,

@@ -31,6 +31,9 @@
   const SAVE_DELAY = 500;
   let saveTimer = null;
   let saving = false;
+  // 数据加载完成前（含加载失败）禁止落盘：blur 立即保存用于防丢数据，
+  // 但加载阶段的失焦（如自动化焦点抖动）会把尚未加载的空数组覆盖写盘
+  let loaded = false;
   let searchTimer = null;
 
   // ---------- 工具 ----------
@@ -150,7 +153,7 @@
 
   async function doSave(now) {
     if (now) clearTimeout(saveTimer);
-    if (!invoke || saving) return;
+    if (!invoke || saving || !loaded) return;
     saving = true;
     try {
       await invoke('accounts_save', { groups: state.groups });
@@ -311,70 +314,20 @@
     scheduleSave(true);
   }
 
-  // ---------- 分组拖动排序（侧栏整行可拖） ----------
+  // ---------- 分组拖动排序（侧栏整行可拖；v0.33.0 空位跟随模型见 drag-sort.js） ----------
 
-  let groupDragId = null;
-
-  groupListEl.addEventListener('dragstart', (e) => {
-    const li = e.target.closest('.acc-group-item');
-    if (!li) return;
-    groupDragId = li.dataset.id;
-    li.classList.add('dragging');
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', groupDragId);
-    }
+  window.DragSort.init({
+    listEl: groupListEl,
+    itemSelector: '.acc-group-item',
+    // 空位移动已在 DOM 上就位：drop 时仅按最新 DOM 顺序落盘，不整表重渲染
+    onDrop: (el, newIndex) => {
+      const from = state.groups.findIndex((g) => g.id === el.dataset.id);
+      if (from < 0 || from === newIndex) return;
+      const g = state.groups.splice(from, 1)[0];
+      state.groups.splice(newIndex, 0, g);
+      scheduleSave(true);
+    },
   });
-
-  groupListEl.addEventListener('dragover', (e) => {
-    if (!groupDragId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    const li = e.target.closest('.acc-group-item');
-    groupListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-    if (!li || li.dataset.id === groupDragId) return;
-    const rect = li.getBoundingClientRect();
-    const before = e.clientY - rect.top < rect.height / 2;
-    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
-  });
-
-  groupListEl.addEventListener('drop', (e) => {
-    if (!groupDragId) return;
-    e.preventDefault();
-    const li = e.target.closest('.acc-group-item');
-    const targetId = li && li.dataset.id;
-    const before = li && li.classList.contains('drag-over-top');
-    if (targetId && targetId !== groupDragId) {
-      moveGroup(groupDragId, targetId, before);
-    }
-    cleanupGroupDrag();
-  });
-
-  groupListEl.addEventListener('dragend', cleanupGroupDrag);
-
-  function cleanupGroupDrag() {
-    groupDragId = null;
-    groupListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-    });
-  }
-
-  function moveGroup(fromId, targetId, before) {
-    const from = state.groups.findIndex((g) => g.id === fromId);
-    if (from < 0) return;
-    const g = state.groups.splice(from, 1)[0];
-    let to = state.groups.findIndex((x) => x.id === targetId);
-    if (to < 0) {
-      state.groups.splice(from, 0, g);
-      return;
-    }
-    if (!before) to += 1;
-    state.groups.splice(to, 0, g);
-    renderAll();
-    scheduleSave(true);
-  }
 
   // ---------- 条目操作 ----------
 
@@ -412,71 +365,20 @@
 
   // ---------- 条目拖动排序（手柄拖拽：行内均为输入框 / 按钮，手柄提供明确的拖动区） ----------
 
-  let itemDragId = null;
-
-  itemListEl.addEventListener('dragstart', (e) => {
-    if (!e.target.closest('.acc-item-grip')) return;   // 仅手柄可发起拖动
-    const li = e.target.closest('.acc-item');
-    if (!li) return;
-    itemDragId = li.dataset.id;
-    li.classList.add('dragging');
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', itemDragId);
-    }
+  window.DragSort.init({
+    listEl: itemListEl,
+    itemSelector: '.acc-item',
+    handleSelector: '.acc-item-grip',
+    onDrop: (el, newIndex) => {
+      const g = currentGroup();
+      if (!g) return;
+      const from = g.items.findIndex((it) => it.id === el.dataset.id);
+      if (from < 0 || from === newIndex) return;
+      const item = g.items.splice(from, 1)[0];
+      g.items.splice(newIndex, 0, item);
+      scheduleSave(true);
+    },
   });
-
-  itemListEl.addEventListener('dragover', (e) => {
-    if (!itemDragId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    const li = e.target.closest('.acc-item');
-    itemListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-    if (!li || li.dataset.id === itemDragId) return;
-    const rect = li.getBoundingClientRect();
-    const before = e.clientY - rect.top < rect.height / 2;
-    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
-  });
-
-  itemListEl.addEventListener('drop', (e) => {
-    if (!itemDragId) return;
-    e.preventDefault();
-    const li = e.target.closest('.acc-item');
-    const targetId = li && li.dataset.id;
-    const before = li && li.classList.contains('drag-over-top');
-    if (targetId && targetId !== itemDragId) {
-      moveItemOrder(itemDragId, targetId, before);
-    }
-    cleanupItemDrag();
-  });
-
-  itemListEl.addEventListener('dragend', cleanupItemDrag);
-
-  function cleanupItemDrag() {
-    itemDragId = null;
-    itemListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-    });
-  }
-
-  function moveItemOrder(fromId, targetId, before) {
-    const g = currentGroup();
-    if (!g) return;
-    const from = g.items.findIndex((it) => it.id === fromId);
-    if (from < 0) return;
-    const item = g.items.splice(from, 1)[0];
-    let to = g.items.findIndex((it) => it.id === targetId);
-    if (to < 0) {
-      g.items.splice(from, 0, item);
-      return;
-    }
-    if (!before) to += 1;
-    g.items.splice(to, 0, item);
-    renderGroupView();
-    scheduleSave(true);
-  }
 
   async function copyItem(item, kind) {
     if (kind === 'account') {
@@ -785,6 +687,7 @@
               updated_at: Number(it.updated_at) || 0,
             })),
         }));
+      loaded = true; // 加载成功后才允许保存（见 doSave）
     } catch (e) {
       window.toast('加载账号密码失败：' + e);
       state.groups = [];
@@ -795,4 +698,10 @@
   }
 
   init();
+
+  // 面板由隐藏变为可见时（activatePanel 派发 panel-shown）：重算备注 textarea 高度
+  // （面板隐藏状态下 scrollHeight 为 0，初始化渲染会算出 0 高度）
+  document.getElementById('panel-accounts').addEventListener('panel-shown', () => {
+    itemListEl.querySelectorAll('.acc-item-note').forEach(syncNoteHeight);
+  });
 })();

@@ -4,7 +4,6 @@
 
   const invoke = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
   const dialogApi = (window.__TAURI__ && window.__TAURI__.dialog) || null;
-  const eventApi = (window.__TAURI__ && window.__TAURI__.event) || null;
 
   const panelEl = document.getElementById('panel-md');
   const inputEl = document.getElementById('md-input');
@@ -682,20 +681,51 @@
     return panelEl.classList.contains('active');
   }
 
-  // OS 文件拖入（Tauri 原生拖放事件；仅在面板激活时响应）
-  if (eventApi && eventApi.listen) {
-    eventApi.listen('tauri://drag-enter', () => {
-      if (panelActive()) panelEl.classList.add('md-drag');
-    });
-    eventApi.listen('tauri://drag-leave', () => panelEl.classList.remove('md-drag'));
-    eventApi.listen('tauri://drag-drop', (e) => {
-      panelEl.classList.remove('md-drag');
-      if (!panelActive()) return;
-      const paths = e && e.payload && e.payload.paths;
-      if (paths && paths.length) openFile(paths[0]);
-      else window.toast('未检测到文件路径');
-    });
-  }
+  // ---------- 拖入文件（v0.33.0：HTML5 拖放，仅在面板激活时响应） ----------
+  // 背景：wry 的原生拖放处理器会顶替 WebView2 内部的拖放目标，页内拖拽（笔记排序等）收不到
+  // dragover / drop 事件——已在 tauri.conf.json 设 dragDropEnabled=false 恢复 HTML5 拖拽，
+  // 原生 tauri://drag-drop 事件随之废弃。HTML5 拖入的文件拿不到真实路径，改为按内容直接读取
+  // （无原路径 → 保存走「另存为」；「打开」按钮的文件选择不受影响，仍走 Rust 读取）。
+  const isFileDrag = (e) => {
+    const t = e.dataTransfer && e.dataTransfer.types;
+    return !!t && Array.prototype.indexOf.call(t, 'Files') !== -1;
+  };
+  document.addEventListener('dragover', (e) => {
+    if (!panelActive() || !isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    panelEl.classList.add('md-drag');
+  });
+  document.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget || e.clientX <= 0 || e.clientY <= 0) panelEl.classList.remove('md-drag');
+  });
+  document.addEventListener('drop', async (e) => {
+    if (!isFileDrag(e)) return;
+    panelEl.classList.remove('md-drag');
+    if (!panelActive()) return;
+    e.preventDefault();
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) {
+      window.toast('未检测到文件（暂不支持文件夹）');
+      return;
+    }
+    // 文本量级限制：拖入即整文件进内存渲染，超大文件引导走「打开」按钮（Rust 读取同样整读，此处防误操作）
+    if (file.size > 20 * 1024 * 1024) {
+      window.toast('文件过大（超过 20 MB），请点击「打开」选择文件');
+      return;
+    }
+    try {
+      const content = await file.text();
+      inputEl.value = content;
+      docNameEl.textContent = file.name || '未命名';
+      docDir = '';
+      docPath = '';
+      render();
+      window.toast('已打开 ' + (file.name || '拖入文件'));
+    } catch (err) {
+      window.toast('打开失败：' + err);
+    }
+  });
 
   // ---------- 清空 / 复制 ----------
 

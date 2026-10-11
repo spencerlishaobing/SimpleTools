@@ -7,6 +7,10 @@
   const resultEl = document.getElementById('diff-result');
   const statsEl = document.getElementById('diff-stats');
   const ignoreWs = document.getElementById('diff-ignore-space');
+  const extractCheck = document.getElementById('diff-extract-json');
+  const treeWrap = document.getElementById('diff-tree-wrap');
+  const treeCheck = document.getElementById('diff-tree');
+  const treeActionsEl = document.getElementById('diff-tree-actions');
 
   let resultText = ''; // 最近一次对比的纯文本形式（供复制）
 
@@ -325,10 +329,64 @@
     }
 
     resultText = textLines.join('\n');
+    treeActionsEl.classList.add('hidden');
+    resultEl.classList.remove('tree-mode');
     resultEl.innerHTML = '<div class="diff-table">' + rows.join('') + '</div>';
     statsEl.textContent =
       '相同 ' + sameCount + ' 行 · 左侧独有 ' + delCount +
       ' 行 · 右侧独有 ' + insCount + ' 行 · 修改 ' + modCount + ' 行';
+  }
+
+  // ---------- 自动提取 JSON + 树形对比（v0.33.0） ----------
+
+  /** 格式化提取出的 JSON 值（固定 2 空格缩进，与面板缩进设置无关） */
+  function pretty(v) {
+    return JSON.stringify(v, null, 2);
+  }
+
+  /** 提取后用于对比的文本：严格提取 → 格式化；非严格片段 → 去转义原文；失败 → 原文 */
+  function pickCompareText(extracted, fallback) {
+    if (!extracted.ok) return fallback;
+    return extracted.strict ? pretty(extracted.value) : extracted.text;
+  }
+
+  /** 树形对比视图：左右两棵可折叠树，差异节点高亮（绿 = 左侧独有 / 旧值，红 = 右侧独有 / 新值） */
+  function renderTreeCompare(lv, rv) {
+    const marks = window.JsonTree.diffMarks(lv, rv);
+    // 先渲染到游离容器，任一超限则整体放弃（退回文本对比）
+    const lBox = document.createElement('div');
+    const rBox = document.createElement('div');
+    if (!window.JsonTree.render(lBox, lv, { markSet: marks.left, markClass: 'jt-mark-l' }).ok ||
+        !window.JsonTree.render(rBox, rv, { markSet: marks.right, markClass: 'jt-mark-r' }).ok) {
+      return false;
+    }
+    resultEl.classList.add('tree-mode');
+    resultEl.innerHTML = '';
+    const cmp = document.createElement('div');
+    cmp.className = 'jt-compare';
+    const paneL = document.createElement('div');
+    paneL.className = 'jt-compare-pane';
+    const headL = document.createElement('div');
+    headL.className = 'jt-pane-head left';
+    headL.textContent = '左侧（旧）';
+    paneL.appendChild(headL);
+    lBox.className = 'json-tree-view jt-inline';
+    paneL.appendChild(lBox);
+    const paneR = document.createElement('div');
+    paneR.className = 'jt-compare-pane';
+    const headR = document.createElement('div');
+    headR.className = 'jt-pane-head right';
+    headR.textContent = '右侧（新）';
+    paneR.appendChild(headR);
+    rBox.className = 'json-tree-view jt-inline';
+    paneR.appendChild(rBox);
+    cmp.appendChild(paneL);
+    cmp.appendChild(paneR);
+    resultEl.appendChild(cmp);
+    treeActionsEl.classList.remove('hidden');
+    statsEl.textContent = '已自动提取 JSON 树形对比 · 差异 ' + marks.count + ' 处';
+    resultText = '【左侧】\n' + pretty(lv) + '\n\n【右侧】\n' + pretty(rv);
+    return true;
   }
 
   // ---------- 主流程 ----------
@@ -342,8 +400,40 @@
       return;
     }
 
-    const aRaw = splitLines(leftText);
-    const bRaw = splitLines(rightText);
+    // 自动提取 JSON（可选）：从两侧文本中提取 JSON 片段并去转义
+    let lText = leftText;
+    let rText = rightText;
+    let extractNote = '';
+    if (extractCheck.checked) {
+      const lJson = window.JsonTree.extractJson(leftText);
+      const rJson = window.JsonTree.extractJson(rightText);
+      lText = pickCompareText(lJson, leftText);
+      rText = pickCompareText(rJson, rightText);
+      if (lJson.ok || rJson.ok) {
+        const sides = lJson.ok && rJson.ok ? '两侧' : (lJson.ok ? '左侧' : '右侧');
+        const loose = (lJson.ok && !lJson.strict) || (rJson.ok && !rJson.strict);
+        extractNote = ' · 已提取' + sides + ' ' + (loose ? '{…} 片段' : 'JSON');
+      } else {
+        window.toast('未在两侧文本中提取到 JSON，已按原文对比');
+      }
+      // 树形结构开关（仅勾选「自动提取 JSON」后显示）：两侧都提取到严格 JSON 时生效
+      if (treeCheck.checked) {
+        if (lJson.ok && lJson.strict && rJson.ok && rJson.strict) {
+          if (renderTreeCompare(lJson.value, rJson.value)) {
+            if (window.historyStore.add('diff', { left: leftText, right: rightText }) === 'too-large') {
+              window.toast('内容过大，未加入历史记录');
+            }
+            return;
+          }
+          window.toast('JSON 过大，已按格式化文本对比');
+        } else {
+          window.toast('未能在两侧同时提取到有效 JSON，已按文本对比');
+        }
+      }
+    }
+
+    const aRaw = splitLines(lText);
+    const bRaw = splitLines(rText);
     const ignore = ignoreWs.checked;
     const norm = ignore ? (s) => s.trim() : (s) => s;
     const aKeys = aRaw.map(norm);
@@ -354,12 +444,15 @@
 
     if (paired.length === 0) {
       resultText = '';
+      treeActionsEl.classList.add('hidden');
+      resultEl.classList.remove('tree-mode');
       resultEl.innerHTML = '<div class="diff-empty">两段文本都为空</div>';
       statsEl.textContent = '';
       return;
     }
 
     renderResult(paired, aRaw, bRaw);
+    if (extractNote && statsEl.textContent) statsEl.textContent += extractNote;
 
     // 写入对比历史记录（内容过大时提示并跳过；与最新一条重复时自动跳过）
     if (window.historyStore.add('diff', { left: leftText, right: rightText }) === 'too-large') {
@@ -369,11 +462,24 @@
 
   document.getElementById('diff-run').addEventListener('click', run);
 
+  // 自动提取 JSON 开关：联动显示 / 隐藏「JSON 树形结构」子开关
+  extractCheck.addEventListener('change', () => {
+    treeWrap.classList.toggle('hidden', !extractCheck.checked);
+  });
+
+  // 树形视图：展开 / 折叠全部
+  document.getElementById('diff-tree-expand').addEventListener('click', () => {
+    resultEl.querySelectorAll('.json-tree-view').forEach((t) => window.JsonTree.expandAll(t));
+  });
+  document.getElementById('diff-tree-collapse').addEventListener('click', () => {
+    resultEl.querySelectorAll('.json-tree-view').forEach((t) => window.JsonTree.collapseAll(t));
+  });
+
   document.getElementById('diff-swap').addEventListener('click', () => {
     const tmp = leftEl.value;
     leftEl.value = rightEl.value;
     rightEl.value = tmp;
-    if (resultEl.querySelector('.diff-table')) run();
+    if (resultEl.querySelector('.diff-table') || resultEl.querySelector('.jt-compare')) run();
   });
 
   document.getElementById('diff-clear').addEventListener('click', () => {
@@ -381,6 +487,8 @@
     rightEl.value = '';
     resultText = '';
     statsEl.textContent = '';
+    treeActionsEl.classList.add('hidden');
+    resultEl.classList.remove('tree-mode');
     resultEl.innerHTML =
       '<div class="diff-empty">在上方输入两段文本后点击"对比"，差异处左侧显示绿色、右侧显示红色</div>';
   });

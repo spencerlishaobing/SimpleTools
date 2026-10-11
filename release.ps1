@@ -2,9 +2,9 @@
 SimpleTools 一键发布 GitHub Release
 ====================================
 用法（在任意位置执行）：
-  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.32.0
-  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.32.0 -NotesFile .\notes.md
-  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.32.0 -DryRun
+  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.33.0
+  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.33.0 -NotesFile .\notes.md
+  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.33.0 -DryRun
   网络被干扰导致 fetch/push/API 失败时附加：-Proxy http://127.0.0.1:44447
 
 流程：校验（版本三处一致 / 工作区干净 / HEAD 已推送 / tag 未被占用 / 安装包与免安装 exe 存在）

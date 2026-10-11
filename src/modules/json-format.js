@@ -8,6 +8,9 @@
   const unescapeCheck = document.getElementById('json-unescape');
   const indentBtn = document.getElementById('json-indent-btn');
   const indentLabel = document.getElementById('json-indent-label');
+  const treeCheck = document.getElementById('json-tree');
+  const treeView = document.getElementById('json-tree-view');
+  const treeActions = document.getElementById('json-tree-actions');
 
   function setStatus(msg, type) {
     statusEl.textContent = msg || '';
@@ -70,6 +73,36 @@
 
   function getIndent() {
     return indentValue === 'tab' ? '\t' : Number(indentValue);
+  }
+
+  // ---------- 树形视图（v0.33.0：可折叠树，与文本输出共用同一解析结果） ----------
+
+  let lastValue; // 最近一次成功解析的值（undefined = 尚未解析过）
+
+  /** 显示文本输出（隐藏树形视图） */
+  function showTextOutput() {
+    treeView.classList.add('hidden');
+    output.classList.remove('hidden');
+    treeActions.classList.add('hidden');
+  }
+
+  /** 用 lastValue 渲染树形视图；JSON 过大被跳过时返回 false */
+  function renderTreeView() {
+    if (lastValue === undefined) {
+      treeView.innerHTML = '<div class="jt-placeholder">点击「格式化」后在此查看树形结构</div>';
+      treeView.classList.remove('hidden');
+      output.classList.add('hidden');
+      treeActions.classList.add('hidden');
+      return true;
+    }
+    if (!window.JsonTree.render(treeView, lastValue).ok) {
+      showTextOutput();
+      return false;
+    }
+    treeView.classList.remove('hidden');
+    output.classList.add('hidden');
+    treeActions.classList.remove('hidden');
+    return true;
   }
 
   // ---------- 缩进选择（自定义下拉，v0.31.1 替代原生 select——原生弹层选项上下间距无法调整） ----------
@@ -162,9 +195,13 @@
       return;
     }
     output.value = JSON.stringify(parsed.value, null, getIndent());
+    lastValue = parsed.value;
     const lines = output.value.split('\n').length;
+    const treeSkipped = treeCheck.checked && !renderTreeView();
+    if (!treeCheck.checked) showTextOutput();
     setStatus(
-      (usedUnescape ? '已自动去除转义，' : '') + '格式化成功 · ' + lines + ' 行',
+      (usedUnescape ? '已自动去除转义，' : '') + '格式化成功 · ' + lines + ' 行' +
+      (treeSkipped ? '（JSON 过大，树形视图已跳过）' : ''),
       'success'
     );
     recordHistory(raw, output.value);
@@ -184,8 +221,12 @@
       return;
     }
     output.value = JSON.stringify(parsed.value);
+    lastValue = parsed.value;
+    const treeSkipped = treeCheck.checked && !renderTreeView();
+    if (!treeCheck.checked) showTextOutput();
     setStatus(
-      (usedUnescape ? '已自动去除转义，' : '') + '已压缩为单行 · ' + output.value.length + ' 字符',
+      (usedUnescape ? '已自动去除转义，' : '') + '已压缩为单行 · ' + output.value.length + ' 字符' +
+      (treeSkipped ? '（JSON 过大，树形视图已跳过）' : ''),
       'success'
     );
     recordHistory(raw, output.value);
@@ -214,9 +255,25 @@
   document.getElementById('json-copy-input').addEventListener('click', copyInput);
   document.getElementById('json-copy-output').addEventListener('click', copyResult);
 
+  // 树形视图开关：勾选时立即用上次解析结果渲染（无结果时给出提示）
+  treeCheck.addEventListener('change', () => {
+    if (treeCheck.checked) renderTreeView();
+    else showTextOutput();
+  });
+
+  document.getElementById('json-tree-expand').addEventListener('click', () => {
+    window.JsonTree.expandAll(treeView);
+  });
+  document.getElementById('json-tree-collapse').addEventListener('click', () => {
+    window.JsonTree.collapseAll(treeView);
+  });
+
   document.getElementById('json-clear').addEventListener('click', () => {
     input.value = '';
     output.value = '';
+    lastValue = undefined;
+    treeView.innerHTML = '';
+    showTextOutput();
     setStatus('');
     input.focus();
   });
@@ -238,6 +295,10 @@
     onRestore(rec) {
       input.value = rec.input;
       output.value = rec.output;
+      const { parsed } = resolveInput(rec.input);
+      lastValue = parsed.ok ? parsed.value : undefined;
+      if (treeCheck.checked) renderTreeView();
+      else showTextOutput();
       setStatus('已恢复历史记录（' + (rec.output.split('\n').length) + ' 行）', 'success');
       input.focus();
     },

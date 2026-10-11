@@ -58,6 +58,9 @@
   const SAVE_DELAY = 500;
   let saveTimer = null;
   let saving = false;
+  // 数据加载完成前（含加载失败）禁止落盘：blur 立即保存用于防丢数据，
+  // 但加载阶段的失焦（如自动化焦点抖动）会把尚未加载的空数组覆盖写盘
+  let loaded = false;
 
   // ---------- 工具 ----------
 
@@ -128,6 +131,44 @@
     return 'n-' + Date.now() + '-' + Math.random().toString(16).slice(2);
   }
 
+  // ---------- 数据目录缓存（富文本图片相对路径解析用，v0.33.0） ----------
+  // 图片以相对路径（images/xxx.png）存在数据目录的 images/ 文件夹；显示时需拼出绝对路径。
+  // 数据目录切换（data_dir_set）后会整页重载，缓存无需失效逻辑
+  let dataDirCache = '';
+  let dataDirPromise = null;
+
+  function ensureDataDir() {
+    if (dataDirCache || !invoke) return Promise.resolve(dataDirCache);
+    if (!dataDirPromise) {
+      dataDirPromise = invoke('data_dir_info')
+        .then((info) => {
+          dataDirCache = (info && info.current) || '';
+          return dataDirCache;
+        })
+        .catch(() => {
+          dataDirPromise = null; // 失败允许下次重试
+          return '';
+        });
+    }
+    return dataDirPromise;
+  }
+
+  // 图片引用是否为相对路径（非绝对路径 / 网络 / 内嵌）
+  function isRelativeImgRef(ref) {
+    const s = String(ref || '');
+    return !!s && !/^(https?|data):/i.test(s) &&
+      !/^[a-zA-Z]:[\\/]/.test(s) && !/^\\\\/.test(s) && !/^\//.test(s);
+  }
+
+  // 图片引用 → 本地绝对路径：绝对路径原样返回；相对路径基于数据目录拼接（数据目录未知时返回空串）
+  function imgAbsPath(ref) {
+    const s = String(ref || '');
+    if (!s) return '';
+    if (!isRelativeImgRef(s)) return s;
+    if (!dataDirCache) return '';
+    return dataDirCache.replace(/[\\/]+$/, '') + '\\' + s.replace(/\//g, '\\');
+  }
+
   function formatTime(ts) {
     const d = new Date(ts);
     const pad = (x) => String(x).padStart(2, '0');
@@ -160,7 +201,7 @@
 
   async function doSave(now) {
     if (now) clearTimeout(saveTimer);
-    if (!invoke || saving) return;
+    if (!invoke || saving || !loaded) return;
     saving = true;
     try {
       await invoke('notes_save', { notes: state.notes });
@@ -752,18 +793,25 @@
     return '';
   }
 
-  // 编辑器内图片：data-path 记录原始路径（落盘用），src 换为 asset URL 显示
-  function hydrateTaskImages() {
-    taskRichEditorEl.querySelectorAll('img').forEach((img) => {
+  // 编辑器内图片：data-path 记录原始引用（落盘用，v0.33.0 起新图为新格式相对路径 images/xxx），
+  // src 换为 asset URL 显示；相对路径基于数据目录解析（未知时先读取一次）
+  async function hydrateTaskImages() {
+    const imgs = Array.from(taskRichEditorEl.querySelectorAll('img'));
+    const needDir = imgs.some((img) =>
+      isRelativeImgRef(img.getAttribute('data-path') || '') ||
+      isRelativeImgRef(img.getAttribute('src') || ''));
+    if (needDir) await ensureDataDir();
+    imgs.forEach((img) => {
       const p = img.getAttribute('data-path');
       if (p) {
-        const url = toAssetUrl(p);
+        const url = toAssetUrl(imgAbsPath(p) || p);
         if (url) img.setAttribute('src', url);
         return;
       }
       const src = img.getAttribute('src') || '';
       if (src && !/^(https?|data):/i.test(src)) {
-        const url = toAssetUrl(src);
+        const abs = isRelativeImgRef(src) ? (imgAbsPath(src) || src) : src;
+        const url = toAssetUrl(abs);
         if (url) { img.setAttribute('data-path', src); img.setAttribute('src', url); }
       }
     });
@@ -788,16 +836,16 @@
     scheduleSave();
   }
 
-  function openTaskDetail(id) {
+  async function openTaskDetail(id) {
     const note = getCurrent();
     const task = getTask(note, id);
     if (!task || task.kind !== 'rich') return;
     taskDetailId = id;
     taskDetailTitleEl.value = task.title || '';
     taskRichEditorEl.innerHTML = sanitizeRichHtml(task.content || '');
-    hydrateTaskImages();
     taskWrapEl.classList.add('hidden');
     taskDetailEl.classList.remove('hidden');
+    await hydrateTaskImages();
     applyTaskDetailHighlight();
   }
 
@@ -872,6 +920,15 @@
     }
     const p = typeof picked === 'string' ? picked : (picked && picked.path) || (Array.isArray(picked) ? picked[0] : null);
     if (!p) return;
+    // v0.33.0：图片复制到数据目录 images/，内容存相对路径（数据自包含，随备份导出 / 导入）
+    let rel = '';
+    try {
+      rel = await invoke('note_image_import', { source: p });
+    } catch (e) {
+      window.toast('插入图片失败：' + e);
+      return;
+    }
+    await ensureDataDir();
     taskRichEditorEl.focus();
     // 折叠选区到末尾，避免选中文本时插图直接替换选区内容
     const sel = window.getSelection();
@@ -881,9 +938,9 @@
       sel.removeAllRanges();
       sel.addRange(r);
     }
-    const url = toAssetUrl(p) || p;
+    const url = toAssetUrl(imgAbsPath(rel)) || rel;
     document.execCommand('insertHTML', false,
-      '<img src="' + esc(url) + '" data-path="' + esc(p) + '">');
+      '<img src="' + esc(url) + '" data-path="' + esc(rel) + '">');
     syncTaskRichContent();
   });
 
@@ -1371,136 +1428,47 @@
     openExportMenu(e.currentTarget, notes);
   });
 
-  // ---------- 拖动排序 ----------
+  // ---------- 拖动排序（v0.33.0：虚线空位随拖拽实时移动，见 drag-sort.js） ----------
 
-  let dragId = null;
-
-  listEl.addEventListener('dragstart', (e) => {
-    const li = e.target.closest('.note-item');
-    if (!li) return;
-    dragId = li.dataset.id;
-    li.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', dragId);
+  window.DragSort.init({
+    listEl,
+    itemSelector: '.note-item',
+    // 空位移动已在 DOM 上就位：drop 时仅按最新 DOM 顺序落盘，不再整表重渲染
+    onDrop: (el, newIndex) => {
+      const from = state.notes.findIndex((n) => n.id === el.dataset.id);
+      if (from < 0 || from === newIndex) return;
+      const item = state.notes.splice(from, 1)[0];
+      state.notes.splice(newIndex, 0, item);
+      scheduleSave(true);
+    },
   });
 
-  listEl.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const li = e.target.closest('.note-item');
-    listEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-    if (!li || li.dataset.id === dragId) return;
-    const rect = li.getBoundingClientRect();
-    const before = e.clientY - rect.top < rect.height / 2;
-    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  // ---------- 任务拖动排序（任务组视图整行可拖；按钮 / 勾选框上按下或编辑中不启动） ----------
+
+  window.DragSort.init({
+    listEl: taskListEl,
+    itemSelector: '.task-item',
+    canStart: (e, li) => !li.classList.contains('editing') && !e.target.closest('button, input, label'),
+    onDrop: (el, newIndex) => {
+      const note = getCurrent();
+      if (!isTaskNote(note)) return;
+      const from = note.tasks.findIndex((t) => t.id === el.dataset.id);
+      if (from < 0 || from === newIndex) return;
+      const item = note.tasks.splice(from, 1)[0];
+      note.tasks.splice(newIndex, 0, item);
+      scheduleSave(true);
+    },
+    // 空位每次移动（含取消恢复）后按最新 DOM 顺序刷新自动序号
+    onPreviewOrder: refreshTaskNos,
   });
 
-  listEl.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const li = e.target.closest('.note-item');
-    const targetId = li && li.dataset.id;
-    const before = li && li.classList.contains('drag-over-top');
-    if (dragId && targetId && targetId !== dragId) {
-      moveNote(dragId, targetId, before);
-    }
-    cleanupDrag();
-  });
-
-  listEl.addEventListener('dragend', cleanupDrag);
-
-  function cleanupDrag() {
-    dragId = null;
-    listEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-    });
-  }
-
-  function moveNote(fromId, targetId, before) {
-    const from = state.notes.findIndex((n) => n.id === fromId);
-    if (from < 0) return;
-    const item = state.notes.splice(from, 1)[0];
-    let to = state.notes.findIndex((n) => n.id === targetId);
-    if (to < 0) {
-      state.notes.splice(from, 0, item);
-      return;
-    }
-    if (!before) to += 1;
-    state.notes.splice(to, 0, item);
-    renderList();
-    scheduleSave(true);
-  }
-
-  // ---------- 任务拖动排序（任务组视图整行可拖；按钮 / 勾选框上按下的拖动不启动） ----------
-
-  let taskDragId = null;
-
-  taskListEl.addEventListener('dragstart', (e) => {
-    const li = e.target.closest('.task-item');
-    if (!li || li.classList.contains('editing')) return;
-    if (e.target.closest('button, input, label')) {
-      e.preventDefault();
-      return;
-    }
-    taskDragId = li.dataset.id;
-    li.classList.add('dragging');
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', taskDragId);
-    }
-  });
-
-  taskListEl.addEventListener('dragover', (e) => {
-    if (!taskDragId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    const li = e.target.closest('.task-item');
-    taskListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-    if (!li || li.dataset.id === taskDragId) return;
-    const rect = li.getBoundingClientRect();
-    const before = e.clientY - rect.top < rect.height / 2;
-    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
-  });
-
-  taskListEl.addEventListener('drop', (e) => {
-    if (!taskDragId) return;
-    e.preventDefault();
-    const li = e.target.closest('.task-item');
-    const targetId = li && li.dataset.id;
-    const before = li && li.classList.contains('drag-over-top');
-    if (targetId && targetId !== taskDragId) {
-      moveTask(taskDragId, targetId, before);
-    }
-    cleanupTaskDrag();
-  });
-
-  taskListEl.addEventListener('dragend', cleanupTaskDrag);
-
-  function cleanupTaskDrag() {
-    taskDragId = null;
-    taskListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
-      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-    });
-  }
-
-  function moveTask(fromId, targetId, before) {
+  function refreshTaskNos() {
     const note = getCurrent();
-    if (!isTaskNote(note)) return;
-    const from = note.tasks.findIndex((t) => t.id === fromId);
-    if (from < 0) return;
-    const item = note.tasks.splice(from, 1)[0];
-    let to = note.tasks.findIndex((t) => t.id === targetId);
-    if (to < 0) {
-      note.tasks.splice(from, 0, item);
-      return;
-    }
-    if (!before) to += 1;
-    note.tasks.splice(to, 0, item);
-    renderTaskList();
-    scheduleSave(true);
+    if (!isTaskNote(note) || note.auto_no === false) return;
+    taskListEl.querySelectorAll('.task-item').forEach((li, i) => {
+      const noEl = li.querySelector('.task-no');
+      if (noEl) noEl.textContent = (i + 1) + '.';
+    });
   }
 
   // ---------- 初始化 ----------
@@ -1528,6 +1496,7 @@
             updated_at: Number(n.updated_at) || 0,
           };
         });
+      loaded = true; // 加载成功后才允许保存（见 doSave）
     } catch (e) {
       window.toast('加载记事本失败：' + e);
       state.notes = [];

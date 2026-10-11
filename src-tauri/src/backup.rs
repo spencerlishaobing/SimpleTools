@@ -1,12 +1,16 @@
 /* ===== 数据导入导出（v0.30.0）：一键备份 / 恢复全部用户数据与应用配置（ZIP / 文件夹） =====
- * - 导出：当前数据目录的 4 个数据文件 + 默认目录的 settings.json，输出为 ZIP 压缩包或文件夹
- *   （输出路径由前端生成——含时间戳的输出文件名 / 子文件夹名，Rust 侧不做时间处理）
- * - 导入：从 ZIP / 文件夹按白名单读取文件；导入前把将被覆盖的现有文件自动备份到
- *   「目标数据目录 / import-backup-时间戳 /」；导入包内 settings.json 的自定义数据目录
- *   不存在时回退默认目录（避免换机导入后数据"消失"），回退结果返回前端提示
+ * - 导出：当前数据目录的 4 个数据文件 + 默认目录的 settings.json + 富文本图片
+ *   （数据目录 images/，v0.33.0），输出为 ZIP 压缩包或文件夹（输出路径由前端生成——
+ *   含时间戳的输出文件名 / 子文件夹名，Rust 侧不做时间处理）
+ * - 导入：从 ZIP / 文件夹按白名单读取文件（含 images/ 下的图片条目）；导入前把将被
+ *   覆盖的现有文件（含图片）自动备份到「目标数据目录 / import-backup-时间戳 /」；
+ *   导入包内 settings.json 的自定义数据目录不存在时回退默认目录（避免换机导入后
+ *   数据"消失"），回退结果返回前端提示
  * - 合并导入（v0.32.0）：data_import_prepare 只读解析备份（notes / accounts 解密 / history）
  *   交给前端内存合并，data_merge_write 先备份当前数据再整体落盘（accounts 重新 DPAPI 加密）；
- *   合并目标固定为当前数据目录，备份中的 settings.json 不参与合并
+ *   合并目标固定为当前数据目录，备份中的 settings.json 不参与合并。
+ *   v0.33.0：合并导入时备份中的图片复制进当前数据目录 images/——同名同内容跳过、
+ *   同名不同内容自动改名并对备份侧笔记引用做替换
  * - 数据恢复（v0.32.0）：data_backup_list 列出数据目录下的 import-backup-* 自动备份；
  *   data_restore 把所选备份按白名单覆盖回当前数据（不生成新备份——恢复本身即回退操作）
  * - 账号密码密文由 DPAPI 与当前 Windows 用户绑定：跨用户 / 跨机导入只能恢复其余数据
@@ -25,33 +29,40 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter};
 /// 应用配置文件（固定默认目录，与 datadir::settings_path 对应）
 const SETTINGS_FILE: &str = "settings.json";
 
-/// 导出结果：path = 实际输出位置（ZIP 文件或导出文件夹），files = 已导出文件名
+/// 导出结果：path = 实际输出位置（ZIP 文件或导出文件夹），files = 已导出数据文件名，
+/// image_count = 一并打包的富文本图片数（v0.33.0）
 #[derive(Debug, Clone, Serialize)]
 pub struct ExportResult {
     pub path: String,
     pub files: Vec<String>,
+    pub image_count: usize,
 }
 
-/// 导入结果：imported = 已写入的文件名，backup = 自动备份文件夹（无被覆盖文件时为 null），
-/// data_dir = 生效的数据目录，fallback = 备份中的存储位置不可用、已回退默认目录
+/// 导入结果：imported = 已写入的数据文件名，backup = 自动备份文件夹（无被覆盖文件时为 null），
+/// data_dir = 生效的数据目录，fallback = 备份中的存储位置不可用、已回退默认目录，
+/// image_count = 已还原的富文本图片数（v0.33.0）
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportResult {
     pub imported: Vec<String>,
     pub backup: Option<String>,
     pub data_dir: String,
     pub fallback: bool,
+    pub image_count: usize,
 }
 
 /// 自动备份条目（数据恢复列表项）：files = 备份内包含的白名单文件，size = 文件总字节数
+/// （含图片），image_count = 备份内图片数（v0.33.0）
 #[derive(Debug, Clone, Serialize)]
 pub struct BackupInfo {
     pub name: String,
     pub files: Vec<String>,
     pub size: u64,
+    pub image_count: usize,
 }
 
 /// 合并导入准备结果：备份中解析出的明文数据（None = 该文件缺失或无法解析）。
-/// accounts 已在后端完成 DPAPI 解密，前端合并后由 data_merge_write 重新加密落盘
+/// accounts 已在后端完成 DPAPI 解密，前端合并后由 data_merge_write 重新加密落盘；
+/// v0.33.0：备份中的图片已在 prepare 阶段复制进当前数据目录（重名改名已完成替换）
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportPrepareResult {
     pub notes: Option<Value>,
@@ -69,11 +80,13 @@ pub struct MergeWriteResult {
     pub data_dir: String,
 }
 
-/// 数据恢复结果：restored = 已恢复的文件名，data_dir = 数据目录
+/// 数据恢复结果：restored = 已恢复的数据文件名，data_dir = 数据目录，
+/// image_count = 已恢复的富文本图片数（v0.33.0）
 #[derive(Debug, Clone, Serialize)]
 pub struct RestoreResult {
     pub restored: Vec<String>,
     pub data_dir: String,
+    pub image_count: usize,
 }
 
 /// 允许出现在备份中的文件名（4 个数据文件 + 应用配置）
@@ -81,6 +94,50 @@ fn allowed_names() -> Vec<&'static str> {
     let mut names = datadir::DATA_FILES.to_vec();
     names.push(SETTINGS_FILE);
     names
+}
+
+/// 图片条目名校验：必须是 `images/<单层文件名>` 且扩展名在图片白名单内
+/// （防路径穿越 / 无关文件混入）；返回文件名部分
+fn image_entry_name(name: &str) -> Option<&str> {
+    let rest = name.strip_prefix("images/")?;
+    if rest.is_empty()
+        || rest == "."
+        || rest == ".."
+        || rest.contains('/')
+        || rest.contains('\\')
+        || !datadir::has_image_ext(rest)
+    {
+        return None;
+    }
+    Some(rest)
+}
+
+/// 收集数据目录 images/ 下的图片（一层，不递归；仅图片扩展名），条目名统一
+/// `images/<文件名>`；按文件名排序保证导出 / 备份结果稳定；单个文件读取失败静默跳过
+fn collect_images(dir: &Path) -> Vec<(String, Vec<u8>)> {
+    let img_dir = dir.join(datadir::IMAGES_DIR);
+    let mut out = Vec::new();
+    let Ok(entries) = fs::read_dir(&img_dir) else {
+        return out;
+    };
+    let mut names: Vec<String> = entries
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            if e.path().is_file() && datadir::has_image_ext(&name) {
+                Some(name)
+            } else {
+                None
+            }
+        })
+        .collect();
+    names.sort();
+    for name in names {
+        if let Ok(bytes) = fs::read(img_dir.join(&name)) {
+            out.push((format!("{}/{}", datadir::IMAGES_DIR, name), bytes));
+        }
+    }
+    out
 }
 
 /// 校验备份文件夹名：仅允许纯文件名（防越权写入 / 遍历其他位置）
@@ -97,8 +154,8 @@ fn validate_backup_name(name: &str) -> Result<String, String> {
     Ok(name)
 }
 
-/// 备份「target 中将被覆盖的现有数据文件」+（可选）settings_src 中的 settings.json
-/// 到「target / backup_name /」；返回备份文件夹展示路径（没有文件可备份时为 None）
+/// 备份「target 中将被覆盖的现有数据文件（含 images/ 图片）」+（可选）settings_src 中的
+/// settings.json 到「target / backup_name /」；返回备份文件夹展示路径（没有文件可备份时为 None）
 fn backup_existing_files(
     target: &Path,
     settings_src: Option<&Path>,
@@ -117,13 +174,18 @@ fn backup_existing_files(
             to_backup.push((sp, SETTINGS_FILE.to_string()));
         }
     }
-    if to_backup.is_empty() {
+    // 富文本图片（v0.33.0）：现有 images/ 下的图片一并备份（条目名 images/<文件名>）
+    let images = collect_images(target);
+    if to_backup.is_empty() && images.is_empty() {
         return Ok(None);
     }
     let backup_dir = target.join(backup_name);
     fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份文件夹失败: {e}"))?;
     for (src, name) in &to_backup {
         fs::copy(src, backup_dir.join(name)).map_err(|e| format!("备份 {name} 失败: {e}"))?;
+    }
+    for (entry, bytes) in &images {
+        write_atomic(&backup_dir.join(entry), bytes)?;
     }
     Ok(Some(datadir::display_path(&backup_dir)))
 }
@@ -139,7 +201,7 @@ fn collect_source_files(source: &Path) -> Result<Vec<(String, Vec<u8>)>, String>
     }
 }
 
-/// 从文件夹收集白名单文件（不递归；仅平铺的已知文件名）
+/// 从文件夹收集白名单文件（不递归；仅平铺的已知文件名 + images/ 下的图片）
 fn collect_from_dir(dir: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
     let mut files = Vec::new();
     for name in allowed_names() {
@@ -149,10 +211,12 @@ fn collect_from_dir(dir: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
             files.push((name.to_string(), bytes));
         }
     }
+    files.extend(collect_images(dir));
     Ok(files)
 }
 
-/// 从 ZIP 收集白名单文件：仅接受平铺的纯文件名条目（拒绝含路径分隔符的条目，防 zip-slip）
+/// 从 ZIP 收集白名单文件：仅接受平铺的纯数据文件名条目与 `images/<单层图片文件名>`
+/// 条目（拒绝含额外路径分隔符的条目，防 zip-slip）
 fn collect_from_zip(path: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
     let file = fs::File::open(path).map_err(|e| format!("打开备份文件失败: {e}"))?;
     let mut archive = ZipArchive::new(file).map_err(|e| format!("读取压缩包失败: {e}"))?;
@@ -166,7 +230,9 @@ fn collect_from_zip(path: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
             continue;
         }
         let name = entry.name().to_string();
-        if name.contains('/') || name.contains('\\') || !allowed.contains(&name.as_str()) {
+        let is_data_file = !name.contains('/') && !name.contains('\\')
+            && allowed.contains(&name.as_str());
+        if !is_data_file && image_entry_name(&name).is_none() {
             continue;
         }
         if files.iter().any(|(n, _)| *n == name) {
@@ -254,6 +320,11 @@ pub fn data_export(app: AppHandle, dest: String, format: String) -> Result<Expor
     if files.is_empty() {
         return Err("没有可导出的数据（尚未生成任何数据文件）".into());
     }
+    let data_names: Vec<String> = files.iter().map(|(n, _)| n.clone()).collect();
+    // 富文本图片（v0.33.0）：数据目录 images/ 下的图片一并打包
+    let images = collect_images(&current);
+    let image_count = images.len();
+    files.extend(images);
 
     if format == "zip" {
         write_zip(&files, &dest)?;
@@ -265,7 +336,8 @@ pub fn data_export(app: AppHandle, dest: String, format: String) -> Result<Expor
     }
     Ok(ExportResult {
         path: datadir::display_path(&dest),
-        files: files.into_iter().map(|(n, _)| n).collect(),
+        files: data_names,
+        image_count,
     })
 }
 
@@ -322,7 +394,8 @@ pub fn data_import(
     let default = datadir::default_dir(&app)?;
     let current = datadir::data_dir(&app)?;
     let files = collect_source_files(&source_path)?;
-    if files.is_empty() {
+    // 至少包含一个白名单数据文件（仅图片条目不构成有效备份）
+    if !files.iter().any(|(n, _)| image_entry_name(n).is_none()) {
         return Err("未找到可导入的数据文件（备份中应包含 notes / accounts / history 等已知文件）".into());
     }
 
@@ -332,18 +405,23 @@ pub fn data_import(
         .map(|(_, b)| b.as_slice());
     let (target, settings_out, fallback) = resolve_import_target(settings_bytes, &default, &current)?;
 
-    // 自动备份：目标目录中将被覆盖的现有数据文件 + 默认目录中的 settings.json（导入包含它时）
+    // 自动备份：目标目录中将被覆盖的现有数据文件（含图片）+ 默认目录中的 settings.json（导入包含它时）
     let settings_src = if settings_out.is_some() { Some(default.as_path()) } else { None };
     let backup = backup_existing_files(&target, settings_src, &backup_name)?;
 
-    // 写入：数据文件落到目标数据目录（未包含的文件保留不动）；settings.json 写默认目录
+    // 写入：数据文件与 images/ 图片落到目标数据目录（未包含的文件保留不动）；settings.json 写默认目录
     let mut imported: Vec<String> = Vec::new();
+    let mut image_count = 0usize;
     for (name, bytes) in &files {
         if name == SETTINGS_FILE {
             continue;
         }
         write_atomic(&target.join(name), bytes)?;
-        imported.push(name.clone());
+        if image_entry_name(name).is_some() {
+            image_count += 1;
+        } else {
+            imported.push(name.clone());
+        }
     }
     if let Some(settings) = &settings_out {
         datadir::write_settings(&default, settings)?;
@@ -355,6 +433,7 @@ pub fn data_import(
         backup,
         data_dir: datadir::display_path(&target),
         fallback,
+        image_count,
     })
 }
 
@@ -377,10 +456,21 @@ fn scan_backups(dir: &Path) -> Result<Vec<BackupInfo>, String> {
                 files.push(fname.to_string());
             }
         }
+        // 富文本图片（v0.33.0）：备份内图片计入数量与大小
+        let images = collect_images(&entry.path());
+        let image_count = images.len();
+        for (_, bytes) in &images {
+            size += bytes.len() as u64;
+        }
         if files.is_empty() {
             continue;
         }
-        list.push(BackupInfo { name, files, size });
+        list.push(BackupInfo {
+            name,
+            files,
+            size,
+            image_count,
+        });
     }
     list.sort_by(|a, b| b.name.cmp(&a.name));
     Ok(list)
@@ -451,7 +541,9 @@ fn parse_import_data(
     (notes, accounts, history, warnings)
 }
 
-/// 合并导入第一步（v0.32.0）：只读解析备份为明文数据，交由前端与当前数据内存合并
+/// 合并导入第一步（v0.32.0）：解析备份为明文数据，交由前端与当前数据内存合并。
+/// v0.33.0：同时把备份中的富文本图片复制进当前数据目录 images/（见 import_merge_images），
+/// 因此本命令会对数据目录产生写入（图片孤儿可接受：仅占用少量空间，不影响数据）
 #[tauri::command]
 pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepareResult, String> {
     let source_trim = source.trim();
@@ -463,10 +555,11 @@ pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepa
         return Err("导入来源不存在".into());
     }
     let files = collect_source_files(&source_path)?;
-    if files.is_empty() {
+    // 至少包含一个白名单数据文件（仅图片条目不构成有效备份）
+    if !files.iter().any(|(n, _)| image_entry_name(n).is_none()) {
         return Err("未找到可导入的数据文件（备份中应包含 notes / accounts / history 等已知文件）".into());
     }
-    let (notes, accounts, history, warnings) = parse_import_data(&files);
+    let (mut notes, accounts, history, mut warnings) = parse_import_data(&files);
     if notes.is_none() && accounts.is_none() && history.is_none() {
         let detail = if warnings.is_empty() {
             String::new()
@@ -476,6 +569,29 @@ pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepa
         return Err(format!("备份中没有可合并的数据{detail}"));
     }
     let current = datadir::data_dir(&app)?;
+    // 富文本图片（v0.33.0）：备份中的图片复制进当前数据目录（仅笔记可合并时——图片仅被
+    // 笔记引用）；同名同内容跳过、同名不同内容改名并对备份侧笔记引用做替换
+    if let Some(notes_value) = notes.as_mut() {
+        let images: Vec<(String, Vec<u8>)> = files
+            .iter()
+            .filter(|(n, _)| image_entry_name(n).is_some())
+            .cloned()
+            .collect();
+        if !images.is_empty() {
+            match import_merge_images(&current, &images) {
+                Ok(map) => {
+                    if !map.is_empty() {
+                        replace_image_refs(notes_value, &map);
+                        warnings.push(format!(
+                            "有 {} 张图片与现有图片重名，已自动改名并更新笔记引用",
+                            map.len()
+                        ));
+                    }
+                }
+                Err(e) => warnings.push(format!("图片导入失败，已跳过：{e}")),
+            }
+        }
+    }
     Ok(ImportPrepareResult {
         notes,
         accounts,
@@ -483,6 +599,105 @@ pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepa
         warnings,
         data_dir: datadir::display_path(&current),
     })
+}
+
+// ---------- 合并导入：图片落地与引用替换（v0.33.0） ----------
+
+/// 合并导入时把备份中的图片复制进当前数据目录 images/：
+/// - 目标不存在同名 → 直接写入
+/// - 同名且内容一致 → 跳过（复用现有图）
+/// - 同名但内容不同 → 生成 `<主干>-2.ext` 递增的新名写入（本机原图保留不动），
+///   返回 旧条目名 → 新条目名 的改名映射（供调用方替换备份侧笔记引用）
+fn import_merge_images(
+    current: &Path,
+    images: &[(String, Vec<u8>)],
+) -> Result<Vec<(String, String)>, String> {
+    let images_dir = current.join(datadir::IMAGES_DIR);
+    fs::create_dir_all(&images_dir).map_err(|e| format!("创建图片目录失败: {e}"))?;
+    let mut map = Vec::new();
+    for (entry, bytes) in images {
+        let file_name = image_entry_name(entry).unwrap_or(entry.as_str());
+        let dest = images_dir.join(file_name);
+        if dest.is_file() {
+            if fs::read(&dest).ok().as_deref() == Some(bytes.as_slice()) {
+                continue;
+            }
+            let new_name = unique_merge_name(&images_dir, file_name, bytes)?;
+            write_atomic(&images_dir.join(&new_name), bytes)?;
+            map.push((entry.clone(), format!("{}/{}", datadir::IMAGES_DIR, new_name)));
+        } else {
+            write_atomic(&dest, bytes)?;
+        }
+    }
+    Ok(map)
+}
+
+/// 合并导入改名：`<主干>-2.ext` 递增找未占用的名字；候选名已存在且内容一致则直接复用
+fn unique_merge_name(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<String, String> {
+    let (stem, ext) = match file_name.rfind('.') {
+        Some(i) if i > 0 => (file_name[..i].to_string(), file_name[i + 1..].to_string()),
+        _ => (file_name.to_string(), "png".to_string()),
+    };
+    // 控制字符替换：防止生成名意外包含引用替换的占位符序列
+    let stem: String = stem
+        .chars()
+        .map(|c| if c.is_control() { '_' } else { c })
+        .collect();
+    for i in 2..1000 {
+        let candidate = format!("{stem}-{i}.{ext}");
+        let p = dir.join(&candidate);
+        if !p.exists() {
+            return Ok(candidate);
+        }
+        if fs::read(&p).ok().as_deref() == Some(bytes) {
+            return Ok(candidate);
+        }
+    }
+    Err(format!("{file_name} 重名过多，无法生成文件名"))
+}
+
+/// 递归替换笔记数据中的图片引用（合并导入改名后）：对全部字符串值执行 旧路径 → 新路径 替换
+fn replace_image_refs(value: &mut Value, map: &[(String, String)]) {
+    if map.is_empty() {
+        return;
+    }
+    match value {
+        Value::String(s) => {
+            *s = replace_refs_in_str(s, map);
+        }
+        Value::Array(arr) => {
+            for item in arr.iter_mut() {
+                replace_image_refs(item, map);
+            }
+        }
+        Value::Object(obj) => {
+            for (_, item) in obj.iter_mut() {
+                replace_image_refs(item, map);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// 单字符串引用替换：两遍 token 化（旧名 → 占位符 → 新名），避免改名结果被后续
+/// 规则链式二次替换；旧名按长度降序处理，避免一个旧名是另一个旧名的子串
+fn replace_refs_in_str(s: &str, map: &[(String, String)]) -> String {
+    let mut order: Vec<usize> = (0..map.len()).collect();
+    order.sort_by(|&a, &b| map[b].0.len().cmp(&map[a].0.len()));
+    let mut out = s.to_string();
+    for &i in &order {
+        let old = map[i].0.as_str();
+        if out.contains(old) {
+            out = out.replace(old, &format!("\u{0}{i}\u{0}"));
+        }
+    }
+    for i in 0..map.len() {
+        let token = format!("\u{0}{i}\u{0}");
+        if out.contains(&token) {
+            out = out.replace(&token, map[i].1.as_str());
+        }
+    }
+    out
 }
 
 /// 合并结果写盘：先全部校验 / 加密，再逐文件原子写入（任一项失败则整体不写，避免半写）。
@@ -566,13 +781,14 @@ pub fn data_merge_write(
     })
 }
 
-/// 从备份文件夹恢复：数据文件复制回数据目录、settings.json 复制回默认目录
-/// （白名单，只复制存在的文件；恢复不生成新备份）
+/// 从备份文件夹恢复：数据文件复制回数据目录、images/ 图片复制回数据目录、
+/// settings.json 复制回默认目录（白名单，只复制存在的文件；恢复不生成新备份）；
+/// 返回（已恢复数据文件名, 已恢复图片数）
 fn restore_from_backup(
     backup_dir: &Path,
     data_dir: &Path,
     default_dir: &Path,
-) -> Result<Vec<String>, String> {
+) -> Result<(Vec<String>, usize), String> {
     let mut restored = Vec::new();
     for name in datadir::DATA_FILES {
         let src = backup_dir.join(name);
@@ -582,6 +798,15 @@ fn restore_from_backup(
             restored.push(name.to_string());
         }
     }
+    // 富文本图片（v0.33.0）：backup/images/ 下的图片复制回数据目录 images/
+    let images = collect_images(backup_dir);
+    let image_count = images.len();
+    if image_count > 0 {
+        fs::create_dir_all(data_dir).map_err(|e| format!("创建目录失败: {e}"))?;
+        for (entry, bytes) in &images {
+            write_atomic(&data_dir.join(entry), bytes)?;
+        }
+    }
     let sp = backup_dir.join(SETTINGS_FILE);
     if sp.is_file() {
         fs::create_dir_all(default_dir).map_err(|e| format!("创建目录失败: {e}"))?;
@@ -589,10 +814,10 @@ fn restore_from_backup(
             .map_err(|e| format!("恢复应用设置失败: {e}"))?;
         restored.push(SETTINGS_FILE.to_string());
     }
-    if restored.is_empty() {
+    if restored.is_empty() && image_count == 0 {
         return Err("该备份中没有可恢复的数据文件".into());
     }
-    Ok(restored)
+    Ok((restored, image_count))
 }
 
 /// 数据恢复（v0.32.0）：从自动备份覆盖当前数据。不生成新备份——恢复本身即回退操作
@@ -617,8 +842,9 @@ pub fn data_restore(app: AppHandle, name: String) -> Result<RestoreResult, Strin
     }
     let restored = restore_from_backup(&backup_dir, &current, &default)?;
     Ok(RestoreResult {
-        restored,
+        restored: restored.0,
         data_dir: datadir::display_path(&current),
+        image_count: restored.1,
     })
 }
 
@@ -660,7 +886,8 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    /// 读取 ZIP 时过滤：路径穿越条目 / 子目录条目 / 未知文件名一律忽略
+    /// 读取 ZIP 时过滤：路径穿越条目 / 子目录条目 / 未知文件名一律忽略；
+    /// images/ 下的合法图片允许，越权或非图片条目忽略（v0.33.0）
     #[test]
     fn zip_skips_unsafe_and_unknown_entries() {
         let dir = test_dir("zip_filter");
@@ -669,28 +896,42 @@ mod tests {
             let f = fs::File::create(&dest).unwrap();
             let mut zip = ZipWriter::new(f);
             let opt = SimpleFileOptions::default();
-            for name in ["../notes.json", "sub/notes.json", "unknown.txt", "notes.json"] {
+            for name in [
+                "../notes.json",
+                "sub/notes.json",
+                "unknown.txt",
+                "notes.json",
+                "images/photo.png",
+                "images/readme.txt",
+                "images/sub/x.png",
+                "images/../evil.png",
+            ] {
                 zip.start_file(name, opt).unwrap();
                 zip.write_all(b"x").unwrap();
             }
             zip.finish().unwrap();
         }
         let back = collect_from_zip(&dest).expect("读 ZIP");
-        assert_eq!(back.len(), 1);
-        assert_eq!(back[0].0, "notes.json");
+        assert_eq!(back.len(), 2, "仅 notes.json 与合法图片条目");
+        assert!(back.iter().any(|(n, _)| n == "notes.json"));
+        assert!(back.iter().any(|(n, _)| n == "images/photo.png"));
         let _ = fs::remove_dir_all(&dir);
     }
 
-    /// 文件夹收集：仅白名单平铺文件，忽略其他文件与同名目录
+    /// 文件夹收集：仅白名单平铺文件 + images/ 下图片；忽略其他文件与同名目录（v0.33.0）
     #[test]
     fn dir_collect_filters_unknown() {
         let dir = test_dir("dir_collect");
         fs::write(dir.join("notes.json"), "hello").unwrap();
         fs::write(dir.join("unknown.txt"), "x").unwrap();
         fs::create_dir_all(dir.join("history.json.d")).unwrap();
+        fs::create_dir_all(dir.join("images")).unwrap();
+        fs::write(dir.join("images/a.png"), "P").unwrap();
+        fs::write(dir.join("images/b.txt"), "T").unwrap();
         let back = collect_from_dir(&dir).expect("读目录");
-        assert_eq!(back.len(), 1);
-        assert_eq!(back[0].0, "notes.json");
+        assert_eq!(back.len(), 2);
+        assert!(back.iter().any(|(n, _)| n == "notes.json"));
+        assert!(back.iter().any(|(n, _)| n == "images/a.png"));
         let _ = fs::remove_dir_all(&dir);
     }
 
@@ -772,7 +1013,8 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    /// 恢复：白名单文件复制回数据目录 / settings.json 回默认目录；未知文件不动；空备份报错（v0.32.0）
+    /// 恢复：白名单文件复制回数据目录 / settings.json 回默认目录 / images 图片回数据目录；
+    /// 未知文件不动；空备份报错（v0.32.0，v0.33.0 含图片）
     #[test]
     fn restore_copies_whitelist() {
         let data = test_dir("restore_data");
@@ -782,10 +1024,14 @@ mod tests {
         fs::write(bak.join("accounts.json"), "NEW-A").unwrap();
         fs::write(bak.join("settings.json"), "{\"data_dir\":\"\"}").unwrap();
         fs::write(bak.join("unknown.txt"), "X").unwrap();
-        let restored = restore_from_backup(&bak, &data, &def).expect("恢复应成功");
+        fs::create_dir_all(bak.join("images")).unwrap();
+        fs::write(bak.join("images/pic.png"), b"IMG").unwrap();
+        let (restored, image_count) = restore_from_backup(&bak, &data, &def).expect("恢复应成功");
         assert_eq!(restored.len(), 3);
+        assert_eq!(image_count, 1);
         assert_eq!(fs::read_to_string(data.join("notes.json")).unwrap(), "NEW-N");
         assert_eq!(fs::read_to_string(data.join("accounts.json")).unwrap(), "NEW-A");
+        assert_eq!(fs::read(data.join("images/pic.png")).unwrap(), b"IMG");
         assert!(!data.join("unknown.txt").exists(), "未知文件不复制");
         assert!(!data.join("settings.json").exists(), "设置应写默认目录而非数据目录");
         assert_eq!(fs::read_to_string(def.join("settings.json")).unwrap(), "{\"data_dir\":\"\"}");
@@ -796,6 +1042,106 @@ mod tests {
         let _ = fs::remove_dir_all(&def);
         let _ = fs::remove_dir_all(&bak);
         let _ = fs::remove_dir_all(&empty);
+    }
+
+    /// 图片收集与打包（v0.33.0）：collect_images 按文件名排序、仅收图片扩展名（一层）；
+    /// write_zip 后能按白名单条目读回
+    #[test]
+    fn images_collect_and_zip_roundtrip() {
+        let dir = test_dir("images_zip");
+        let img_dir = dir.join("images");
+        fs::create_dir_all(&img_dir).unwrap();
+        fs::write(img_dir.join("b.png"), b"B").unwrap();
+        fs::write(img_dir.join("a.jpg"), b"A").unwrap();
+        fs::write(img_dir.join("note.txt"), b"T").unwrap();
+        fs::create_dir_all(img_dir.join("sub")).unwrap();
+        let images = collect_images(&dir);
+        assert_eq!(images.len(), 2, "仅图片扩展名，一层不递归");
+        assert_eq!(images[0].0, "images/a.jpg", "按文件名排序");
+        assert_eq!(images[1].0, "images/b.png");
+        let dest = dir.join("img.zip");
+        write_zip(&images, &dest).expect("写 ZIP");
+        let back = collect_from_zip(&dest).expect("读 ZIP");
+        assert_eq!(back.len(), 2);
+        assert_eq!(back[0].0, "images/a.jpg");
+        assert_eq!(back[0].1, b"A");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// 自动备份 / 恢复含图片（v0.33.0）：图片进 import-backup-*/images/，恢复时回数据目录；
+    /// 数据恢复列表统计图片数与大小（含图片字节）
+    #[test]
+    fn backup_and_restore_with_images() {
+        let dir = test_dir("backup_img");
+        fs::write(dir.join("notes.json"), "N").unwrap();
+        fs::create_dir_all(dir.join("images")).unwrap();
+        fs::write(dir.join("images/pic.png"), b"IMG12").unwrap();
+        let backup =
+            backup_existing_files(&dir, None, "import-backup-20260101-000000").expect("备份应成功");
+        assert!(backup.is_some());
+        assert_eq!(
+            fs::read(dir.join("import-backup-20260101-000000/images/pic.png")).unwrap(),
+            b"IMG12"
+        );
+        let list = scan_backups(&dir).expect("扫描应成功");
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].image_count, 1);
+        assert_eq!(list[0].size, 1 + 5, "数据文件与图片字节都计入");
+        // 恢复：图片复制回数据目录（先改内容再恢复验证覆盖）
+        fs::write(dir.join("images/pic.png"), b"MODIFIED").unwrap();
+        let (_restored, image_count) =
+            restore_from_backup(&dir.join("import-backup-20260101-000000"), &dir, &dir)
+                .expect("恢复应成功");
+        assert_eq!(image_count, 1);
+        assert_eq!(
+            fs::read(dir.join("images/pic.png")).unwrap(),
+            b"IMG12",
+            "恢复应覆盖现有图片"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// 合并导入图片落地（v0.33.0）：新增直接写入、同名同内容跳过、同名不同内容改名
+    /// （本机原图保留不动）
+    #[test]
+    fn import_merge_images_variants() {
+        let dir = test_dir("merge_images");
+        fs::create_dir_all(dir.join("images")).unwrap();
+        fs::write(dir.join("images/same.png"), b"OLD").unwrap();
+        fs::write(dir.join("images/conflict.png"), b"LOCAL").unwrap();
+        let images = vec![
+            ("images/new.png".to_string(), b"NEW".to_vec()),
+            ("images/same.png".to_string(), b"OLD".to_vec()),
+            ("images/conflict.png".to_string(), b"BREAK".to_vec()),
+        ];
+        let map = import_merge_images(&dir, &images).expect("合并图片应成功");
+        assert_eq!(map.len(), 1, "只有 conflict 需要改名");
+        assert_eq!(map[0].0, "images/conflict.png");
+        assert_eq!(map[0].1, "images/conflict-2.png");
+        assert_eq!(fs::read(dir.join("images/new.png")).unwrap(), b"NEW");
+        assert_eq!(fs::read(dir.join("images/same.png")).unwrap(), b"OLD", "同内容跳过不变");
+        assert_eq!(fs::read(dir.join("images/conflict.png")).unwrap(), b"LOCAL", "本机原图不动");
+        assert_eq!(fs::read(dir.join("images/conflict-2.png")).unwrap(), b"BREAK");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// 图片引用替换（v0.33.0）：HTML 字符串中旧路径全部替换为新路径；
+    /// 改名结果不被后续规则链式二次替换；嵌套 JSON 递归生效
+    #[test]
+    fn replace_image_refs_tokens() {
+        let map = vec![
+            ("images/a.png".to_string(), "images/a-2.png".to_string()),
+            ("images/a-2.png".to_string(), "images/a-3.png".to_string()),
+        ];
+        // a.png 的引用只应变成 a-2.png（不得被第二条规则再替换为 a-3.png）
+        let html = r#"<div><img src="images/a.png"><img src="images/a-2.png"></div>"#;
+        let out = replace_refs_in_str(html, &map);
+        assert_eq!(out.matches("images/a-2.png").count(), 1);
+        assert_eq!(out.matches("images/a-3.png").count(), 1);
+        let mut v = serde_json::json!({"tasks":[{"content":"<img src=\"images/a.png\">"}],"title":"t"});
+        replace_image_refs(&mut v, &map);
+        assert_eq!(v["tasks"][0]["content"], "<img src=\"images/a-2.png\">");
+        assert_eq!(v["title"], "t");
     }
 
     /// 合并准备解析：notes / history 直接解析；accounts 明文兼容；损坏文件跳过并警告（v0.32.0）

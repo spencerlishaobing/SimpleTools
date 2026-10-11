@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 
 /// 单条记事记录
@@ -157,9 +157,144 @@ fn write_atomic(path: &PathBuf, notes: &[Note]) -> Result<(), String> {
     Ok(())
 }
 
+// ---------- 富文本图片收纳（v0.33.0）----------
+// 插入图片时把文件复制到「数据目录 / images/」，笔记内容以相对路径引用（数据自包含）：
+// 备份导出 / 导入 / 数据目录迁移均整体携带 images 目录，换机不丢图
+
+/// 拆分文件名主干与扩展名（退化时使用默认值，保证重组后仍有扩展名）
+fn split_name(name: &str) -> (String, String) {
+    let p = Path::new(name);
+    let stem = p
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("image")
+        .to_string();
+    let ext = p
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("png")
+        .to_lowercase();
+    (stem, ext)
+}
+
+/// 清洗图片文件名：替换 Windows 非法字符（含控制字符）为下划线，
+/// 去掉尾部点 / 空格，主干限长 60，空主干回退为 image
+fn sanitize_image_name(raw: &str) -> String {
+    let base = Path::new(raw)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("image");
+    let cleaned: String = base
+        .chars()
+        .map(|c| {
+            if c.is_control() || r#"\/:*?"<>|"#.contains(c) {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let cleaned = cleaned.trim_end_matches(['.', ' ']).to_string();
+    let (mut stem, ext) = split_name(&cleaned);
+    if stem.is_empty() {
+        stem = "image".to_string();
+    }
+    if stem.chars().count() > 60 {
+        stem = stem.chars().take(60).collect();
+    }
+    format!("{stem}.{ext}")
+}
+
+/// 复制图片到数据目录的 images/ 文件夹，返回文件名（引用时拼为 images/<文件名>）。
+/// 命名规则：清洗后的原文件名；同名同内容直接复用（不重复存储）；同名不同内容加序号（-2 / -3 …）
+pub(crate) fn copy_image_to_dir(src: &Path, images_dir: &Path) -> Result<String, String> {
+    if !src.is_file() {
+        return Err("图片文件不存在".into());
+    }
+    let raw = src.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    if !crate::datadir::has_image_ext(raw) {
+        return Err("仅支持 png / jpg / jpeg / gif / webp / bmp 图片".into());
+    }
+    let bytes = fs::read(src).map_err(|e| format!("读取图片失败: {e}"))?;
+    fs::create_dir_all(images_dir).map_err(|e| format!("创建图片目录失败: {e}"))?;
+    let name = sanitize_image_name(raw);
+    let (stem, ext) = split_name(&name);
+    for i in 1..1000 {
+        let candidate = if i == 1 {
+            name.clone()
+        } else {
+            format!("{stem}-{i}.{ext}")
+        };
+        let dest = images_dir.join(&candidate);
+        if !dest.exists() {
+            fs::write(&dest, &bytes).map_err(|e| format!("写入图片失败: {e}"))?;
+            return Ok(candidate);
+        }
+        if fs::read(&dest).ok().as_deref() == Some(bytes.as_slice()) {
+            return Ok(candidate);
+        }
+    }
+    Err("图片重名过多，无法生成文件名".into())
+}
+
+/// 导入富文本图片：把用户选择的本地图片复制到「数据目录 / images/」，
+/// 返回相对路径（images/<文件名>）供笔记内容引用
+#[tauri::command]
+pub fn note_image_import(app: AppHandle, source: String) -> Result<String, String> {
+    if source.trim().is_empty() {
+        return Err("图片路径为空".into());
+    }
+    let src = PathBuf::from(source.trim());
+    let images_dir = crate::datadir::data_dir(&app)?.join(crate::datadir::IMAGES_DIR);
+    let name = copy_image_to_dir(&src, &images_dir)?;
+    Ok(format!("{}/{}", crate::datadir::IMAGES_DIR, name))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Note, TaskItem};
+    use super::{copy_image_to_dir, Note, TaskItem};
+
+    /// 图片导入复制（v0.33.0）：新图复制、同名同内容复用、同名不同内容加序号、
+    /// 非法扩展名拒绝、文件名清洗
+    #[test]
+    fn copy_image_to_dir_variants() {
+        let dir = std::env::temp_dir().join("simpletools_img_import_test");
+        let _ = std::fs::remove_dir_all(&dir);
+        let src_dir = dir.join("src");
+        let img_dir = dir.join("images");
+        std::fs::create_dir_all(&src_dir).unwrap();
+
+        // 新图片：复制并返回清洗后的文件名
+        let a = src_dir.join("a-photo.png");
+        std::fs::write(&a, b"AAA").unwrap();
+        let name = copy_image_to_dir(&a, &img_dir).unwrap();
+        assert_eq!(name, "a-photo.png");
+        assert_eq!(std::fs::read(img_dir.join(&name)).unwrap(), b"AAA");
+
+        // 同名同内容 → 复用（目录中仍只有 1 个文件）
+        let name2 = copy_image_to_dir(&a, &img_dir).unwrap();
+        assert_eq!(name2, "a-photo.png");
+        assert_eq!(std::fs::read_dir(&img_dir).unwrap().count(), 1);
+
+        // 同名不同内容 → 加序号 -2
+        std::fs::write(&a, b"BBB").unwrap();
+        let name3 = copy_image_to_dir(&a, &img_dir).unwrap();
+        assert_eq!(name3, "a-photo-2.png");
+        assert_eq!(std::fs::read(img_dir.join(&name3)).unwrap(), b"BBB");
+
+        // 非法扩展名 → 拒绝
+        let bad = src_dir.join("evil.exe");
+        std::fs::write(&bad, b"X").unwrap();
+        assert!(copy_image_to_dir(&bad, &img_dir).is_err());
+
+        // 非法字符清洗（: ? → _；空格保留）
+        let weird = src_dir.join("we ird:name?.png");
+        std::fs::write(&weird, b"CCC").unwrap();
+        let name4 = copy_image_to_dir(&weird, &img_dir).unwrap();
+        assert_eq!(name4, "we ird_name_.png");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// 旧版数据（无 type 字段）反序列化时缺省为 text，保证升级后兼容
     #[test]

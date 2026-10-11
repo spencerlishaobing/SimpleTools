@@ -20,6 +20,22 @@ pub(crate) const DATA_FILES: [&str; 4] = [
     "notes.backup.json",
 ];
 
+/// 富文本图片目录（v0.33.0）：位于数据目录下，随数据目录迁移 / 导入导出打包；
+/// 笔记内容以相对路径（images/文件名）引用，保证数据自包含
+pub(crate) const IMAGES_DIR: &str = "images";
+
+/// 允许收纳 / 导入的图片扩展名白名单（与前端选图过滤一致）
+pub(crate) const IMAGE_EXTS: [&str; 6] = ["png", "jpg", "jpeg", "gif", "webp", "bmp"];
+
+/// 文件名扩展名是否在图片白名单内（大小写不敏感）
+pub(crate) fn has_image_ext(name: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| IMAGE_EXTS.contains(&e.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
 /// 默认数据目录：{AppData}/com.simpletools.desktop
 pub fn default_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
@@ -131,13 +147,33 @@ fn file_info(dir: &Path, name: &str) -> StorageFileInfo {
     }
 }
 
+/// 收集数据子目录的信息（v0.33.0 图片目录：存在性与文件总大小，仅统计一层）
+fn dir_info(dir: &Path, name: &str) -> StorageFileInfo {
+    let path = dir.join(name);
+    let mut size = 0u64;
+    if let Ok(entries) = fs::read_dir(&path) {
+        for entry in entries.flatten() {
+            size += entry.metadata().map(|m| m.len()).unwrap_or(0);
+        }
+    }
+    StorageFileInfo {
+        name: name.to_string(),
+        path: display_path(&path),
+        exists: path.is_dir(),
+        size,
+    }
+}
+
 /// 构建存储说明信息（目录均已解析；抽为纯函数便于单测）
 fn storage_info_of(current: &Path, default: &Path, is_custom: bool) -> StorageInfo {
+    let mut files: Vec<StorageFileInfo> =
+        DATA_FILES.iter().map(|n| file_info(current, n)).collect();
+    files.push(dir_info(current, IMAGES_DIR)); // 富文本图片目录（v0.33.0）
     StorageInfo {
         current: display_path(current),
         default: display_path(default),
         is_custom,
-        files: DATA_FILES.iter().map(|n| file_info(current, n)).collect(),
+        files,
         settings: file_info(default, "settings.json"),
     }
 }
@@ -162,8 +198,8 @@ pub fn open_in_explorer(app: AppHandle, file: Option<String>) -> Result<(), Stri
         let _ = fs::create_dir_all(&dir);
         return reveal(&dir, None);
     }
-    // 仅允许打开已知数据文件（白名单校验，防止任意路径打开）
-    if name != "settings.json" && !DATA_FILES.contains(&name.as_str()) {
+    // 仅允许打开已知数据文件 / 图片目录（白名单校验，防止任意路径打开）
+    if name != "settings.json" && name != IMAGES_DIR && !DATA_FILES.contains(&name.as_str()) {
         return Err("未知的数据文件".into());
     }
     // 配置文件固定位于默认目录，其余数据文件位于当前数据目录
@@ -172,6 +208,15 @@ pub fn open_in_explorer(app: AppHandle, file: Option<String>) -> Result<(), Stri
     } else {
         data_dir(&app)?
     };
+    // 图片目录（v0.33.0）：存在时直接打开该目录，否则退化为打开数据目录
+    if name == IMAGES_DIR {
+        let images = dir.join(IMAGES_DIR);
+        if images.is_dir() {
+            return reveal(&images, None);
+        }
+        let _ = fs::create_dir_all(&dir);
+        return reveal(&dir, None);
+    }
     let path = dir.join(&name);
     if path.is_file() {
         reveal(&dir, Some(&path))
@@ -221,6 +266,25 @@ fn migrate_data_files(from: &Path, to: &Path) -> Result<usize, String> {
             return Err(format!("{name} 复制校验失败（大小不一致）"));
         }
         copied += 1;
+    }
+    // 富文本图片（v0.33.0）：images 目录下的图片随数据一并迁移（一层，不递归）
+    let from_images = from.join(IMAGES_DIR);
+    if from_images.is_dir() {
+        let to_images = to.join(IMAGES_DIR);
+        fs::create_dir_all(&to_images)
+            .map_err(|e| format!("创建 {IMAGES_DIR} 目录失败: {e}"))?;
+        let entries =
+            fs::read_dir(&from_images).map_err(|e| format!("读取 {IMAGES_DIR} 目录失败: {e}"))?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let fname = entry.file_name().to_string_lossy().to_string();
+            if !path.is_file() || !has_image_ext(&fname) {
+                continue;
+            }
+            fs::copy(&path, to_images.join(&fname))
+                .map_err(|e| format!("复制图片 {fname} 失败: {e}"))?;
+            copied += 1;
+        }
     }
     Ok(copied)
 }
@@ -304,13 +368,31 @@ mod tests {
         let _ = fs::remove_dir_all(&to);
     }
 
-    /// 存储说明：文件存在时记录实际大小，不存在时标记存在性为 false（v0.23.0）
+    /// 迁移含富文本图片目录（v0.33.0）：images 下图片一并复制，非图片扩展名跳过
+    #[test]
+    fn migrate_copies_images_dir() {
+        let from = test_dir("mig_img_from");
+        let to = test_dir("mig_img_to");
+        fs::write(from.join("notes.json"), "[]").unwrap();
+        fs::create_dir_all(from.join("images")).unwrap();
+        fs::write(from.join("images/photo.png"), b"PNG").unwrap();
+        fs::write(from.join("images/readme.txt"), b"TXT").unwrap();
+        let copied = migrate_data_files(&from, &to).expect("迁移应成功");
+        assert_eq!(copied, 2, "1 个数据文件 + 1 张图片");
+        assert_eq!(fs::read(to.join("images/photo.png")).unwrap(), b"PNG");
+        assert!(!to.join("images/readme.txt").exists(), "非图片文件不迁移");
+        let _ = fs::remove_dir_all(&from);
+        let _ = fs::remove_dir_all(&to);
+    }
+
+    /// 存储说明：文件存在时记录实际大小，不存在时标记存在性为 false（v0.23.0）；
+    /// 图片目录（v0.33.0）一并列出并按一层文件总大小统计
     #[test]
     fn storage_info_reports_file_state() {
         let dir = test_dir("storage_info");
         fs::write(dir.join("notes.json"), "0123456789").unwrap();
         let info = storage_info_of(&dir, &dir, false);
-        assert_eq!(info.files.len(), 4);
+        assert_eq!(info.files.len(), 5, "4 个数据文件 + images 目录");
         let notes = info.files.iter().find(|f| f.name == "notes.json").unwrap();
         assert!(notes.exists && notes.size == 10, "存在文件应记录大小");
         let acc = info
@@ -319,6 +401,15 @@ mod tests {
             .find(|f| f.name == "accounts.json")
             .unwrap();
         assert!(!acc.exists && acc.size == 0, "不存在文件应标记未生成");
+        let imgs = info.files.iter().find(|f| f.name == "images").unwrap();
+        assert!(!imgs.exists && imgs.size == 0, "无图片目录标记未生成");
+        // 图片目录存在时统计一层文件总大小
+        fs::create_dir_all(dir.join("images")).unwrap();
+        fs::write(dir.join("images/a.png"), b"PNG").unwrap();
+        fs::write(dir.join("images/b.jpg"), b"JPGJPG").unwrap();
+        let info2 = storage_info_of(&dir, &dir, false);
+        let imgs2 = info2.files.iter().find(|f| f.name == "images").unwrap();
+        assert!(imgs2.exists && imgs2.size == 9, "图片目录应统计文件总大小");
         assert_eq!(info.settings.name, "settings.json");
         assert!(!info.settings.exists);
         assert!(!info.is_custom);

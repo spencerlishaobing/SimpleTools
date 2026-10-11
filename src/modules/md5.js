@@ -4,7 +4,6 @@
 
   const invoke = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
   const dialogApi = (window.__TAURI__ && window.__TAURI__.dialog) || null;
-  const eventApi = (window.__TAURI__ && window.__TAURI__.event) || null;
 
   const textEl = document.getElementById('md5-text');
   const formatBtn = document.getElementById('md5-format-btn');
@@ -203,25 +202,188 @@
     }
   });
 
-  // OS 文件拖入（Tauri 原生拖放事件；网页内部拖拽不受影响，仅在 MD5 面板激活时响应）
-  if (eventApi && eventApi.listen) {
-    const panelEl = document.getElementById('panel-md5');
-    const panelActive = () => panelEl.classList.contains('active');
-    eventApi.listen('tauri://drag-enter', () => {
-      if (panelActive()) dropEl.classList.add('over');
-    });
-    eventApi.listen('tauri://drag-leave', () => dropEl.classList.remove('over'));
-    eventApi.listen('tauri://drag-drop', (e) => {
-      dropEl.classList.remove('over');
-      if (!panelActive()) return;
-      const paths = e && e.payload && e.payload.paths;
-      if (paths && paths.length) {
-        calcFile(paths[0]);
-      } else {
-        window.toast('未检测到文件路径');
+  // ---------- 拖入文件（v0.33.0：HTML5 拖放） ----------
+  // 背景：wry 的原生拖放处理器会顶替 WebView2 内部的拖放目标，页内拖拽（笔记排序等）收不到
+  // dragover / drop 事件——已在 tauri.conf.json 设 dragDropEnabled=false 恢复 HTML5 拖拽，
+  // 原生 tauri://drag-drop 事件随之废弃。HTML5 拖入的文件拿不到真实路径，改为按内容分块计算。
+
+  // 纯 JS 增量 MD5（RFC 1321）：update 可多次喂入字节块，最后 hex() 输出小写摘要
+  const MD5_SHIFT = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+  ];
+  const MD5_K = new Uint32Array(64);
+  for (let i = 0; i < 64; i++) MD5_K[i] = (Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+
+  function createMd5() {
+    let a0 = 0x67452301;
+    let b0 = 0xefcdab89;
+    let c0 = 0x98badcfe;
+    let d0 = 0x10325476;
+    const tail = new Uint8Array(64); // 未满 64 字节的尾部缓存
+    const m = new Uint32Array(16);   // 单块消息字（复用，避免每块分配）
+    let tailLen = 0;
+    let lengthLo = 0; // 已喂入字节数（低 32 位）
+    let lengthHi = 0; // 已喂入字节数（高 32 位）
+
+    function processBlock(bytes, off) {
+      for (let i = 0; i < 16; i++) {
+        const j = off + i * 4;
+        m[i] = (bytes[j] | (bytes[j + 1] << 8) | (bytes[j + 2] << 16) | (bytes[j + 3] << 24)) >>> 0;
       }
-    });
+      let a = a0;
+      let b = b0;
+      let c = c0;
+      let d = d0;
+      for (let i = 0; i < 64; i++) {
+        let f;
+        let g;
+        if (i < 16) {
+          f = (b & c) | (~b & d);
+          g = i;
+        } else if (i < 32) {
+          f = (d & b) | (~d & c);
+          g = (5 * i + 1) & 15;
+        } else if (i < 48) {
+          f = b ^ c ^ d;
+          g = (3 * i + 5) & 15;
+        } else {
+          f = c ^ (b | ~d);
+          g = (7 * i) & 15;
+        }
+        const sum = (a + f + MD5_K[i] + m[g]) | 0;
+        const t = d;
+        d = c;
+        c = b;
+        b = (b + ((sum << MD5_SHIFT[i]) | (sum >>> (32 - MD5_SHIFT[i])))) | 0;
+        a = t;
+      }
+      a0 = (a0 + a) | 0;
+      b0 = (b0 + b) | 0;
+      c0 = (c0 + c) | 0;
+      d0 = (d0 + d) | 0;
+    }
+
+    function update(bytes) {
+      const len = bytes.length;
+      const prevLo = lengthLo;
+      lengthLo = (lengthLo + len) >>> 0;
+      if (lengthLo < prevLo) lengthHi = (lengthHi + 1) >>> 0;
+      let off = 0;
+      if (tailLen > 0) {
+        const need = 64 - tailLen;
+        if (len < need) {
+          tail.set(bytes, tailLen);
+          tailLen += len;
+          return;
+        }
+        tail.set(bytes.subarray(0, need), tailLen);
+        processBlock(tail, 0);
+        tailLen = 0;
+        off = need;
+      }
+      const end = len - 64;
+      while (off <= end) {
+        processBlock(bytes, off);
+        off += 64;
+      }
+      if (off < len) {
+        tail.set(bytes.subarray(off), 0);
+        tailLen = len - off;
+      }
+    }
+
+    function hex() {
+      tail[tailLen] = 0x80;
+      let n = tailLen + 1;
+      if (n > 56) {
+        for (let i = n; i < 64; i++) tail[i] = 0;
+        processBlock(tail, 0);
+        n = 0;
+      }
+      for (let i = n; i < 56; i++) tail[i] = 0;
+      const bitLo = (lengthLo << 3) >>> 0;
+      const bitHi = ((lengthHi << 3) | (lengthLo >>> 29)) >>> 0;
+      tail[56] = bitLo & 0xff;
+      tail[57] = (bitLo >>> 8) & 0xff;
+      tail[58] = (bitLo >>> 16) & 0xff;
+      tail[59] = (bitLo >>> 24) & 0xff;
+      tail[60] = bitHi & 0xff;
+      tail[61] = (bitHi >>> 8) & 0xff;
+      tail[62] = (bitHi >>> 16) & 0xff;
+      tail[63] = (bitHi >>> 24) & 0xff;
+      processBlock(tail, 0);
+      const words = [a0, b0, c0, d0];
+      let out = '';
+      for (let k = 0; k < 4; k++) {
+        for (let i = 0; i < 4; i++) out += ((words[k] >>> (8 * i)) & 0xff).toString(16).padStart(2, '0');
+      }
+      return out;
+    }
+
+    return { update: update, hex: hex };
   }
+
+  const DROP_CHUNK_SIZE = 8 * 1024 * 1024;
+
+  // 按内容分块计算拖入文件的 MD5（8 MB 一块，大文件不占内存；点击选择仍走 Rust 流式计算）
+  async function calcDroppedFile(file) {
+    fileHash = '';
+    setValue(fileResultEl, '正在计算…', false);
+    fileInfoEl.textContent = '正在计算：' + file.name;
+    dropEl.classList.remove('over');
+    try {
+      const hasher = createMd5();
+      let off = 0;
+      while (off < file.size) {
+        const buf = await file.slice(off, Math.min(off + DROP_CHUNK_SIZE, file.size)).arrayBuffer();
+        hasher.update(new Uint8Array(buf));
+        off += buf.byteLength;
+        if (file.size > DROP_CHUNK_SIZE) {
+          setValue(fileResultEl, '正在计算… ' + Math.floor((off / file.size) * 100) + '%', false);
+        }
+      }
+      fileHash = hasher.hex();
+      fileInfoEl.textContent = file.name + '（' + humanSize(file.size) + '）';
+      renderResults();
+      // 写入文件计算历史记录（与点击选择路径一致）
+      window.historyStore.add('md5', { kind: 'file', input: fileInfoEl.textContent, hash: fileHash });
+    } catch (e) {
+      setError(fileResultEl, String(e));
+      fileInfoEl.textContent = '';
+    }
+  }
+
+  // 面板激活时，文件悬停在窗口任意处 → 高亮拖放区；松手 → 计算
+  const panelEl = document.getElementById('panel-md5');
+  const panelActive = () => panelEl.classList.contains('active');
+  const isFileDrag = (e) => {
+    const t = e.dataTransfer && e.dataTransfer.types;
+    return !!t && Array.prototype.indexOf.call(t, 'Files') !== -1;
+  };
+  document.addEventListener('dragover', (e) => {
+    if (!panelActive() || !isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    dropEl.classList.add('over');
+  });
+  document.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget || e.clientX <= 0 || e.clientY <= 0) dropEl.classList.remove('over');
+  });
+  document.addEventListener('drop', (e) => {
+    if (!isFileDrag(e)) return;
+    dropEl.classList.remove('over');
+    if (!panelActive()) return;
+    e.preventDefault();
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) {
+      window.toast('未检测到文件（暂不支持文件夹）');
+      return;
+    }
+    calcDroppedFile(file);
+  });
 
   // ---------- 复制 ----------
 

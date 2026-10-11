@@ -134,7 +134,8 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.32.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.33.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
 
@@ -146,6 +147,9 @@
         <div class="panel-actions">
           <label class="checkbox" title="对整体被转义的 JSON 字符串（如从日志/代码中复制）自动去除转义">
             <input type="checkbox" id="json-unescape" checked />自动去转义
+          </label>
+          <label class="checkbox" title="格式化结果以可折叠的树形结构展示（点击行 / 箭头展开或收起）">
+            <input type="checkbox" id="json-tree" />树形视图
           </label>
           <div class="select-label">缩进
             <button type="button" class="select-btn" id="json-indent-btn" aria-haspopup="listbox" aria-expanded="false" title="选择格式化缩进方式">
@@ -179,10 +183,15 @@
         </div>
         <div class="split-pane">
           <div class="pane-label"><span>输出</span>
+            <span class="jt-actions hidden" id="json-tree-actions">
+              <button class="pane-copy" id="json-tree-expand" title="展开所有节点">展开全部</button>
+              <button class="pane-copy" id="json-tree-collapse" title="收起所有节点">折叠全部</button>
+            </span>
             <button class="pane-copy" id="json-copy-output" title="复制格式化结果">复制</button>
           </div>
           <textarea id="json-output" spellcheck="false" readonly
             placeholder="格式化结果将显示在这里"></textarea>
+          <div id="json-tree-view" class="json-tree-view hidden"></div>
         </div>
       </div>
       <div id="json-status" class="status-bar"></div>
@@ -194,6 +203,12 @@
         <h2>文本对比</h2>
         <div class="panel-actions">
           <label class="checkbox"><input type="checkbox" id="diff-ignore-space" />忽略首尾空白</label>
+          <label class="checkbox" title="从两侧文本中自动提取 JSON 片段（支持被转义的内容，如日志里复制出的 JSON）后参与对比">
+            <input type="checkbox" id="diff-extract-json" />自动提取 JSON
+          </label>
+          <label class="checkbox hidden" id="diff-tree-wrap" title="两侧 JSON 以可折叠的树形结构并排对比，差异节点高亮（绿 = 左侧独有 / 旧值，红 = 右侧独有 / 新值）">
+            <input type="checkbox" id="diff-tree" />JSON 树形结构
+          </label>
           <button class="btn primary" id="diff-run">对比</button>
           <button class="btn" id="diff-swap">交换左右</button>
           <button class="btn" id="diff-clear">清空</button>
@@ -229,6 +244,10 @@
         <span class="legend">
           <i class="swatch swatch-green"></i>左侧差异
           <i class="swatch swatch-red"></i>右侧差异
+        </span>
+        <span class="jt-actions hidden" id="diff-tree-actions">
+          <button class="pane-copy" id="diff-tree-expand" title="展开所有节点">展开全部</button>
+          <button class="pane-copy" id="diff-tree-collapse" title="收起所有节点">折叠全部</button>
         </span>
         <button class="pane-copy" id="diff-copy-result"
           title="复制对比结果（相同行原样，差异行以 - 左侧 / + 右侧标记）">复制结果</button>
@@ -542,14 +561,15 @@
             <div class="settings-row settings-row-col">
               <div class="settings-row-title">显示的功能</div>
               <div class="settings-row-desc">取消勾选后该功能从侧边栏隐藏（数据不受影响），至少保留一个功能</div>
+              <!-- 功能开关卡片（v0.33.0：两列网格 = 功能图标 + 名称 + 右侧选中圆标；末项通栏避免奇数落单） -->
               <div class="nav-feature-grid" id="nav-feature-grid">
-                <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><span>JSON 格式化</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><span>文本对比</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><span>记事本</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><span>账号密码</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><span>MD5 计算</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><span>字符串转换</span></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><span>Markdown 预览</span></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" /><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1 2 2 2 2 0 0 1-2 2v5a2 2 0 0 1-2 2h-1" /></svg><span>JSON 格式化</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="4" x2="12" y2="20" /><line x1="4" y1="8" x2="9" y2="8" /><line x1="4" y1="12" x2="9" y2="12" /><line x1="4" y1="16" x2="9" y2="16" /><line x1="15" y1="8" x2="20" y2="8" /><line x1="15" y1="16" x2="20" y2="16" /></svg><span>文本对比</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg><span>记事本</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg><span>账号密码</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg><span>MD5 计算</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg><span>字符串转换</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 21 3.5 4 7.5 11 11.5 4 11.5 21" /><line x1="17.5" y1="4" x2="17.5" y2="21" /><polyline points="13.5 17 17.5 21 21.5 17" /></svg><span>Markdown 预览</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
               </div>
             </div>
           </div>
@@ -580,7 +600,7 @@
             <div class="settings-row">
               <div class="settings-row-text">
                 <div class="settings-row-title">数据导入导出</div>
-                <div class="settings-row-desc">一键备份全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份）与应用配置；支持 ZIP 压缩包或文件夹，导入可选「覆盖」或「合并」</div>
+                <div class="settings-row-desc">一键备份全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份 / 富文本图片）与应用配置；支持 ZIP 压缩包或文件夹，导入可选「覆盖」或「合并」</div>
               </div>
               <div class="settings-actions">
                 <button class="btn" id="data-export-btn">导出</button>
@@ -667,8 +687,10 @@
   </div>
 
   <script src="modules/history.js"></script>
+  <script src="modules/json-tree.js"></script>
   <script src="modules/json-format.js"></script>
   <script src="modules/text-diff.js"></script>
+  <script src="modules/drag-sort.js"></script>
   <script src="modules/notes.js"></script>
   <script src="modules/accounts.js"></script>
   <script src="modules/md5.js"></script>

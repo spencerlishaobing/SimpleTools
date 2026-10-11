@@ -90,6 +90,22 @@
     e.stopPropagation();
   });
 
+  // ---------- 全局文件拖放守卫（v0.33.0） ----------
+  // 背景：tauri.conf.json 设 dragDropEnabled=false（wry 原生拖放会吞掉页内 dragover/drop 事件，
+  // 页内拖拽排序必须用它换成 WebView2 内建拖放）。此后文件拖到窗口任意位置若无阻止，
+  // WebView 会把它当作导航目标直接打开该文件；这里统一阻止「含文件拖拽」的默认行为，
+  // 具体落点（MD5 / Markdown 面板）由各自模块的 drop 监听自行处理。
+  function hasFiles(e) {
+    const t = e.dataTransfer && e.dataTransfer.types;
+    return !!t && Array.prototype.indexOf.call(t, 'Files') !== -1;
+  }
+  document.addEventListener('dragover', function (e) {
+    if (hasFiles(e)) e.preventDefault();
+  });
+  document.addEventListener('drop', function (e) {
+    if (hasFiles(e)) e.preventDefault();
+  });
+
   // ---------- 面板切换 ----------
   const navItems = document.querySelectorAll('.nav-item');
   const panels = document.querySelectorAll('.panel');
@@ -97,6 +113,9 @@
   function activatePanel(target) {
     navItems.forEach((b) => b.classList.toggle('active', b.dataset.panel === target));
     panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + target));
+    // 面板由隐藏变为可见后通知（供在隐藏状态下无法测量的模块重算布局，如账号备注高度）
+    const panel = document.getElementById('panel-' + target);
+    if (panel && panel.classList.contains('active')) panel.dispatchEvent(new CustomEvent('panel-shown'));
   }
 
   navItems.forEach((btn) => {
@@ -555,6 +574,7 @@
     'accounts.json': { label: '账号密码', desc: '分组与条目（含备注），经 DPAPI 加密存储' },
     'history.json': { label: '历史记录', desc: '格式化 / 对比 / MD5 / 转换记录，各最多 50 条' },
     'notes.backup.json': { label: '记事本备份', desc: '点记事本「备份」按钮生成的数据副本' },
+    'images': { label: '富文本图片', desc: '任务笔记富文本插入的本地图片（相对路径引用，随数据迁移与备份）' },
     'settings.json': { label: '应用设置', desc: '记录数据存储位置等配置' },
   };
   const dataDirHelpBtn = document.getElementById('data-dir-help');
@@ -585,7 +605,8 @@
     const nameRow = document.createElement('div');
     nameRow.className = 'storage-item-name';
     const code = document.createElement('code');
-    code.textContent = f.name;
+    // 图片目录（v0.33.0）：补尾斜杠与数据文件区分
+    code.textContent = f.name === 'images' ? 'images/' : f.name;
     nameRow.appendChild(code);
     const label = document.createElement('span');
     label.className = 'storage-item-label';
@@ -918,7 +939,8 @@
     try {
       const res = await invokeApi('data_export', { dest, format: kind });
       const n = (res && res.files && res.files.length) || 0;
-      window.toast('已导出 ' + n + ' 个数据文件');
+      const ic = (res && res.image_count) || 0;
+      window.toast('已导出 ' + n + ' 个数据文件' + (ic ? '、' + ic + ' 张图片' : ''));
     } catch (e) {
       window.toast('导出失败：' + ((e && e.message) || e));
     }
@@ -998,6 +1020,8 @@
     try {
       const res = await invokeApi('data_import', { source, backupName });
       let msg = '已导入 ' + ((res && res.imported && res.imported.length) || 0) + ' 个文件';
+      const ic = (res && res.image_count) || 0;
+      if (ic) msg += '、' + ic + ' 张图片';
       if (res && res.fallback) msg += '（存储位置不可用，已回退默认目录）';
       window.toast(msg + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
@@ -1171,10 +1195,12 @@
       const li = document.createElement('li');
       li.className = 'restore-item';
       const files = (b.files || []).length;
+      const ic = b.image_count || 0;
       li.innerHTML =
         '<div class="restore-item-text">' +
         '<div class="restore-item-time">' + formatBackupTime(b.name) + '</div>' +
-        '<div class="restore-item-meta">' + b.name + ' · ' + files + ' 个文件 · ' + formatSize(b.size || 0) + '</div>' +
+        '<div class="restore-item-meta">' + b.name + ' · ' + files + ' 个文件' +
+        (ic ? '、' + ic + ' 张图片' : '') + ' · ' + formatSize(b.size || 0) + '</div>' +
         '</div>' +
         '<button class="btn restore-run">恢复</button>';
       li.querySelector('.restore-run').addEventListener('click', () => runRestore(b.name));
@@ -1184,7 +1210,7 @@
 
   async function runRestore(name) {
     const ok = await window.showConfirm(
-      '将用备份「' + formatBackupTime(name) + '」覆盖当前数据（笔记 / 账号密码 / 历史记录 / 记事本备份，备份中若包含应用设置则一并还原）。恢复操作不会再生成备份，当前数据将被直接替换。',
+      '将用备份「' + formatBackupTime(name) + '」覆盖当前数据（笔记 / 账号密码 / 历史记录 / 记事本备份 / 富文本图片，备份中若包含应用设置则一并还原）。恢复操作不会再生成备份，当前数据将被直接替换。',
       { title: '恢复数据', okText: '覆盖恢复' }
     );
     if (!ok) return;
@@ -1194,7 +1220,8 @@
     try {
       const res = await invokeApi('data_restore', { name });
       const n = (res && res.restored && res.restored.length) || 0;
-      window.toast('已恢复 ' + n + ' 个数据文件，正在重新加载…');
+      const ic = (res && res.image_count) || 0;
+      window.toast('已恢复 ' + n + ' 个数据文件' + (ic ? '、' + ic + ' 张图片' : '') + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
     } catch (e) {
       window.toast('恢复失败：' + ((e && e.message) || e));
