@@ -27,6 +27,7 @@
   let headings = [];     // [{ id, level, text }]
   let headingEls = [];   // 标题对应的 DOM 元素（目录高亮用）
   let renderTimer = null;
+  let docDir = '';       // 当前打开文档所在目录（本地图片相对路径的解析基准）
 
   // ---------- 基础工具 ----------
 
@@ -42,11 +43,52 @@
     return String(s).replace(/<[^>]*>/g, '');
   }
 
-  // 链接 / 图片地址过滤：屏蔽危险协议
+  // 链接地址过滤：屏蔽危险协议（链接点击只复制不导航）
   function safeUrl(u) {
     const s = String(u).trim();
     if (/^(javascript|vbscript|file|data):/i.test(s)) return '#';
     return s;
+  }
+
+  // ---------- 图片地址解析（网络 / data:image / 本地路径） ----------
+
+  // 本地路径 → Tauri asset 协议 URL（真实应用环境；无 Tauri 接口时返回空）
+  function toAssetUrl(p) {
+    const api = window.__TAURI__ && window.__TAURI__.core;
+    if (api && typeof api.convertFileSrc === 'function') {
+      try { return api.convertFileSrc(p); } catch (e) { return ''; }
+    }
+    return '';
+  }
+
+  // 目录 + 相对路径拼接（处理 ./ 与 ../）
+  function joinPath(dir, rel) {
+    const parts = dir.replace(/\\/g, '/').split('/');
+    rel.replace(/\\/g, '/').split('/').forEach((seg) => {
+      if (!seg || seg === '.') return;
+      if (seg === '..') parts.pop();
+      else parts.push(seg);
+    });
+    return parts.join('\\');
+  }
+
+  // 图片地址解析：https/http 与 data:image 原样；本地路径（绝对 / file:// / 基于文档目录的相对路径）转 asset 协议；
+  // javascript:/vbscript:/blob: 及非图片 data: 拒绝（返回空，由调用方渲染占位）
+  function resolveImageSrc(u) {
+    const s = String(u).trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:image\//i.test(s)) return s;
+    if (/^(javascript|vbscript|data|blob):/i.test(s)) return '';
+    let p = s;
+    if (/^file:/i.test(p)) {
+      try { p = decodeURIComponent(p.replace(/^file:\/{0,3}/i, '')); } catch (e) { p = s.replace(/^file:\/{0,3}/i, ''); }
+    } else {
+      try { p = decodeURIComponent(p); } catch (e) { /* 含裸 % 时保留原样 */ }
+    }
+    if (/^[a-zA-Z]:[\\/]/.test(p) || /^\\\\/.test(p)) return toAssetUrl(p);
+    if (docDir) return toAssetUrl(joinPath(docDir, p));
+    return '';
   }
 
   // ---------- 行内解析 ----------
@@ -61,8 +103,11 @@
     // 2) 转义 HTML：原始 HTML 标签按文本显示，防止注入
     t = escapeHtml(t);
     // 3) 图片 / 链接
-    t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) =>
-      '<img src="' + safeUrl(url) + '" alt="' + alt + '">');
+    t = t.replace(/!\[([^\]]*)\]\(([^)\n]+)\)/g, (m, alt, url) => {
+      const src = resolveImageSrc(url);
+      if (!src) return '<span class="md-img-broken">' + (alt || '图片无法加载') + '</span>';
+      return '<img src="' + src + '" alt="' + alt + '">';
+    });
     t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) =>
       '<a href="' + safeUrl(url) + '">' + label + '</a>');
     // 4) 粗体 / 斜体 / 删除线（先强后弱，带边界约束避免误伤乘号等）
@@ -526,6 +571,7 @@
       const r = await invoke('read_text_file', { path });
       inputEl.value = r.content || '';
       docNameEl.textContent = r.name || '未命名';
+      docDir = String(path).replace(/[\\/][^\\/]*$/, '');
       render();
       window.toast('已打开 ' + (r.name || path));
     } catch (e) {
@@ -578,6 +624,7 @@
   document.getElementById('md-clear').addEventListener('click', () => {
     inputEl.value = '';
     docNameEl.textContent = '未命名';
+    docDir = '';
     render();
     inputEl.focus();
   });
@@ -597,6 +644,12 @@
     }
     window.copyText(rawHtml, '已复制渲染 HTML');
   });
+
+  // 图片加载失败 → 占位样式（error 事件不冒泡，需捕获阶段监听）
+  readerEl.addEventListener('error', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'IMG') el.classList.add('md-img-failed');
+  }, true);
 
   // 渲染结果中的链接点击：不跳转（避免 WebView 导航），改为复制链接
   readerEl.addEventListener('click', (e) => {

@@ -1794,8 +1794,29 @@ textarea[readonly] {
 }
 
 .md-body img {
+  display: block;
   max-width: 100%;
+  height: auto;
+  margin: 0.8em 0;
   border-radius: 8px;
+}
+
+.md-body img.md-img-failed {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  background: var(--panel-bg-subtle);
+  color: var(--text-dim);
+  font-size: 0.86em;
+}
+
+.md-img-broken {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 0.9em;
 }
 
 .md-body table.md-table {
