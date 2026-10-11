@@ -7,8 +7,8 @@ SimpleTools 一键发布 GitHub Release
   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.30.1 -DryRun
   网络被干扰导致 fetch/push/API 失败时附加：-Proxy http://127.0.0.1:44447
 
-流程：校验（版本三处一致 / 工作区干净 / HEAD 已推送 / tag 未被占用 / 安装包存在）
-      -> 打 tag -> 推 tag -> 创建 Release -> 上传 NSIS 安装包
+流程：校验（版本三处一致 / 工作区干净 / HEAD 已推送 / tag 未被占用 / 安装包与免安装 exe 存在）
+      -> 打 tag -> 推 tag -> 创建 Release -> 上传资产（NSIS 安装包 + 免安装 exe）
 
 说明：
 - 凭据复用 Windows 凭据管理器中 git push 已保存的 GitHub 凭据（运行时动态读取，不落盘）；
@@ -18,6 +18,7 @@ SimpleTools 一键发布 GitHub Release
 param(
   [Parameter(Mandatory = $true)][string]$Version,
   [string]$Installer = '',
+  [string]$PortableExe = '',
   [string]$Notes = '',
   [string]$NotesFile = '',
   [string]$Proxy = '',
@@ -56,15 +57,28 @@ if (-not $Notes -and $NotesFile) {
   $Notes = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $NotesFile).Path, [System.Text.Encoding]::UTF8).Trim()
 }
 
-# ---------- 安装包定位与指纹 ----------
+# ---------- 发布产物定位与指纹（NSIS 安装包 + 免安装 exe） ----------
 if (-not $Installer) {
   $Installer = Join-Path $RepoDir "src-tauri\target\release\bundle\nsis\SimpleTools_${v}_x64-setup.exe"
 }
+if (-not $PortableExe) {
+  $PortableExe = Join-Path $RepoDir 'src-tauri\target\release\SimpleTools.exe'
+}
 if (-not (Test-Path -LiteralPath $Installer)) { Fail "installer not found: $Installer" }
+if (-not (Test-Path -LiteralPath $PortableExe)) { Fail "portable exe not found: $PortableExe" }
 $inst = Get-Item -LiteralPath $Installer
 $assetName = $inst.Name
 $sha = (Get-FileHash -LiteralPath $Installer -Algorithm SHA256).Hash
 $sizeMB = [math]::Round($inst.Length / 1MB, 2)
+$portable = Get-Item -LiteralPath $PortableExe
+# 免安装 exe 上传时改用带版本名（原文件名固定为 SimpleTools.exe，多版本下载易混淆）
+$portableAssetName = "SimpleTools_${v}_x64-portable.exe"
+$portableSha = (Get-FileHash -LiteralPath $PortableExe -Algorithm SHA256).Hash
+$portableMB = [math]::Round($portable.Length / 1MB, 2)
+$assets = @(
+  @{ Name = $assetName;         File = $Installer;   MB = $sizeMB;     Sha = $sha },
+  @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
+)
 
 # ---------- git 封装（可选代理） ----------
 $gitArgs = @('-C', $RepoDir)
@@ -157,9 +171,11 @@ if ($DryRun) {
   Write-Output "  api user  : $($me.login)"
   Write-Output "  head      : $headCommit (ahead=$ahead behind=$behind)"
   Write-Output "  tag       : $(if ($localTag) { 'exists (reuse)' } else { 'will create' }) local / $(if ($remoteTag) { 'exists (reuse)' } else { 'will push' }) remote"
-  Write-Output "  installer : $Installer"
-  Write-Output "  size      : $sizeMB MB"
-  Write-Output "  sha256    : $sha"
+  foreach ($a in $assets) {
+    Write-Output "  asset     : $($a.Name) ($($a.MB) MB)"
+    Write-Output "    file    : $($a.File)"
+    Write-Output "    sha256  : $($a.Sha)"
+  }
   Write-Output "  notes     : $(if ($Notes) { "provided ($($Notes.Length) chars)" } else { 'default' })"
   foreach ($w in $warnings) { Write-Output "RELEASE-WARN: $w" }
   Write-Output 'RELEASE-DRYRUN-OK'
@@ -176,10 +192,15 @@ else { Write-Output "STEP remote tag exists, skip push" }
 $releaseNotes = @"
 ## SimpleTools $tag
 
-Windows x64 安装包（NSIS 向导安装）。
+Windows x64 安装包（NSIS 向导安装）：
 
 - 安装包：$assetName（$sizeMB MB）
 - SHA256：``$sha``
+
+Windows x64 免安装单文件（双击即用，无需安装）：
+
+- 免安装：$portableAssetName（$portableMB MB）
+- SHA256：``$portableSha``
 
 $Notes
 "@
@@ -205,16 +226,18 @@ if (-not $release) {
   Write-Output "STEP release created: #$($release.id)"
 }
 
-# ---------- 3) 上传安装包 ----------
-$assetExists = $false
-foreach ($a in @($release.assets)) { if ($a.name -eq $assetName) { $assetExists = $true; break } }
-if ($assetExists) {
-  Write-Output "STEP asset exists, skip upload: $assetName"
-} else {
-  $uploadUri = ($release.upload_url -replace '\{.*$', '') + '?name=' + [uri]::EscapeDataString($assetName)
-  $up = @{ Method = 'Post'; Uri = $uploadUri; Headers = $headers; InFile = $Installer; ContentType = 'application/octet-stream'; UseBasicParsing = $true } + $proxyArg
-  try { Invoke-WebRequest @up | Out-Null } catch { Fail "asset upload failed: $(ApiErrorText $_)" }
-  Write-Output "STEP asset uploaded: $assetName ($sizeMB MB)"
+# ---------- 3) 上传资产（安装包 + 免安装 exe，各自幂等跳过） ----------
+foreach ($a in $assets) {
+  $exists = $false
+  foreach ($ra in @($release.assets)) { if ($ra.name -eq $a.Name) { $exists = $true; break } }
+  if ($exists) {
+    Write-Output "STEP asset exists, skip upload: $($a.Name)"
+    continue
+  }
+  $uploadUri = ($release.upload_url -replace '\{.*$', '') + '?name=' + [uri]::EscapeDataString($a.Name)
+  $up = @{ Method = 'Post'; Uri = $uploadUri; Headers = $headers; InFile = $a.File; ContentType = 'application/octet-stream'; UseBasicParsing = $true } + $proxyArg
+  try { Invoke-WebRequest @up | Out-Null } catch { Fail "asset upload failed ($($a.Name)): $(ApiErrorText $_)" }
+  Write-Output "STEP asset uploaded: $($a.Name) ($($a.MB) MB)"
 }
 
 Write-Output "RELEASE-OK $tag https://github.com/$RepoSlug/releases/tag/$tag"
