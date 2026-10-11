@@ -1,4 +1,5 @@
 mod accounts;
+mod backup;
 mod datadir;
 mod history;
 mod md5calc;
@@ -20,6 +21,8 @@ pub fn run() {
             datadir::data_dir_set,
             datadir::storage_info,
             datadir::open_in_explorer,
+            backup::data_export,
+            backup::data_import,
             notes::notes_load,
             notes::notes_save,
             notes::notes_backup,

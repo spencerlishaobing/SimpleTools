@@ -12,8 +12,8 @@ pub struct AppSettings {
     pub data_dir: String,
 }
 
-/// 需要随数据目录迁移的数据文件（平铺在数据目录下）
-const DATA_FILES: [&str; 4] = [
+/// 需要随数据目录迁移的数据文件（平铺在数据目录下；数据导入导出 v0.30.0 复用同一白名单）
+pub(crate) const DATA_FILES: [&str; 4] = [
     "notes.json",
     "accounts.json",
     "history.json",
@@ -28,7 +28,7 @@ pub fn default_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// Windows canonicalize 会带 \\?\ 前缀，展示 / 存储时去掉
-fn display_path(p: &Path) -> String {
+pub(crate) fn display_path(p: &Path) -> String {
     let s = p.to_string_lossy().to_string();
     s.strip_prefix(r"\\?\").map(|t| t.to_string()).unwrap_or(s)
 }
@@ -46,8 +46,8 @@ fn read_settings(default_dir: &Path) -> AppSettings {
     serde_json::from_str(&data).unwrap_or_default()
 }
 
-/// 写入应用设置（先写临时文件再重命名，避免写入中断损坏配置）
-fn write_settings(default_dir: &Path, settings: &AppSettings) -> Result<(), String> {
+/// 写入应用设置（先写临时文件再重命名，避免写入中断损坏配置；数据导入 v0.30.0 复用）
+pub(crate) fn write_settings(default_dir: &Path, settings: &AppSettings) -> Result<(), String> {
     fs::create_dir_all(default_dir).map_err(|e| format!("创建目录失败: {e}"))?;
     let data = serde_json::to_string_pretty(settings).map_err(|e| format!("序列化失败: {e}"))?;
     let path = settings_path(default_dir);

@@ -459,6 +459,7 @@
   }
 
   function closeSettings() {
+    closeDataioMenu();
     settingsMask.classList.add('hidden');
   }
 
@@ -634,6 +635,174 @@
       const btn = e.target.closest('button[data-file]');
       if (btn) openStorageTarget(btn.getAttribute('data-file'));
     });
+  });
+
+  // ---------- 数据导入导出（v0.30.0）：一键备份 / 恢复全部用户数据与应用配置（ZIP / 文件夹） ----------
+  // - 导出：ZIP 压缩包（保存对话框）或文件夹（在其中自动创建带时间戳的子文件夹）
+  // - 导入：从 ZIP / 文件夹恢复；确认后由后端先把将被覆盖的数据自动备份到
+  //   「数据目录 / import-backup-时间戳 /」，再整文件覆盖；成功后重新加载应用
+  // - 账号密码密文与当前 Windows 用户绑定，跨用户导入只能恢复其余数据（确认弹窗中说明）
+  const dataExportBtn = document.getElementById('data-export-btn');
+  const dataImportBtn = document.getElementById('data-import-btn');
+
+  // 时间戳（与记事本导出命名一致）：20261011-153045
+  function stampNow() {
+    const d = new Date();
+    const pad = (x) => String(x).padStart(2, '0');
+    return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' +
+      pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+
+  // 弹窗内选择菜单（复用导出菜单样式；dataio-menu 层级盖过设置弹窗）
+  let dataioMenuEl = null;
+  let dataioMenuDocHandler = null;
+
+  function closeDataioMenu() {
+    if (dataioMenuEl) {
+      dataioMenuEl.remove();
+      dataioMenuEl = null;
+    }
+    if (dataioMenuDocHandler) {
+      document.removeEventListener('click', dataioMenuDocHandler);
+      dataioMenuDocHandler = null;
+    }
+  }
+
+  function openDataioMenu(anchor, items) {
+    closeDataioMenu();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu dataio-menu';
+    menu.innerHTML = items.map((it) =>
+      '<button type="button" data-opt="' + it.key + '">' + it.icon + '<span>' + it.label + '</span></button>').join('');
+    document.body.appendChild(menu);
+    const rect = anchor.getBoundingClientRect();
+    let left = rect.left;
+    if (left + menu.offsetWidth > window.innerWidth - 8) left = window.innerWidth - menu.offsetWidth - 8;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) top = rect.top - menu.offsetHeight - 6;
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    dataioMenuEl = menu;
+    menu.querySelectorAll('button[data-opt]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const key = b.getAttribute('data-opt');
+        closeDataioMenu();
+        const item = items.find((it) => it.key === key);
+        if (item) item.run();
+      });
+    });
+    setTimeout(() => {
+      dataioMenuDocHandler = (ev) => {
+        if (dataioMenuEl && !dataioMenuEl.contains(ev.target)) closeDataioMenu();
+      };
+      document.addEventListener('click', dataioMenuDocHandler);
+    }, 0);
+  }
+
+  const DATAIO_ICON_ARCHIVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>';
+  const DATAIO_ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+
+  // 导出：zip=保存对话框选择备份文件位置；dir=选择目标文件夹后在其中创建时间戳子文件夹
+  async function runDataExport(kind) {
+    if (!invokeApi || !dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    const stamp = stampNow();
+    let dest = '';
+    try {
+      if (kind === 'zip') {
+        if (!dialogApi.save) {
+          window.toast('当前环境不支持保存对话框');
+          return;
+        }
+        const picked = await dialogApi.save({
+          defaultPath: 'SimpleTools_backup_' + stamp + '.zip',
+          filters: [{ name: 'ZIP 压缩包', extensions: ['zip'] }],
+          title: '导出数据（ZIP 压缩包）',
+        });
+        dest = typeof picked === 'string' ? picked : (picked && picked.path) || '';
+        if (dest && !/\.zip$/i.test(dest)) dest += '.zip';
+      } else {
+        const picked = await dialogApi.open({ directory: true, multiple: false, title: '选择导出位置' });
+        const dir = typeof picked === 'string' ? picked : (picked && picked.path) || '';
+        if (dir) dest = dir + (/[\\/]$/.test(dir) ? '' : '\\') + 'SimpleTools_backup_' + stamp;
+      }
+    } catch (e) {
+      window.toast('无法打开文件选择框');
+      return;
+    }
+    if (!dest) return;
+    try {
+      const res = await invokeApi('data_export', { dest, format: kind });
+      const n = (res && res.files && res.files.length) || 0;
+      window.toast('已导出 ' + n + ' 个数据文件');
+    } catch (e) {
+      window.toast('导出失败：' + ((e && e.message) || e));
+    }
+  }
+
+  // 导入：zip=选备份文件；dir=选备份文件夹；确认后由后端导入（自动备份 → 覆盖 → 重载）
+  async function runDataImport(kind) {
+    if (!invokeApi || !dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    let source = '';
+    try {
+      if (kind === 'zip') {
+        const picked = await dialogApi.open({
+          multiple: false,
+          title: '选择要导入的备份文件',
+          filters: [{ name: 'ZIP 压缩包', extensions: ['zip'] }],
+        });
+        source = typeof picked === 'string' ? picked : (picked && picked.path) || '';
+      } else {
+        const picked = await dialogApi.open({ directory: true, multiple: false, title: '选择要导入的备份文件夹' });
+        source = typeof picked === 'string' ? picked : (picked && picked.path) || '';
+      }
+    } catch (e) {
+      window.toast('无法打开文件选择框');
+      return;
+    }
+    if (!source) return;
+    const ok = await window.showConfirm(
+      '将从所选备份恢复数据文件（同名覆盖，备份中未包含的文件不受影响）。导入前会自动把当前数据备份到数据目录下的 import-backup-时间戳 文件夹。注意：账号密码数据经系统加密，仅能在导出时的同一 Windows 用户下恢复。',
+      { title: '导入数据', okText: '开始导入' }
+    );
+    if (!ok) return;
+    dataImportBtn.disabled = true;
+    dataExportBtn.disabled = true;
+    try {
+      const res = await invokeApi('data_import', { source, backupName: 'import-backup-' + stampNow() });
+      let msg = '已导入 ' + ((res && res.imported && res.imported.length) || 0) + ' 个文件';
+      if (res && res.fallback) msg += '（存储位置不可用，已回退默认目录）';
+      window.toast(msg + '，正在重新加载…');
+      setTimeout(function () { location.reload(); }, 1000);
+    } catch (e) {
+      window.toast('导入失败：' + ((e && e.message) || e));
+      dataImportBtn.disabled = false;
+      dataExportBtn.disabled = false;
+    }
+  }
+
+  dataExportBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    openDataioMenu(dataExportBtn, [
+      { key: 'zip', label: '导出为 ZIP 压缩包', icon: DATAIO_ICON_ARCHIVE, run: function () { runDataExport('zip'); } },
+      { key: 'dir', label: '导出到文件夹', icon: DATAIO_ICON_FOLDER, run: function () { runDataExport('dir'); } },
+    ]);
+  });
+  dataImportBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    openDataioMenu(dataImportBtn, [
+      { key: 'zip', label: '从 ZIP 压缩包导入', icon: DATAIO_ICON_ARCHIVE, run: function () { runDataImport('zip'); } },
+      { key: 'dir', label: '从文件夹导入', icon: DATAIO_ICON_FOLDER, run: function () { runDataImport('dir'); } },
+    ]);
   });
 
   settingsBtn.addEventListener('click', openSettings);
