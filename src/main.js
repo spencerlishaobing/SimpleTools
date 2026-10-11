@@ -108,10 +108,10 @@
     });
   });
 
-  // ---------- 主题切换（浅色 / 深色 / 卡其色，三态循环，持久化） ----------
+  // ---------- 主题切换（浅色 / 深色 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
   const THEME_KEY = 'simpletools-theme';
-  const THEME_NEXT = { light: 'dark', dark: 'khaki', khaki: 'light' };
-  const THEME_LABEL = { light: '深色模式', dark: '卡其模式', khaki: '浅色模式' };
+  const THEME_ORDER = ['light', 'dark', 'khaki'];
+  const THEME_LABEL = { light: '浅色模式', dark: '深色模式', khaki: '卡其模式' };
   const themeToggle = document.getElementById('theme-toggle');
   const themeLabel = document.getElementById('theme-label');
   const invokeApi = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
@@ -138,7 +138,7 @@
   }
 
   function updateToggleUI(theme) {
-    // 按钮文案/图标始终表示"点击后将切换到的模式"
+    // 按钮文案表示当前主题（图标由 CSS 按 data-theme 显示当前主题对应图标）
     themeLabel.textContent = THEME_LABEL[theme];
   }
 
@@ -155,8 +155,74 @@
     syncTitlebar(theme);
   }
 
-  themeToggle.addEventListener('click', () => {
-    applyTheme(THEME_NEXT[currentTheme()]);
+  // ---------- 主题选择菜单（点按钮弹出，直接点选；复用导出菜单样式与关闭机制） ----------
+  const THEME_MENU_ICONS = {
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>' +
+      '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
+      '<line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>' +
+      '<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    khaki: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>' +
+      '<line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
+  };
+  const THEME_CHECK_ICON = '<svg class="theme-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  let themeMenuEl = null;
+  let themeMenuDocHandler = null;
+
+  function closeThemeMenu() {
+    if (themeMenuEl) {
+      themeMenuEl.remove();
+      themeMenuEl = null;
+    }
+    if (themeMenuDocHandler) {
+      document.removeEventListener('click', themeMenuDocHandler);
+      themeMenuDocHandler = null;
+    }
+  }
+
+  // 点主题按钮后弹出菜单（贴按钮左缘定位；按钮位于侧边栏底部，默认向上弹出）
+  function openThemeMenu() {
+    closeThemeMenu();
+    const cur = currentTheme();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu theme-menu';
+    menu.innerHTML = THEME_ORDER.map((t) =>
+      '<button type="button" data-theme-opt="' + t + '"' + (t === cur ? ' class="is-active"' : '') + '>' +
+      THEME_MENU_ICONS[t] + '<span>' + THEME_LABEL[t] + '</span>' +
+      (t === cur ? THEME_CHECK_ICON : '') + '</button>').join('');
+    document.body.appendChild(menu);
+    const rect = themeToggle.getBoundingClientRect();
+    let left = rect.left;
+    if (left + menu.offsetWidth > window.innerWidth - 8) left = window.innerWidth - menu.offsetWidth - 8;
+    if (left < 8) left = 8;
+    let top = rect.top - menu.offsetHeight - 6;
+    if (top < 8) top = rect.bottom + 6;
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    themeMenuEl = menu;
+    menu.querySelectorAll('button[data-theme-opt]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const t = b.dataset.themeOpt;
+        closeThemeMenu();
+        applyTheme(t);
+      });
+    });
+    setTimeout(() => {
+      themeMenuDocHandler = (ev) => {
+        if (themeMenuEl && !themeMenuEl.contains(ev.target)) closeThemeMenu();
+      };
+      document.addEventListener('click', themeMenuDocHandler);
+    }, 0);
+  }
+
+  themeToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openThemeMenu();
   });
 
   updateToggleUI(currentTheme());

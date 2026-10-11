@@ -313,26 +313,50 @@ body {
   flex-shrink: 0;
 }
 
-/* 主题图标：始终显示“点击后将切换到的主题”（浅色→月亮 / 深色→卡其 / 卡其→太阳） */
-.theme-toggle .icon-sun,
+/* 主题图标：显示当前主题（浅色→太阳 / 深色→月亮 / 卡其→杯子） */
+.theme-toggle .icon-moon,
 .theme-toggle .icon-khaki {
   display: none;
 }
 
+[data-theme="dark"] .theme-toggle .icon-sun {
+  display: none;
+}
+
 [data-theme="dark"] .theme-toggle .icon-moon {
-  display: none;
-}
-
-[data-theme="dark"] .theme-toggle .icon-khaki {
   display: block;
-}
-
-[data-theme="khaki"] .theme-toggle .icon-moon {
-  display: none;
 }
 
 [data-theme="khaki"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+[data-theme="khaki"] .theme-toggle .icon-khaki {
   display: block;
+}
+
+/* 主题选择菜单（点主题按钮弹出）：图标 + 名称 + 当前主题对勾 */
+.theme-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-menu button > svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.theme-menu button .theme-check {
+  margin-left: auto;
+  width: 13px;
+  height: 13px;
+}
+
+.theme-menu button.is-active {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .version {
