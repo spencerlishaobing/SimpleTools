@@ -1,4 +1,4 @@
-/* ===== 账号密码管理（分组 + 条目增删改 + 复制 + 搜索过滤） ===== */
+/* ===== 账号密码管理（分组 + 条目增删改 + 备注 + 复制 + 搜索过滤 + 命中高亮） ===== */
 (function () {
   'use strict';
 
@@ -38,6 +38,28 @@
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+  }
+
+  // 命中高亮：把 text 中所有匹配 keyword 的片段（大小写不敏感）包裹为 <mark> 后返回安全 HTML
+  // 注意：必须先分段再逐段转义，不能先转义后匹配（转义会改变命中位置）
+  function hlHtml(text, keyword) {
+    const s = String(text == null ? '' : text);
+    const kw = String(keyword || '');
+    if (!kw) return esc(s);
+    const lower = s.toLowerCase();
+    const k = kw.toLowerCase();
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+      const idx = lower.indexOf(k, i);
+      if (idx < 0) {
+        out += esc(s.slice(i));
+        break;
+      }
+      out += esc(s.slice(i, idx)) + '<mark class="acc-hl">' + esc(s.slice(idx, idx + k.length)) + '</mark>';
+      i = idx + k.length;
+    }
+    return out;
   }
 
   function genId() {
@@ -139,6 +161,8 @@
       ' placeholder="账号" spellcheck="false" autocomplete="off" />' +
       '<input class="acc-input acc-item-password" type="' + (state.showPwd ? 'text' : 'password') + '"' +
       ' value="' + esc(item.password) + '" placeholder="密码" spellcheck="false" autocomplete="off" />' +
+      '<input class="acc-input acc-item-note" value="' + esc(item.note || '') + '"' +
+      ' placeholder="备注（可选）" spellcheck="false" autocomplete="off" />' +
       actionButtons(true) +
       '</li>';
   }
@@ -151,8 +175,8 @@
     itemEmptyEl.classList.toggle('hidden', g.items.length > 0);
   }
 
-  // 搜索匹配：分组名模糊匹配（组内条目全部列出）或账号模糊匹配（仅该条目）；
-  // 同一条目同时命中两者只保留一次（合并去重）
+  // 搜索匹配：分组名 / 账号 / 备注 三者模糊匹配（大小写不敏感）；
+  // 分组名命中则组内条目全部列出；同一条目命中多处只保留一次（天然去重）
   function searchMatches() {
     const kw = state.keyword.trim().toLowerCase();
     const out = [];
@@ -160,7 +184,8 @@
       const groupHit = String(g.name || '').toLowerCase().indexOf(kw) >= 0;
       for (const it of g.items) {
         const accountHit = !!(it.account && it.account.toLowerCase().indexOf(kw) >= 0);
-        if (groupHit || accountHit) {
+        const noteHit = !!(it.note && String(it.note).toLowerCase().indexOf(kw) >= 0);
+        if (groupHit || accountHit || noteHit) {
           out.push({ group: g, item: it });
         }
       }
@@ -170,13 +195,15 @@
 
   function renderSearch() {
     const matches = searchMatches();
-    searchHeadEl.textContent = '找到 ' + matches.length + ' 条匹配（按分组名 / 账号关键字）';
+    const kw = state.keyword.trim();
+    searchHeadEl.textContent = '找到 ' + matches.length + ' 条匹配（按分组名 / 账号 / 备注关键字）';
     searchListEl.innerHTML = matches.map((m) => {
       const it = m.item;
       const pwdText = it.password ? (state.showPwd ? it.password : '••••••') : '（空）';
       return '<li class="acc-item acc-search-item" data-id="' + esc(it.id) + '">' +
-        '<span class="acc-search-group">' + esc(m.group.name || '未命名分组') + '</span>' +
-        '<span class="acc-search-account">' + esc(it.account) + '</span>' +
+        '<span class="acc-search-group">' + hlHtml(m.group.name || '未命名分组', kw) + '</span>' +
+        '<span class="acc-search-account">' + hlHtml(it.account, kw) + '</span>' +
+        (it.note ? '<span class="acc-search-note" title="备注">' + hlHtml(it.note, kw) + '</span>' : '') +
         '<span class="acc-search-password">' + esc(pwdText) + '</span>' +
         actionButtons(false) +
         '</li>';
@@ -253,7 +280,7 @@
       window.toast('请先选择分组');
       return;
     }
-    g.items.push({ id: genId(), account: '', password: '', updated_at: Date.now() });
+    g.items.push({ id: genId(), account: '', password: '', note: '', updated_at: Date.now() });
     renderGroupView();
     const rows = itemListEl.querySelectorAll('.acc-item');
     const last = rows[rows.length - 1];
@@ -415,6 +442,7 @@
       }
       g.items.forEach((it, i) => {
         out += (i + 1) + '. 账号：' + (it.account || '（空）') + '\n   密码：' + (it.password || '（空）') + '\n';
+        if (it.note) out += '   备注：' + it.note + '\n';
       });
     }
     return '\uFEFF' + out;
@@ -429,10 +457,10 @@
 
   // 表格 CSV：表头 + 每条一行（UTF-8 BOM，Excel 直接打开）
   function buildCsv(groups) {
-    let out = '分组,账号,密码\r\n';
+    let out = '分组,账号,密码,备注\r\n';
     for (const g of groups) {
       for (const it of g.items) {
-        out += [csvField(g.name || '未命名分组'), csvField(it.account), csvField(it.password)].join(',') + '\r\n';
+        out += [csvField(g.name || '未命名分组'), csvField(it.account), csvField(it.password), csvField(it.note)].join(',') + '\r\n';
       }
     }
     return '\uFEFF' + out;
@@ -494,6 +522,10 @@
       scheduleSave();
     } else if (e.target.classList.contains('acc-item-password')) {
       item.password = e.target.value;
+      item.updated_at = Date.now();
+      scheduleSave();
+    } else if (e.target.classList.contains('acc-item-note')) {
+      item.note = e.target.value;
       item.updated_at = Date.now();
       scheduleSave();
     }
@@ -573,6 +605,9 @@
       state.groups = Array.isArray(groups) ? groups : [];
       state.groups.forEach((g) => {
         if (!Array.isArray(g.items)) g.items = [];
+        g.items.forEach((it) => {
+          if (typeof it.note !== 'string') it.note = '';
+        });
       });
     } catch (e) {
       window.toast('加载账号密码失败：' + e);

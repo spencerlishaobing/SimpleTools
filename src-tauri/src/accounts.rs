@@ -10,6 +10,9 @@ pub struct AccountItem {
     pub id: String,
     pub account: String,
     pub password: String,
+    /// 备注（可选，默认空；v0.20.0 新增，旧数据自动补空）
+    #[serde(default)]
+    pub note: String,
     /// 最后更新时间（毫秒时间戳）
     #[serde(default)]
     pub updated_at: u64,
