@@ -777,6 +777,7 @@ textarea[readonly] {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .multi-count {
@@ -787,7 +788,11 @@ textarea[readonly] {
 
 .multi-actions {
   display: flex;
-  gap: 6px;
+  gap: 5px;
+}
+
+.multi-actions .btn.small {
+  padding: 5px 6px;
 }
 
 .note-check {
@@ -823,6 +828,41 @@ textarea[readonly] {
 .note-item.selected .note-check {
   background: var(--primary);
   border-color: var(--primary);
+}
+
+/* ---------- 导出格式菜单 ---------- */
+
+.export-menu {
+  position: fixed;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  animation: modal-pop 0.12s ease;
+}
+
+.export-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--sans);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.export-menu button:hover {
+  background: var(--hover-bg);
 }
 
 .notes-empty {

@@ -3,6 +3,7 @@
   'use strict';
 
   const invoke = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
+  const dialogApi = (window.__TAURI__ && window.__TAURI__.dialog) || null;
 
   const listEl = document.getElementById('notes-list');
   const emptyEl = document.getElementById('notes-empty');
@@ -19,6 +20,7 @@
   const selAllBtn = document.getElementById('notes-selall');
   const delSelBtn = document.getElementById('notes-delsel');
   const multiExitBtn = document.getElementById('notes-multi-exit');
+  const exportSelBtn = document.getElementById('notes-exportsel');
 
   const state = {
     notes: [],      // [{ id, title, content, updated_at }]
@@ -225,6 +227,7 @@
     multiCountEl.textContent = '已选 ' + n + ' 项';
     selAllBtn.textContent = total && n >= total ? '取消全选' : '全选';
     selAllBtn.disabled = !total;
+    exportSelBtn.disabled = !n;
     delSelBtn.disabled = !n;
   }
 
@@ -255,6 +258,140 @@
     }
     exitMulti();
     scheduleSave(true);
+  }
+
+  // ---------- 导出（单条 / 批量，JSON / TXT，自选文件夹） ----------
+
+  let exportMenuEl = null;
+  let exportMenuDocHandler = null;
+
+  function closeExportMenu() {
+    if (exportMenuEl) {
+      exportMenuEl.remove();
+      exportMenuEl = null;
+    }
+    if (exportMenuDocHandler) {
+      document.removeEventListener('click', exportMenuDocHandler);
+      exportMenuDocHandler = null;
+    }
+  }
+
+  // 点「导出」后弹出格式选择菜单（贴按钮定位，空间不足时上移）
+  function openExportMenu(btn, notes) {
+    closeExportMenu();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu';
+    menu.innerHTML =
+      '<button type="button" data-fmt="json">导出为 JSON</button>' +
+      '<button type="button" data-fmt="txt">导出为 TXT</button>';
+    document.body.appendChild(menu);
+    const rect = btn.getBoundingClientRect();
+    let left = rect.right - menu.offsetWidth;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) {
+      top = rect.top - menu.offsetHeight - 6;
+    }
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    exportMenuEl = menu;
+    menu.querySelectorAll('button[data-fmt]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fmt = b.dataset.fmt;
+        closeExportMenu();
+        runExport(notes, fmt);
+      });
+    });
+    setTimeout(() => {
+      exportMenuDocHandler = (ev) => {
+        if (exportMenuEl && !exportMenuEl.contains(ev.target)) closeExportMenu();
+      };
+      document.addEventListener('click', exportMenuDocHandler);
+    }, 0);
+  }
+
+  // 清洗文件名：替换 Windows 非法字符，去掉结尾的点 / 空格并限长
+  function sanitizeName(title) {
+    let name = String(title || '').trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_');
+    name = name.replace(/[\. ]+$/, '').trim();
+    if (!name) name = '未命名';
+    if (name.length > 60) name = name.slice(0, 60);
+    return name;
+  }
+
+  function pad2(x) {
+    return String(x).padStart(2, '0');
+  }
+
+  function exportStamp() {
+    const d = new Date();
+    return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' +
+      pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds());
+  }
+
+  function noteToJson(n) {
+    return { title: n.title, content: n.content, updated_at: n.updated_at };
+  }
+
+  // 组装待写入文件：JSON 单条为对象、批量为数组单文件；TXT 每篇一个文件（重名自动加序号）
+  function buildExportFiles(notes, fmt) {
+    if (fmt === 'json') {
+      if (notes.length === 1) {
+        return [{
+          name: sanitizeName(notes[0].title) + '.json',
+          content: JSON.stringify(noteToJson(notes[0]), null, 2),
+        }];
+      }
+      return [{
+        name: 'notes-export-' + exportStamp() + '.json',
+        content: JSON.stringify(notes.map(noteToJson), null, 2),
+      }];
+    }
+    const used = new Set();
+    const files = [];
+    for (const n of notes) {
+      const base = sanitizeName(n.title);
+      let name = base;
+      for (let i = 2; used.has(name.toLowerCase()); i++) name = base + '(' + i + ')';
+      used.add(name.toLowerCase());
+      const body = (n.title ? n.title + '\n\n' : '') + (n.content || '');
+      files.push({ name: name + '.txt', content: '\uFEFF' + body });
+    }
+    return files;
+  }
+
+  // 选择文件夹后写入（TXT 带 UTF-8 BOM，兼容 Windows 记事本）
+  async function runExport(notes, fmt) {
+    if (!invoke || !dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    if (!notes.length) {
+      window.toast('没有可导出的记录');
+      return;
+    }
+    let dir = null;
+    try {
+      const picked = await dialogApi.open({
+        directory: true,
+        multiple: false,
+        title: '选择导出文件夹',
+      });
+      dir = typeof picked === 'string'
+        ? picked
+        : (picked && picked.path) || (Array.isArray(picked) ? picked[0] : null);
+    } catch (e) {
+      window.toast('打开文件夹选择器失败：' + e);
+      return;
+    }
+    if (!dir) return; // 用户取消选择
+    try {
+      const count = await invoke('notes_export', { dir: dir, files: buildExportFiles(notes, fmt) });
+      window.toast('已导出 ' + count + ' 个文件');
+    } catch (e) {
+      window.toast('导出失败：' + e);
+    }
   }
 
   // ---------- 编辑事件 ----------
@@ -307,11 +444,26 @@
     if (state.currentId) removeNote(state.currentId);
     else window.toast('请先选择一条记录');
   });
+  document.getElementById('note-export').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const note = getCurrent();
+    if (!note) {
+      window.toast('请先选择一条记录');
+      return;
+    }
+    openExportMenu(e.currentTarget, [note]);
+  });
 
   multiBtn.addEventListener('click', enterMulti);
   multiExitBtn.addEventListener('click', exitMulti);
   selAllBtn.addEventListener('click', toggleSelectAll);
   delSelBtn.addEventListener('click', deleteSelected);
+  exportSelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const notes = state.notes.filter((n) => multi.selected.has(n.id));
+    if (!notes.length) return;
+    openExportMenu(e.currentTarget, notes);
+  });
 
   // ---------- 拖动排序 ----------
 

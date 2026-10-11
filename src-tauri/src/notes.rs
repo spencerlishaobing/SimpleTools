@@ -55,6 +55,39 @@ pub fn notes_backup(app: AppHandle) -> Result<String, String> {
     Ok(backup.to_string_lossy().to_string())
 }
 
+/// 导出文件条目：文件名与内容由前端组装（JSON / TXT），后端只负责写入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportFile {
+    pub name: String,
+    pub content: String,
+}
+
+/// 导出记事本数据到用户选择的文件夹，返回写入的文件数
+#[tauri::command]
+pub fn notes_export(dir: String, files: Vec<ExportFile>) -> Result<usize, String> {
+    if files.is_empty() {
+        return Err("没有可导出的内容".into());
+    }
+    let dir = PathBuf::from(&dir);
+    if !dir.is_dir() {
+        return Err("目标文件夹不存在".into());
+    }
+    for f in &files {
+        // 仅允许纯文件名，禁止路径分隔符与上级目录跳转
+        if f.name.is_empty()
+            || f.name == "."
+            || f.name == ".."
+            || f.name.contains('/')
+            || f.name.contains('\\')
+        {
+            return Err(format!("非法文件名: {}", f.name));
+        }
+        fs::write(dir.join(&f.name), &f.content)
+            .map_err(|e| format!("写入 {} 失败: {e}", f.name))?;
+    }
+    Ok(files.len())
+}
+
 fn write_atomic(path: &PathBuf, notes: &[Note]) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
