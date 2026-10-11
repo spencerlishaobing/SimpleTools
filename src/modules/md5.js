@@ -134,12 +134,17 @@
     }
   });
 
-  // OS 文件拖入（Tauri 原生拖放事件；网页内部拖拽不受影响）
+  // OS 文件拖入（Tauri 原生拖放事件；网页内部拖拽不受影响，仅在 MD5 面板激活时响应）
   if (eventApi && eventApi.listen) {
-    eventApi.listen('tauri://drag-enter', () => dropEl.classList.add('over'));
+    const panelEl = document.getElementById('panel-md5');
+    const panelActive = () => panelEl.classList.contains('active');
+    eventApi.listen('tauri://drag-enter', () => {
+      if (panelActive()) dropEl.classList.add('over');
+    });
     eventApi.listen('tauri://drag-leave', () => dropEl.classList.remove('over'));
     eventApi.listen('tauri://drag-drop', (e) => {
       dropEl.classList.remove('over');
+      if (!panelActive()) return;
       const paths = e && e.payload && e.payload.paths;
       if (paths && paths.length) {
         calcFile(paths[0]);

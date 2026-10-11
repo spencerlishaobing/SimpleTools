@@ -35,6 +35,12 @@
 
 ![字符串转换](screenshots/str.png)
 
+### Markdown 预览（渲染 + 目录 + 搜索）
+
+左侧输入或打开 `.md` 文件（支持直接拖入），右侧实时渲染预览（标题 / 表格 / 代码块 / 任务列表等常用语法，原始 HTML 自动转义防注入）；支持目录导航（点击跳转 + 滚动高亮）、全文搜索（高亮 / 计数 / 上下跳转）、字号与阅读宽度调节（自动记忆）、阅读进度条，以及一键复制 Markdown 源码与渲染 HTML（下图为渲染效果 + 目录浮层）。
+
+![Markdown 预览](screenshots/md.png)
+
 ### 暗黑模式
 
 侧边栏底部一键切换，选择自动记忆，切换带平滑过渡。
@@ -48,6 +54,7 @@
 - [x] **记事本** —— 左列表右详情；标题 + 正文；本地缓存自动保存（原子写入防损坏）；`Ctrl+N` 新建；列表拖动排序；删除弹窗确认；批量操作（多选 / 全选 / 批量删除 / 批量导出）；导出为 JSON / TXT（单条 / 批量，自选目标文件夹）；复制正文；数据备份
 - [x] **MD5 计算** —— 字符串实时计算（UTF-8）；文件点击选择或拖入计算（1 MB 分块流式，不占内存）；小写 / 大写 / Base64 三种输出格式；一键复制；文本 / 文件计算历史记录（自动留存、点击恢复、单条删除、多选批量删除、一键清空）
 - [x] **字符串转换** —— 输入即生成 8 种格式：全大写 / 全小写 / 首字母大写 / 驼峰（camelCase）/ 大驼峰（PascalCase）/ 下划线（snake_case）/ 中划线（kebab-case）/ 常量（CONSTANT_CASE）；自动识别下划线、中划线、空格、点分隔与已有驼峰；多行按行转换；逐行一键复制；输入历史记录（停止输入后自动留存、点击恢复、多选批量删除）
+- [x] **Markdown 预览** —— 输入 / 粘贴即实时渲染（GFM 常用语法：标题、粗体斜体、行内代码、围栏代码块、列表与嵌套、任务列表、表格、引用、分割线、链接、图片、裸 URL 自动链接）；打开或拖入 `.md` 文件；目录导航（点击跳转、滚动高亮）；全文搜索（高亮、计数、上下跳转）；字号 13–20 与阅读宽度（窄 / 中 / 宽）调节并记忆；阅读进度条；复制源码 / 渲染 HTML；原始 HTML 自动转义、危险链接协议过滤
 - [x] **界面主题** —— 默认简约白色；暗黑模式一键切换并记忆；切换平滑过渡
 - [x] **全局体验** —— 无边框简约布局、Toast 轻提示、剪贴板复制三级降级（Tauri 插件 → 浏览器 API → 兜底方案）
 
@@ -68,7 +75,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.7.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.8.0_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -81,6 +88,7 @@ npm run build
 | 剪贴板 | 官方 `tauri-plugin-clipboard-manager`（前端带三级降级兜底） |
 | 文件选择 | 官方 `tauri-plugin-dialog` |
 | MD5 | `md-5` crate（流式读取，1 MB 分块） |
+| Markdown 渲染 | 自研轻量解析器（前端，无第三方依赖；原始 HTML 转义防注入） |
 | 前端 | 原生 HTML / CSS / JavaScript（`src/`，无框架、无打包） |
 | 数据存储 | `%APPDATA%\com.simpletools.desktop\notes.json`（记事本）、`history.json`（历史记录），均原子写入 |
 
@@ -111,7 +119,8 @@ SimpleTools/
 │       ├── text-diff.js    # 文本对比（LCS diff）
 │       ├── notes.js        # 记事本（拖动排序 + 自动保存 + 导出）
 │       ├── md5.js          # MD5 计算（字符串 + 文件）
-│       └── str.js          # 字符串转换（大小写 + 命名风格）
+│       ├── str.js          # 字符串转换（大小写 + 命名风格）
+│       └── markdown.js     # Markdown 预览（自研解析器 + 目录 / 搜索 / 字号）
 ├── src-tauri/            # Rust 后端
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
@@ -122,12 +131,19 @@ SimpleTools/
 │       ├── lib.rs
 │       ├── notes.rs      # 记事本存储命令（load/save/backup/export）
 │       ├── history.rs    # 历史记录存储命令（load/save）
-│       └── md5calc.rs    # MD5 命令（含单元测试）
+│       ├── md5calc.rs    # MD5 命令（含单元测试）
+│       └── textfile.rs   # 文本文件读取命令（Markdown 预览打开文件）
 └── scripts/
     └── gen-icon.ps1      # 重新生成应用图标
 ```
 
 ## 更新日志
+
+### v0.8.0（2026-10-11）
+
+- 新增「Markdown 预览」工具：输入或打开 `.md` 文件（支持拖入）实时渲染，复刻在线 MD 阅读器体验 —— 目录导航（点击跳转 / 滚动高亮）、全文搜索（高亮 / 计数 / 上下跳转）、字号与阅读宽度调节（自动记忆）、阅读进度条
+- Markdown 渲染采用自研轻量解析器（零第三方依赖），支持 GFM 常用语法；原始 HTML 与危险链接协议自动安全处理；可一键复制源码或渲染 HTML
+- 修复 MD5 面板文件拖入在其他面板误触发计算的问题（拖入事件仅在对应面板激活时响应）
 
 ### v0.7.0（2026-10-11）
 

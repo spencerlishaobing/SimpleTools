@@ -38,6 +38,9 @@
       <button class="nav-item" data-panel="str">
         <span class="nav-dot"></span>字符串转换
       </button>
+      <button class="nav-item" data-panel="md">
+        <span class="nav-dot"></span>Markdown 预览
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="theme-toggle" id="theme-toggle" title="切换深色 / 浅色模式">
@@ -59,7 +62,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.7.0 · Tauri + Rust</div>
+      <div class="version">v0.8.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -273,6 +276,63 @@
         <div class="str-results" id="str-results"></div>
       </div>
     </section>
+
+    <!-- ===== Markdown 预览 ===== -->
+    <section id="panel-md" class="panel">
+      <header class="panel-header">
+        <h2>Markdown 预览</h2>
+        <div class="panel-actions">
+          <span class="md-doc-name" id="md-doc-name" title="当前打开的文档">未命名</span>
+          <span class="divider"></span>
+          <button class="btn" id="md-open" title="打开本地 Markdown 文件（也可直接把文件拖入面板）">打开文件</button>
+          <button class="btn" id="md-clear">清空</button>
+        </div>
+      </header>
+      <div class="split">
+        <div class="split-pane">
+          <div class="pane-label"><span>Markdown 输入（输入即渲染）</span>
+            <button class="pane-copy" id="md-copy-src" title="复制 Markdown 源码">复制</button>
+          </div>
+          <textarea id="md-input" spellcheck="false"
+            placeholder="在此输入、粘贴 Markdown，或打开 / 拖入 .md 文件&#10;&#10;# 支持标题、**粗体**、`代码`、列表、表格、引用、任务列表等常用语法"></textarea>
+        </div>
+        <div class="split-pane">
+          <div class="pane-label md-preview-label">
+            <span>预览</span>
+            <div class="md-tools">
+              <button class="pane-copy" id="md-copy-html" title="复制渲染后的 HTML 源码">复制HTML</button>
+              <span class="md-tool-sep"></span>
+              <button class="md-tool-btn" id="md-font-dec" title="减小字号">A-</button>
+              <span class="md-font-label" id="md-font-label">16</span>
+              <button class="md-tool-btn" id="md-font-inc" title="增大字号">A+</button>
+              <span class="md-tool-sep"></span>
+              <button class="md-tool-btn md-width-btn" id="md-w-narrow" data-width="narrow" title="窄阅读宽度">窄</button>
+              <button class="md-tool-btn md-width-btn active" id="md-w-normal" data-width="normal" title="中阅读宽度">中</button>
+              <button class="md-tool-btn md-width-btn" id="md-w-wide" data-width="wide" title="宽阅读宽度">宽</button>
+              <span class="md-tool-sep"></span>
+              <button class="md-tool-btn" id="md-toc-btn" title="显示 / 隐藏目录">目录</button>
+              <button class="md-tool-btn" id="md-search-btn" title="全文搜索（忽略大小写）">搜索</button>
+            </div>
+          </div>
+          <div class="md-reader-wrap" id="md-reader-wrap">
+            <div class="md-progress"><div class="md-progress-bar" id="md-progress-bar"></div></div>
+            <div class="md-empty" id="md-empty">输入 Markdown 或打开 .md 文件，实时渲染预览</div>
+            <article id="md-reader" class="md-body hidden"></article>
+            <aside class="md-toc hidden" id="md-toc">
+              <div class="md-toc-head">目录</div>
+              <div class="md-toc-list" id="md-toc-list"></div>
+            </aside>
+          </div>
+          <div class="md-search hidden" id="md-search">
+            <input id="md-search-input" type="text" placeholder="搜索文档内容..." autocomplete="off" spellcheck="false" />
+            <span class="md-search-count" id="md-search-count"></span>
+            <button class="md-tool-btn" id="md-search-prev" title="上一个（Shift+Enter）">↑</button>
+            <button class="md-tool-btn" id="md-search-next" title="下一个（Enter）">↓</button>
+            <button class="md-tool-btn" id="md-search-close" title="关闭搜索（Esc）">×</button>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -295,6 +355,7 @@
   <script src="modules/notes.js"></script>
   <script src="modules/md5.js"></script>
   <script src="modules/str.js"></script>
+  <script src="modules/markdown.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
