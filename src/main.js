@@ -109,6 +109,23 @@
   const THEME_LABEL = { light: '深色模式', dark: '卡其模式', khaki: '浅色模式' };
   const themeToggle = document.getElementById('theme-toggle');
   const themeLabel = document.getElementById('theme-label');
+  const invokeApi = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
+
+  // 各主题的系统标题栏配色（背景 / 标题文字 / 下边框，与主题变量一致）
+  const TITLEBAR_COLORS = {
+    light: { bg: '#f6f7f9', text: '#1f2937', border: '#e2e8f0' },
+    dark: { bg: '#0f172a', text: '#e2e8f0', border: '#334155' },
+    khaki: { bg: '#0f0e0c', text: '#e8e0d0', border: '#2e2b24' },
+  };
+
+  function syncTitlebar(theme) {
+    if (!invokeApi) return;
+    const c = TITLEBAR_COLORS[theme] || TITLEBAR_COLORS.light;
+    try {
+      const p = invokeApi('set_titlebar_color', { bg: c.bg, text: c.text, border: c.border });
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
 
   function currentTheme() {
     const t = document.documentElement.getAttribute('data-theme');
@@ -130,6 +147,7 @@
       localStorage.setItem(THEME_KEY, theme);
     } catch (e) { /* ignore */ }
     updateToggleUI(theme);
+    syncTitlebar(theme);
   }
 
   themeToggle.addEventListener('click', () => {
@@ -137,4 +155,5 @@
   });
 
   updateToggleUI(currentTheme());
+  syncTitlebar(currentTheme());
 })();

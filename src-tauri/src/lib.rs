@@ -3,6 +3,7 @@ mod history;
 mod md5calc;
 mod notes;
 mod textfile;
+mod titlebar;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -22,7 +23,8 @@ pub fn run() {
             md5calc::md5_text,
             md5calc::md5_file,
             textfile::read_text_file,
-            textfile::write_text_file
+            textfile::write_text_file,
+            titlebar::set_titlebar_color
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

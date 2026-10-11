@@ -18,9 +18,14 @@
   --bg: #f6f7f9;               /* 窗口底色（浅灰白） */
   --panel-bg: #ffffff;         /* 卡片 / 面板 */
   --panel-bg-subtle: #f8fafc;  /* 次级底（只读区等） */
-  --sidebar-bg: #1e293b;       /* 侧边栏 */
-  --sidebar-hover: #334155;
-  --sidebar-text: #cbd5e1;
+  --sidebar-bg: #ffffff;       /* 侧边栏（浅色主题：白色功能区） */
+  --sidebar-hover: #f1f5f9;
+  --sidebar-text: #475569;
+  --sidebar-text-strong: #1e293b;             /* hover / 品牌名文字 */
+  --sidebar-btn-bg: rgba(15, 23, 42, 0.05);   /* 侧栏按钮底（主题切换） */
+  --sidebar-btn-hover: rgba(15, 23, 42, 0.10);
+  --sidebar-dim: #94a3b8;                     /* 版本号等次级文字 */
+  --sidebar-border: #e2e8f0;                  /* 侧栏右分隔线 */
 
   --text: #1f2937;
   --text-dim: #6b7280;
@@ -74,6 +79,11 @@
   --sidebar-bg: #020617;
   --sidebar-hover: #1e293b;
   --sidebar-text: #94a3b8;
+  --sidebar-text-strong: #f1f5f9;
+  --sidebar-btn-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-btn-hover: rgba(255, 255, 255, 0.13);
+  --sidebar-dim: #64748b;
+  --sidebar-border: #1e293b;
 
   --text: #e2e8f0;
   --text-dim: #94a3b8;
@@ -123,6 +133,11 @@
   --sidebar-bg: #0a0908;
   --sidebar-hover: #1a1814;
   --sidebar-text: #a89a88;
+  --sidebar-text-strong: #e8e0d0;
+  --sidebar-btn-bg: rgba(232, 224, 208, 0.06);
+  --sidebar-btn-hover: rgba(232, 224, 208, 0.13);
+  --sidebar-dim: #6f6555;
+  --sidebar-border: #24211c;
 
   --text: #e8e0d0;             /* 暖米白 */
   --text-dim: #8a8070;         /* 暖灰 */
@@ -189,6 +204,7 @@ body {
   flex-direction: column;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
+  border-right: 1px solid var(--sidebar-border);
 }
 
 .brand {
@@ -216,7 +232,7 @@ body {
 .brand-name {
   font-size: 15px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--sidebar-text-strong);
 }
 
 .nav {
@@ -243,7 +259,7 @@ body {
 
 .nav-item:hover {
   background: var(--sidebar-hover);
-  color: #f1f5f9;
+  color: var(--sidebar-text-strong);
 }
 
 .nav-item.active {
@@ -279,7 +295,7 @@ body {
   padding: 9px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--sidebar-btn-bg);
   color: var(--sidebar-text);
   font-size: 12.5px;
   font-family: var(--sans);
@@ -287,8 +303,8 @@ body {
 }
 
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.13);
-  color: #fff;
+  background: var(--sidebar-btn-hover);
+  color: var(--sidebar-text-strong);
 }
 
 .theme-toggle svg {
@@ -321,7 +337,7 @@ body {
 
 .version {
   font-size: 11px;
-  color: #64748b;
+  color: var(--sidebar-dim);
   text-align: center;
   user-select: none;
 }
