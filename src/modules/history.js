@@ -1,4 +1,4 @@
-/* ===== 历史记录模块（JSON 格式化记录 / 文本对比记录） ===== */
+/* ===== 历史记录模块（格式化 / 对比 / MD5 / 转换记录：恢复、删除、多选批量删除） ===== */
 (function () {
   'use strict';
 
@@ -116,6 +116,108 @@
     render(kind);
   }
 
+  // ---------- 多选模式 ----------
+
+  /** 在弹层头部插入“多选”按钮，并生成多选工具条（默认隐藏） */
+  function buildMultiUI(kind) {
+    const p = pane[kind];
+    const head = p.pop.querySelector('.hist-head');
+    p.head = head;
+
+    const multiBtn = document.createElement('button');
+    multiBtn.type = 'button';
+    multiBtn.className = 'hist-multi';
+    multiBtn.id = kind + '-history-multi';
+    multiBtn.textContent = '多选';
+    multiBtn.title = '多选：勾选记录后批量删除';
+    head.insertBefore(multiBtn, p.clear);
+
+    const bar = document.createElement('div');
+    bar.className = 'hist-head hist-head-multi hidden';
+    bar.id = kind + '-history-multi-bar';
+    bar.innerHTML =
+      '<span class="hist-title" id="' + kind + '-history-count">已选 0 项</span>' +
+      '<div class="hist-actions">' +
+      '<button class="hist-act" id="' + kind + '-history-selall">全选</button>' +
+      '<button class="hist-act danger" id="' + kind + '-history-delsel" disabled>删除选中</button>' +
+      '<button class="hist-act" id="' + kind + '-history-exit">取消</button>' +
+      '</div>';
+    head.after(bar);
+
+    p.multiBtn = multiBtn;
+    p.multiBar = bar;
+    p.countEl = bar.querySelector('.hist-title');
+    p.selAllBtn = bar.querySelector('#' + kind + '-history-selall');
+    p.delSelBtn = bar.querySelector('#' + kind + '-history-delsel');
+
+    multiBtn.addEventListener('click', function () { enterMulti(kind); });
+    p.selAllBtn.addEventListener('click', function () { toggleSelectAll(kind); });
+    p.delSelBtn.addEventListener('click', function () { deleteSelected(kind); });
+    bar.querySelector('#' + kind + '-history-exit')
+      .addEventListener('click', function () { exitMulti(kind); });
+  }
+
+  function enterMulti(kind) {
+    const p = pane[kind];
+    if (!p || p.multi || !state[kind].length) return;
+    p.multi = true;
+    p.selected.clear();
+    p.head.classList.add('hidden');
+    p.multiBar.classList.remove('hidden');
+    p.pop.classList.add('hist-multi-mode');
+    render(kind);
+  }
+
+  function exitMulti(kind) {
+    const p = pane[kind];
+    if (!p || !p.multi) return;
+    p.multi = false;
+    p.selected.clear();
+    p.head.classList.remove('hidden');
+    p.multiBar.classList.add('hidden');
+    p.pop.classList.remove('hist-multi-mode');
+    render(kind);
+  }
+
+  function toggleSelect(kind, id) {
+    const p = pane[kind];
+    if (p.selected.has(id)) p.selected.delete(id);
+    else p.selected.add(id);
+    render(kind);
+  }
+
+  function toggleSelectAll(kind) {
+    const p = pane[kind];
+    if (p.selected.size >= state[kind].length) p.selected.clear();
+    else state[kind].forEach(function (r) { p.selected.add(r.id); });
+    render(kind);
+  }
+
+  async function deleteSelected(kind) {
+    const p = pane[kind];
+    if (!p.multi || !p.selected.size) return;
+    const n = p.selected.size;
+    const ok = await window.showConfirm('确定删除选中的 ' + n + ' 条' + p.label + '？此操作不可恢复。', {
+      title: '删除选中',
+      okText: '删除',
+    });
+    if (!ok) return;
+    state[kind] = state[kind].filter(function (r) { return !p.selected.has(r.id); });
+    scheduleSave();
+    exitMulti(kind);
+  }
+
+  function updateMultiBar(kind) {
+    const p = pane[kind];
+    if (!p || !p.multiBar) return;
+    const total = state[kind].length;
+    const n = p.selected.size;
+    p.countEl.textContent = '已选 ' + n + ' 项';
+    p.selAllBtn.textContent = total && n >= total ? '取消全选' : '全选';
+    p.delSelBtn.disabled = !n;
+    p.multiBtn.disabled = !total;
+  }
+
   // ---------- 渲染 ----------
 
   function summaryHtml(kind, rec) {
@@ -147,31 +249,37 @@
     p.clear.disabled = !list.length;
     if (!list.length) {
       p.list.innerHTML = '<div class="hist-empty">暂无记录</div>';
+      updateMultiBar(kind);
       return;
     }
     for (const rec of list) {
+      const selected = p.multi && p.selected.has(rec.id);
       const item = document.createElement('div');
-      item.className = 'hist-item';
+      item.className = 'hist-item' + (selected ? ' selected' : '');
       item.dataset.id = rec.id;
-      item.title = '点击恢复此记录';
+      item.title = p.multi ? '点击勾选 / 取消勾选' : '点击恢复此记录';
       item.innerHTML =
+        (p.multi ? '<span class="hist-check">' + (selected ? '✓' : '') + '</span>' : '') +
         '<div class="hist-item-main">' + summaryHtml(kind, rec) +
         '<div class="hist-item-time">' + formatTime(rec.time) + '</div></div>' +
-        '<button class="hist-item-del" title="删除该记录">×</button>';
+        (p.multi ? '' : '<button class="hist-item-del" title="删除该记录">×</button>');
       p.list.appendChild(item);
     }
+    updateMultiBar(kind);
   }
 
   // ---------- 弹层开关 ----------
 
   function closePop() {
     if (!openKind) return;
-    const p = pane[openKind];
+    const kind = openKind;
+    openKind = null;
+    const p = pane[kind];
     if (p) {
+      if (p.multi) exitMulti(kind);
       p.pop.classList.add('hidden');
       p.btn.classList.remove('active');
     }
-    openKind = null;
   }
 
   function togglePop(kind) {
@@ -192,7 +300,10 @@
    */
   function bindPanel(opts) {
     const kind = opts.kind;
+    opts.multi = false;
+    opts.selected = new Set();
     pane[kind] = opts;
+    buildMultiUI(kind);
 
     opts.btn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -206,6 +317,11 @@
     opts.list.addEventListener('click', function (e) {
       const item = e.target.closest('.hist-item');
       if (!item) return;
+      if (pane[kind].multi) {
+        // 多选模式：点击整条切换勾选
+        toggleSelect(kind, item.dataset.id);
+        return;
+      }
       if (e.target.closest('.hist-item-del')) {
         removeItem(kind, item.dataset.id);
         return;

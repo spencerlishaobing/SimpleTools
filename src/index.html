@@ -59,7 +59,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.5.0 · Tauri + Rust</div>
+      <div class="version">v0.6.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -171,6 +171,15 @@
           <div class="notes-toolbar">
             <button class="btn primary small" id="note-new">+ 新建记录</button>
             <button class="btn small" id="note-backup" title="把数据文件复制一份备份">备份</button>
+            <button class="btn small" id="note-multi" title="批量操作（多选 / 全选 / 批量删除）">批量</button>
+          </div>
+          <div class="notes-multi-bar hidden" id="notes-multi-bar">
+            <span class="multi-count" id="notes-multi-count">已选 0 项</span>
+            <div class="multi-actions">
+              <button class="btn small" id="notes-selall">全选</button>
+              <button class="btn small danger" id="notes-delsel" disabled>删除</button>
+              <button class="btn small" id="notes-multi-exit">取消</button>
+            </div>
           </div>
           <ul id="notes-list" class="notes-list" title="按住拖动可排序"></ul>
           <div class="notes-empty" id="notes-empty">暂无记录，点击"新建记录"开始</div>

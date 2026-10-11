@@ -11,11 +11,21 @@
   const contentEl = document.getElementById('note-content');
   const statusEl = document.getElementById('note-status');
   const metaEl = document.getElementById('note-meta');
+  const toolbarEl = document.querySelector('.notes-toolbar');
+  const sideEl = document.querySelector('.notes-side');
+  const multiBtn = document.getElementById('note-multi');
+  const multiBar = document.getElementById('notes-multi-bar');
+  const multiCountEl = document.getElementById('notes-multi-count');
+  const selAllBtn = document.getElementById('notes-selall');
+  const delSelBtn = document.getElementById('notes-delsel');
+  const multiExitBtn = document.getElementById('notes-multi-exit');
 
   const state = {
     notes: [],      // [{ id, title, content, updated_at }]
     currentId: null,
   };
+
+  const multi = { active: false, selected: new Set() };  // 批量操作（多选）模式
 
   const SAVE_DELAY = 500;
   let saveTimer = null;
@@ -82,15 +92,21 @@
   function renderList() {
     listEl.innerHTML = '';
     for (const n of state.notes) {
+      const selected = multi.active && multi.selected.has(n.id);
       const li = document.createElement('li');
-      li.className = 'note-item' + (n.id === state.currentId ? ' active' : '');
+      li.className = 'note-item' + (n.id === state.currentId ? ' active' : '') +
+        (selected ? ' selected' : '');
       li.dataset.id = n.id;
-      li.draggable = true;
+      li.draggable = !multi.active;
       li.innerHTML =
+        (multi.active ? '<span class="note-check">' + (selected ? '✓' : '') + '</span>' : '') +
         '<div class="note-item-title">' + esc(n.title || '未命名') + '</div>' +
         '<div class="note-item-meta">' + formatTime(n.updated_at) + '</div>' +
         '<button class="note-item-remove" title="删除该记录">×</button>';
-      li.addEventListener('click', () => selectNote(n.id));
+      li.addEventListener('click', () => {
+        if (multi.active) toggleSelect(n.id);
+        else selectNote(n.id);
+      });
       li.querySelector('.note-item-remove').addEventListener('click', (e) => {
         e.stopPropagation();
         removeNote(n.id);
@@ -98,6 +114,7 @@
       listEl.appendChild(li);
     }
     emptyEl.style.display = state.notes.length ? 'none' : 'block';
+    updateMultiUI();
   }
 
   function selectNote(id) {
@@ -161,6 +178,78 @@
     }
   }
 
+  // ---------- 批量操作（多选 / 全选 / 批量删除） ----------
+
+  function enterMulti() {
+    if (multi.active || !state.notes.length) return;
+    multi.active = true;
+    multi.selected.clear();
+    sideEl.classList.add('batch-mode');
+    toolbarEl.classList.add('hidden');
+    multiBar.classList.remove('hidden');
+    renderList();
+  }
+
+  function exitMulti() {
+    if (!multi.active) return;
+    multi.active = false;
+    multi.selected.clear();
+    sideEl.classList.remove('batch-mode');
+    toolbarEl.classList.remove('hidden');
+    multiBar.classList.add('hidden');
+    renderList();
+  }
+
+  function toggleSelect(id) {
+    if (multi.selected.has(id)) multi.selected.delete(id);
+    else multi.selected.add(id);
+    renderList();
+  }
+
+  function toggleSelectAll() {
+    if (multi.selected.size >= state.notes.length) multi.selected.clear();
+    else state.notes.forEach((n) => multi.selected.add(n.id));
+    renderList();
+  }
+
+  function updateMultiUI() {
+    const total = state.notes.length;
+    const n = multi.selected.size;
+    multiCountEl.textContent = '已选 ' + n + ' 项';
+    selAllBtn.textContent = total && n >= total ? '取消全选' : '全选';
+    selAllBtn.disabled = !total;
+    delSelBtn.disabled = !n;
+  }
+
+  async function deleteSelected() {
+    const n = multi.selected.size;
+    if (!n) return;
+    const ok = await window.showConfirm('确定删除选中的 ' + n + ' 条记录吗？删除后无法恢复。', {
+      title: '批量删除',
+      okText: '删除',
+    });
+    if (!ok) return;
+    const firstIdx = state.notes.findIndex((note) => multi.selected.has(note.id));
+    state.notes = state.notes.filter((note) => !multi.selected.has(note.id));
+    if (state.currentId && !state.notes.some((note) => note.id === state.currentId)) {
+      const next = state.notes[Math.min(firstIdx, state.notes.length - 1)] || null;
+      state.currentId = next ? next.id : null;
+      if (next) {
+        titleEl.value = next.title;
+        contentEl.value = next.content;
+        metaEl.textContent = '最后更新:' + formatTime(next.updated_at);
+        editorEl.classList.remove('hidden');
+      } else {
+        editorEl.classList.add('hidden');
+        titleEl.value = '';
+        contentEl.value = '';
+        metaEl.textContent = '';
+      }
+    }
+    exitMulti();
+    scheduleSave(true);
+  }
+
   // ---------- 编辑事件 ----------
 
   function getLi(id) {
@@ -211,6 +300,11 @@
     if (state.currentId) removeNote(state.currentId);
     else window.toast('请先选择一条记录');
   });
+
+  multiBtn.addEventListener('click', enterMulti);
+  multiExitBtn.addEventListener('click', exitMulti);
+  selAllBtn.addEventListener('click', toggleSelectAll);
+  delSelBtn.addEventListener('click', deleteSelected);
 
   // ---------- 拖动排序 ----------
 

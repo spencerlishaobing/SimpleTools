@@ -86,6 +86,11 @@
     });
   };
 
+  // 弹窗内的点击不冒泡到 document（避免误触发其他组件的“点击空白关闭”逻辑）
+  document.getElementById('confirm-modal').addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+
   // ---------- 面板切换 ----------
   const navItems = document.querySelectorAll('.nav-item');
   const panels = document.querySelectorAll('.panel');
