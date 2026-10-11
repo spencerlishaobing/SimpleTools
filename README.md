@@ -94,7 +94,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.18.1_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.18.2_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -162,6 +162,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.18.2（2026-10-11）
+
+- 修复主题选择菜单中图标与文字未垂直居中、间距过小的问题（菜单项样式被导出菜单基础样式覆盖，改为 flex 垂直居中布局并加大图标文字间距）
 
 ### v0.18.1（2026-10-11）
 

@@ -341,30 +341,6 @@ body {
   display: block;
 }
 
-/* 主题选择菜单（点主题按钮弹出）：图标 + 名称 + 当前主题对勾 */
-.theme-menu button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.theme-menu button > svg {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
-
-.theme-menu button .theme-check {
-  margin-left: auto;
-  width: 13px;
-  height: 13px;
-}
-
-.theme-menu button.is-active {
-  color: var(--primary);
-  font-weight: 600;
-}
-
 .version {
   font-size: 11px;
   color: var(--sidebar-dim);
@@ -1001,6 +977,31 @@ textarea[readonly] {
 
 .export-menu button:disabled:hover {
   background: transparent;
+}
+
+/* 主题选择菜单（点主题按钮弹出）：图标 + 名称 + 当前主题对勾
+   注：必须定义在 .export-menu button 之后（同优先级后定义者生效），否则 display: flex / gap 被 display: block 覆盖 */
+.theme-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-menu button > svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.theme-menu button .theme-check {
+  margin-left: auto;
+  width: 13px;
+  height: 13px;
+}
+
+.theme-menu button.is-active {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .notes-empty {
