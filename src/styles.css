@@ -930,6 +930,15 @@ textarea[readonly] {
   background: var(--hover-bg);
 }
 
+.export-menu button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.export-menu button:disabled:hover {
+  background: transparent;
+}
+
 .notes-empty {
   padding: 18px 8px;
   text-align: center;

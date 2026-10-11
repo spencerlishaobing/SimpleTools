@@ -3,6 +3,7 @@
   'use strict';
 
   const invoke = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
+  const dialogApi = (window.__TAURI__ && window.__TAURI__.dialog) || null;
 
   const searchEl = document.getElementById('acc-search');
   const searchClearEl = document.getElementById('acc-search-clear');
@@ -316,6 +317,163 @@
     renderMainView();
   }
 
+  // ---------- 批量导出（TXT / 表格 CSV，自选文件夹） ----------
+
+  let exportMenuEl = null;
+  let exportMenuDocHandler = null;
+
+  function closeExportMenu() {
+    if (exportMenuEl) {
+      exportMenuEl.remove();
+      exportMenuEl = null;
+    }
+    if (exportMenuDocHandler) {
+      document.removeEventListener('click', exportMenuDocHandler);
+      exportMenuDocHandler = null;
+    }
+  }
+
+  // 点「导出」后弹出范围 / 格式选择菜单（贴按钮定位，空间不足时上移）
+  function openExportMenu(btn) {
+    closeExportMenu();
+    const total = state.groups.reduce((s, g) => s + g.items.length, 0);
+    if (!total) {
+      window.toast('暂无可导出的账号');
+      return;
+    }
+    const hasGroup = !!currentGroup();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu';
+    menu.innerHTML =
+      '<button type="button" data-scope="group" data-fmt="txt"' + (hasGroup ? '' : ' disabled') + '>导出当前分组 · TXT</button>' +
+      '<button type="button" data-scope="group" data-fmt="csv"' + (hasGroup ? '' : ' disabled') + '>导出当前分组 · 表格 CSV</button>' +
+      '<button type="button" data-scope="all" data-fmt="txt">导出全部账号 · TXT</button>' +
+      '<button type="button" data-scope="all" data-fmt="csv">导出全部账号 · 表格 CSV</button>';
+    document.body.appendChild(menu);
+    const rect = btn.getBoundingClientRect();
+    let left = rect.right - menu.offsetWidth;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) {
+      top = rect.top - menu.offsetHeight - 6;
+    }
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    exportMenuEl = menu;
+    menu.querySelectorAll('button[data-fmt]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const scope = b.dataset.scope;
+        const fmt = b.dataset.fmt;
+        closeExportMenu();
+        runExport(scope, fmt);
+      });
+    });
+    setTimeout(() => {
+      exportMenuDocHandler = (ev) => {
+        if (exportMenuEl && !exportMenuEl.contains(ev.target)) closeExportMenu();
+      };
+      document.addEventListener('click', exportMenuDocHandler);
+    }, 0);
+  }
+
+  function pad2(x) {
+    return String(x).padStart(2, '0');
+  }
+
+  function exportStamp() {
+    const d = new Date();
+    return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' +
+      pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds());
+  }
+
+  // 清洗文件名：替换 Windows 非法字符，去掉结尾的点 / 空格并限长
+  function sanitizeFileName(name) {
+    let n = String(name || '').trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_');
+    n = n.replace(/[\. ]+$/, '').trim();
+    if (!n) n = '未命名';
+    if (n.length > 60) n = n.slice(0, 60);
+    return n;
+  }
+
+  // TXT 格式：导出时间 + 按分组罗列（UTF-8 BOM，兼容 Windows 记事本）
+  function buildTxt(groups) {
+    const d = new Date();
+    const stampText = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+      pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+    const total = groups.reduce((s, g) => s + g.items.length, 0);
+    let out = '账号密码导出 · ' + stampText + '\n分组数：' + groups.length + '  条目数：' + total + '\n';
+    for (const g of groups) {
+      out += '\n【' + (g.name || '未命名分组') + '】（' + g.items.length + ' 条）\n';
+      if (!g.items.length) {
+        out += '（空分组）\n';
+        continue;
+      }
+      g.items.forEach((it, i) => {
+        out += (i + 1) + '. 账号：' + (it.account || '（空）') + '\n   密码：' + (it.password || '（空）') + '\n';
+      });
+    }
+    return '\uFEFF' + out;
+  }
+
+  // CSV 字段转义（RFC 4180）：含逗号 / 引号 / 换行时加引号
+  function csvField(v) {
+    const s = String(v == null ? '' : v);
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  // 表格 CSV：表头 + 每条一行（UTF-8 BOM，Excel 直接打开）
+  function buildCsv(groups) {
+    let out = '分组,账号,密码\r\n';
+    for (const g of groups) {
+      for (const it of g.items) {
+        out += [csvField(g.name || '未命名分组'), csvField(it.account), csvField(it.password)].join(',') + '\r\n';
+      }
+    }
+    return '\uFEFF' + out;
+  }
+
+  // 选择文件夹后写入（文件名带导出时间戳）
+  async function runExport(scope, fmt) {
+    if (!invoke || !dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    const groups = scope === 'group' ? [currentGroup()].filter(Boolean) : state.groups;
+    const total = groups.reduce((s, g) => s + g.items.length, 0);
+    if (!groups.length || !total) {
+      window.toast('没有可导出的账号');
+      return;
+    }
+    let dir = null;
+    try {
+      const picked = await dialogApi.open({
+        directory: true,
+        multiple: false,
+        title: '选择导出文件夹',
+      });
+      dir = typeof picked === 'string'
+        ? picked
+        : (picked && picked.path) || (Array.isArray(picked) ? picked[0] : null);
+    } catch (e) {
+      window.toast('打开文件夹选择器失败：' + e);
+      return;
+    }
+    if (!dir) return; // 用户取消选择
+    const base = scope === 'group'
+      ? sanitizeFileName(groups[0].name) + '-账号密码'
+      : '账号密码-全部';
+    const name = base + '-' + exportStamp() + (fmt === 'csv' ? '.csv' : '.txt');
+    const content = fmt === 'csv' ? buildCsv(groups) : buildTxt(groups);
+    try {
+      const count = await invoke('accounts_export', { dir, files: [{ name, content }] });
+      window.toast('已导出 ' + total + ' 条账号（' + count + ' 个文件）');
+    } catch (e) {
+      window.toast('导出失败：' + e);
+    }
+  }
+
   // ---------- 事件绑定 ----------
 
   // 组视图：条目编辑 + 复制 + 删除（事件委托）
@@ -393,6 +551,10 @@
   document.getElementById('acc-new-group').addEventListener('click', createGroup);
   document.getElementById('acc-del-group').addEventListener('click', removeGroup);
   document.getElementById('acc-add-item').addEventListener('click', addItem);
+  document.getElementById('acc-export').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openExportMenu(e.currentTarget);
+  });
 
   // ---------- 初始化 ----------
 

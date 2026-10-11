@@ -12,6 +12,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             accounts::accounts_load,
             accounts::accounts_save,
+            accounts::accounts_export,
             notes::notes_load,
             notes::notes_save,
             notes::notes_backup,
