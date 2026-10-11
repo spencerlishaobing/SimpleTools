@@ -6,7 +6,8 @@
   const output = document.getElementById('json-output');
   const statusEl = document.getElementById('json-status');
   const unescapeCheck = document.getElementById('json-unescape');
-  const indentSelect = document.getElementById('json-indent');
+  const indentBtn = document.getElementById('json-indent-btn');
+  const indentLabel = document.getElementById('json-indent-label');
 
   function setStatus(msg, type) {
     statusEl.textContent = msg || '';
@@ -68,8 +69,77 @@
   }
 
   function getIndent() {
-    return indentSelect.value === 'tab' ? '\t' : Number(indentSelect.value);
+    return indentValue === 'tab' ? '\t' : Number(indentValue);
   }
+
+  // ---------- 缩进选择（自定义下拉，v0.31.1 替代原生 select——原生弹层选项上下间距无法调整） ----------
+
+  const INDENT_OPTIONS = [
+    { value: '2', label: '2 空格' },
+    { value: '4', label: '4 空格' },
+    { value: 'tab', label: 'Tab' },
+  ];
+  const INDENT_CHECK_ICON = '<svg class="select-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+  let indentValue = '2';
+  let indentMenuEl = null;
+  let indentMenuDocHandler = null;
+
+  function closeIndentMenu() {
+    if (indentMenuEl) {
+      indentMenuEl.remove();
+      indentMenuEl = null;
+    }
+    if (indentMenuDocHandler) {
+      document.removeEventListener('click', indentMenuDocHandler);
+      indentMenuDocHandler = null;
+    }
+    indentBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openIndentMenu() {
+    closeIndentMenu();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu select-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.innerHTML = INDENT_OPTIONS.map((o) =>
+      '<button type="button" role="option" data-indent="' + o.value + '"' + (o.value === indentValue ? ' class="is-active"' : '') + '>' +
+      '<span>' + o.label + '</span>' + (o.value === indentValue ? INDENT_CHECK_ICON : '') + '</button>').join('');
+    document.body.appendChild(menu);
+    const rect = indentBtn.getBoundingClientRect();
+    let left = rect.left;
+    if (left + menu.offsetWidth > window.innerWidth - 8) left = window.innerWidth - menu.offsetWidth - 8;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) top = rect.top - menu.offsetHeight - 6;
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    indentMenuEl = menu;
+    indentBtn.setAttribute('aria-expanded', 'true');
+    menu.querySelectorAll('button[data-indent]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        indentValue = b.getAttribute('data-indent');
+        const opt = INDENT_OPTIONS.find((o) => o.value === indentValue);
+        indentLabel.textContent = opt ? opt.label : indentValue;
+        closeIndentMenu();
+      });
+    });
+    setTimeout(() => {
+      indentMenuDocHandler = (ev) => {
+        if (indentMenuEl && !indentMenuEl.contains(ev.target)) closeIndentMenu();
+      };
+      document.addEventListener('click', indentMenuDocHandler);
+    }, 0);
+  }
+
+  indentBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (indentMenuEl) {
+      closeIndentMenu();
+      return;
+    }
+    openIndentMenu();
+  });
 
   /** 写入格式化历史记录（内容过大时提示并跳过） */
   function recordHistory(raw, result) {

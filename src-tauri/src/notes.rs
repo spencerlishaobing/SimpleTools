@@ -4,10 +4,17 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 
 /// 单条记事记录
+///
+/// 兼容原则（v0.32.0）：核心字段全部 `serde(default)` —— 旧版本备份 / 数据文件缺字段时
+/// 按默认值解析（id/title/content 为空串、updated_at 为 0），不因单个字段缺失导致整个
+/// 文件解析失败；前端加载时会为缺失的 id 生成 UUID 完成归一化
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub title: String,
+    #[serde(default)]
     pub content: String,
     /// 类型："text" 普通文本 / "md" Markdown 笔记 / "task" 任务笔记；旧数据缺省按 text 处理
     #[serde(default = "default_note_type", rename = "type")]
@@ -19,12 +26,14 @@ pub struct Note {
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub auto_no: bool,
     /// 最后更新时间（毫秒时间戳）
+    #[serde(default)]
     pub updated_at: u64,
 }
 
 /// 任务笔记内的单条任务
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskItem {
+    #[serde(default)]
     pub id: String,
     /// 类型："simple" 简单任务（text 纯文本）/ "rich" 富文本任务（title + content HTML）
     #[serde(default = "default_task_kind", rename = "kind")]
@@ -161,6 +170,29 @@ mod tests {
         // 旧数据无 tasks / auto_no 字段：任务列表为空、自动序号缺省开启
         assert!(notes[0].tasks.is_empty());
         assert!(notes[0].auto_no);
+    }
+
+    /// 旧版数据缺核心字段（id / title / content / updated_at）时按默认值解析，不导致整文件失败；
+    /// 任务子项缺 id 同样兼容（v0.32.0）
+    #[test]
+    fn legacy_missing_core_fields_parse() {
+        let legacy = r#"[{"title":"只有标题"},{"id":"n2","content":"只有内容"}]"#;
+        let notes: Vec<Note> = serde_json::from_str(legacy).expect("缺字段旧数据应能解析");
+        assert_eq!(notes.len(), 2);
+        assert_eq!(notes[0].id, "");
+        assert_eq!(notes[0].title, "只有标题");
+        assert_eq!(notes[0].content, "");
+        assert_eq!(notes[0].updated_at, 0);
+        assert_eq!(notes[0].note_type, "text");
+        assert_eq!(notes[1].title, "");
+        // 任务笔记：任务子项缺 id 按空串解析，其余字段 default 生效
+        let task_legacy =
+            r#"[{"id":"n1","type":"task","tasks":[{"text":"买牛奶","done":true}],"updated_at":1}]"#;
+        let tnotes: Vec<Note> = serde_json::from_str(task_legacy).expect("任务缺 id 应能解析");
+        assert_eq!(tnotes[0].tasks.len(), 1);
+        assert_eq!(tnotes[0].tasks[0].id, "");
+        assert_eq!(tnotes[0].tasks[0].task_kind, "simple");
+        assert!(tnotes[0].tasks[0].done);
     }
 
     /// type 字段以 JSON 键 "type" 序列化，且 md 类型往返一致

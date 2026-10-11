@@ -7,7 +7,8 @@
   const eventApi = (window.__TAURI__ && window.__TAURI__.event) || null;
 
   const textEl = document.getElementById('md5-text');
-  const formatSel = document.getElementById('md5-format');
+  const formatBtn = document.getElementById('md5-format-btn');
+  const formatLabel = document.getElementById('md5-format-label');
   const textResultEl = document.getElementById('md5-text-result');
   const fileResultEl = document.getElementById('md5-file-result');
   const fileInfoEl = document.getElementById('md5-file-info');
@@ -31,12 +32,82 @@
 
   function formatHash(hex) {
     if (!hex) return '';
-    switch (formatSel.value) {
+    switch (formatValue) {
       case 'upper': return hex.toUpperCase();
       case 'base64': return btoa(String.fromCharCode.apply(null, hexToBytes(hex)));
       default: return hex;
     }
   }
+
+  // ---------- 结果格式选择（自定义下拉，v0.31.1 替代原生 select——原生弹层选项上下间距无法调整） ----------
+
+  const FORMAT_OPTIONS = [
+    { value: 'lower', label: '小写（hex）' },
+    { value: 'upper', label: '大写（HEX）' },
+    { value: 'base64', label: 'Base64' },
+  ];
+  const FORMAT_CHECK_ICON = '<svg class="select-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+  let formatValue = 'lower';
+  let formatMenuEl = null;
+  let formatMenuDocHandler = null;
+
+  function closeFormatMenu() {
+    if (formatMenuEl) {
+      formatMenuEl.remove();
+      formatMenuEl = null;
+    }
+    if (formatMenuDocHandler) {
+      document.removeEventListener('click', formatMenuDocHandler);
+      formatMenuDocHandler = null;
+    }
+    formatBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openFormatMenu() {
+    closeFormatMenu();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu select-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.innerHTML = FORMAT_OPTIONS.map((o) =>
+      '<button type="button" role="option" data-format="' + o.value + '"' + (o.value === formatValue ? ' class="is-active"' : '') + '>' +
+      '<span>' + o.label + '</span>' + (o.value === formatValue ? FORMAT_CHECK_ICON : '') + '</button>').join('');
+    document.body.appendChild(menu);
+    const rect = formatBtn.getBoundingClientRect();
+    let left = rect.left;
+    if (left + menu.offsetWidth > window.innerWidth - 8) left = window.innerWidth - menu.offsetWidth - 8;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) top = rect.top - menu.offsetHeight - 6;
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    formatMenuEl = menu;
+    formatBtn.setAttribute('aria-expanded', 'true');
+    menu.querySelectorAll('button[data-format]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        formatValue = b.getAttribute('data-format');
+        const opt = FORMAT_OPTIONS.find((o) => o.value === formatValue);
+        formatLabel.textContent = opt ? opt.label : formatValue;
+        renderResults();
+        closeFormatMenu();
+      });
+    });
+    setTimeout(() => {
+      formatMenuDocHandler = (ev) => {
+        if (formatMenuEl && !formatMenuEl.contains(ev.target)) closeFormatMenu();
+      };
+      document.addEventListener('click', formatMenuDocHandler);
+    }, 0);
+  }
+
+  formatBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (formatMenuEl) {
+      closeFormatMenu();
+      return;
+    }
+    openFormatMenu();
+  });
 
   function humanSize(n) {
     if (n < 1024) return n + ' B';
@@ -89,8 +160,6 @@
       }
     }, TEXT_DEBOUNCE);
   });
-
-  formatSel.addEventListener('change', renderResults);
 
   // ---------- 文件计算 ----------
 

@@ -103,11 +103,37 @@
     '<line x1="14" y1="11" x2="14" y2="17"/>' +
     '</svg>';
 
+  // 拖拽手柄图标（两列三点）
+  const GRIP_SVG =
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/>' +
+    '<circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/>' +
+    '<circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
+
+  // 复制操作图标（人形 = 复制账号 / 锁 = 复制密码 / 双矩形 = 一键复制）
+  const USER_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>' +
+    '<circle cx="12" cy="7" r="4"/></svg>';
+
+  const LOCK_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="4" y="11" width="16" height="10" rx="2"/>' +
+    '<path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+  const COPY_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="9" y="9" width="13" height="13" rx="2"/>' +
+    '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
   function actionButtons(withRemove) {
     let html =
-      '<button class="btn small acc-copy-account" title="复制账号">复制账号</button>' +
-      '<button class="btn small acc-copy-password" title="复制密码">复制密码</button>' +
-      '<button class="btn small acc-copy-both" title="一键复制账号和密码">一键复制</button>';
+      '<button class="acc-icon-btn acc-copy-account" title="复制账号">' + USER_SVG + '</button>' +
+      '<button class="acc-icon-btn acc-copy-password" title="复制密码">' + LOCK_SVG + '</button>' +
+      '<button class="acc-icon-btn acc-copy-both" title="一键复制账号和密码">' + COPY_SVG + '</button>';
     if (withRemove) {
       html += '<button class="acc-item-remove" title="删除该账号">' + TRASH_SVG + '</button>';
     }
@@ -146,6 +172,7 @@
       const li = document.createElement('li');
       li.className = 'acc-group-item' + (g.id === state.currentGroupId ? ' active' : '');
       li.dataset.id = g.id;
+      li.draggable = true;
       li.innerHTML =
         '<span class="acc-group-item-name">' + esc(g.name || '未命名分组') + '</span>' +
         '<span class="acc-group-item-count">' + g.items.length + '</span>';
@@ -155,14 +182,25 @@
     groupEmptyEl.classList.toggle('hidden', state.groups.length > 0);
   }
 
+  // 备注（账号描述）textarea 高度随内容自适应：全量展示、无内部滚动
+  function syncNoteHeight(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   function itemRowHtml(item) {
     return '<li class="acc-item" data-id="' + esc(item.id) + '">' +
+      '<span class="acc-item-grip" draggable="true" title="拖拽排序">' + GRIP_SVG + '</span>' +
+      '<div class="acc-item-main">' +
+      '<div class="acc-item-fields">' +
       '<input class="acc-input acc-item-account" value="' + esc(item.account) + '"' +
       ' placeholder="账号" spellcheck="false" autocomplete="off" />' +
       '<input class="acc-input acc-item-password" type="' + (state.showPwd ? 'text' : 'password') + '"' +
       ' value="' + esc(item.password) + '" placeholder="密码" spellcheck="false" autocomplete="off" />' +
-      '<input class="acc-input acc-item-note" value="' + esc(item.note || '') + '"' +
-      ' placeholder="备注（可选）" spellcheck="false" autocomplete="off" />' +
+      '</div>' +
+      '<textarea class="acc-item-note" placeholder="备注（可选）" spellcheck="false"' +
+      ' rows="1">' + esc(item.note || '') + '</textarea>' +
+      '</div>' +
       actionButtons(true) +
       '</li>';
   }
@@ -172,6 +210,7 @@
     if (!g) return;
     groupNameEl.value = g.name || '';
     itemListEl.innerHTML = g.items.map(itemRowHtml).join('');
+    itemListEl.querySelectorAll('.acc-item-note').forEach(syncNoteHeight);
     itemEmptyEl.classList.toggle('hidden', g.items.length > 0);
   }
 
@@ -272,6 +311,71 @@
     scheduleSave(true);
   }
 
+  // ---------- 分组拖动排序（侧栏整行可拖） ----------
+
+  let groupDragId = null;
+
+  groupListEl.addEventListener('dragstart', (e) => {
+    const li = e.target.closest('.acc-group-item');
+    if (!li) return;
+    groupDragId = li.dataset.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', groupDragId);
+    }
+  });
+
+  groupListEl.addEventListener('dragover', (e) => {
+    if (!groupDragId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const li = e.target.closest('.acc-group-item');
+    groupListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    if (!li || li.dataset.id === groupDragId) return;
+    const rect = li.getBoundingClientRect();
+    const before = e.clientY - rect.top < rect.height / 2;
+    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  groupListEl.addEventListener('drop', (e) => {
+    if (!groupDragId) return;
+    e.preventDefault();
+    const li = e.target.closest('.acc-group-item');
+    const targetId = li && li.dataset.id;
+    const before = li && li.classList.contains('drag-over-top');
+    if (targetId && targetId !== groupDragId) {
+      moveGroup(groupDragId, targetId, before);
+    }
+    cleanupGroupDrag();
+  });
+
+  groupListEl.addEventListener('dragend', cleanupGroupDrag);
+
+  function cleanupGroupDrag() {
+    groupDragId = null;
+    groupListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  function moveGroup(fromId, targetId, before) {
+    const from = state.groups.findIndex((g) => g.id === fromId);
+    if (from < 0) return;
+    const g = state.groups.splice(from, 1)[0];
+    let to = state.groups.findIndex((x) => x.id === targetId);
+    if (to < 0) {
+      state.groups.splice(from, 0, g);
+      return;
+    }
+    if (!before) to += 1;
+    state.groups.splice(to, 0, g);
+    renderAll();
+    scheduleSave(true);
+  }
+
   // ---------- 条目操作 ----------
 
   function addItem() {
@@ -303,6 +407,74 @@
     g.items.splice(idx, 1);
     renderGroupView();
     renderGroupList();
+    scheduleSave(true);
+  }
+
+  // ---------- 条目拖动排序（手柄拖拽：行内均为输入框 / 按钮，手柄提供明确的拖动区） ----------
+
+  let itemDragId = null;
+
+  itemListEl.addEventListener('dragstart', (e) => {
+    if (!e.target.closest('.acc-item-grip')) return;   // 仅手柄可发起拖动
+    const li = e.target.closest('.acc-item');
+    if (!li) return;
+    itemDragId = li.dataset.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', itemDragId);
+    }
+  });
+
+  itemListEl.addEventListener('dragover', (e) => {
+    if (!itemDragId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const li = e.target.closest('.acc-item');
+    itemListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    if (!li || li.dataset.id === itemDragId) return;
+    const rect = li.getBoundingClientRect();
+    const before = e.clientY - rect.top < rect.height / 2;
+    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  itemListEl.addEventListener('drop', (e) => {
+    if (!itemDragId) return;
+    e.preventDefault();
+    const li = e.target.closest('.acc-item');
+    const targetId = li && li.dataset.id;
+    const before = li && li.classList.contains('drag-over-top');
+    if (targetId && targetId !== itemDragId) {
+      moveItemOrder(itemDragId, targetId, before);
+    }
+    cleanupItemDrag();
+  });
+
+  itemListEl.addEventListener('dragend', cleanupItemDrag);
+
+  function cleanupItemDrag() {
+    itemDragId = null;
+    itemListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  function moveItemOrder(fromId, targetId, before) {
+    const g = currentGroup();
+    if (!g) return;
+    const from = g.items.findIndex((it) => it.id === fromId);
+    if (from < 0) return;
+    const item = g.items.splice(from, 1)[0];
+    let to = g.items.findIndex((it) => it.id === targetId);
+    if (to < 0) {
+      g.items.splice(from, 0, item);
+      return;
+    }
+    if (!before) to += 1;
+    g.items.splice(to, 0, item);
+    renderGroupView();
     scheduleSave(true);
   }
 
@@ -527,6 +699,7 @@
     } else if (e.target.classList.contains('acc-item-note')) {
       item.note = e.target.value;
       item.updated_at = Date.now();
+      syncNoteHeight(e.target);
       scheduleSave();
     }
   });
@@ -595,13 +768,23 @@
     }
     try {
       const groups = await invoke('accounts_load');
-      state.groups = Array.isArray(groups) ? groups : [];
-      state.groups.forEach((g) => {
-        if (!Array.isArray(g.items)) g.items = [];
-        g.items.forEach((it) => {
-          if (typeof it.note !== 'string') it.note = '';
-        });
-      });
+      // 归一化（兼容旧数据缺字段）：分组 / 条目 id 缺失补生成，名称 / 账号 / 密码补空串，
+      // 备注非字符串补空、updated_at 缺失补 0
+      state.groups = (Array.isArray(groups) ? groups : [])
+        .filter((g) => g && typeof g === 'object')
+        .map((g) => ({
+          id: g.id || genId(),
+          name: String(g.name == null ? '' : g.name),
+          items: (Array.isArray(g.items) ? g.items : [])
+            .filter((it) => it && typeof it === 'object')
+            .map((it) => ({
+              id: it.id || genId(),
+              account: String(it.account == null ? '' : it.account),
+              password: String(it.password == null ? '' : it.password),
+              note: typeof it.note === 'string' ? it.note : '',
+              updated_at: Number(it.updated_at) || 0,
+            })),
+        }));
     } catch (e) {
       window.toast('加载账号密码失败：' + e);
       state.groups = [];

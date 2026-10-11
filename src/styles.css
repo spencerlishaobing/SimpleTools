@@ -562,7 +562,12 @@ html[data-nav-style="label"] .nav-icon {
   color: var(--text);
 }
 
-.select-label select {
+/* 自定义下拉按钮（v0.31.1）：替代原生 select（原生弹层选项上下间距无法调整），
+   JSON 缩进 / MD5 结果格式共用；外观与原 select 一致 + 尾部箭头图标 */
+.select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -571,11 +576,16 @@ html[data-nav-style="label"] .nav-icon {
   font-size: 12.5px;
   color: var(--text);
   cursor: pointer;
-  outline: none;
 }
 
-.select-label select:hover {
+.select-btn:hover {
   border-color: var(--scrollbar);
+}
+
+.select-btn svg {
+  width: 12px;
+  height: 12px;
+  color: var(--text-dim);
 }
 
 /* ===== 左右分栏（JSON） ===== */
@@ -889,17 +899,21 @@ textarea[readonly] {
 
 .note-item-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   font-size: 12.5px;
   font-weight: 500;
   padding-right: 30px;
 }
 
+/* 标题最多 2 行，超出省略；行高固定 18px 便于图标 / 多行对齐 */
 .note-item-name {
-  white-space: nowrap;
+  line-height: 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 /* 列表类型图标：普通文本（灰）/ Markdown（主题色） */
@@ -907,6 +921,7 @@ textarea[readonly] {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
+  margin-top: 2px; /* 与标题首行对齐 */
   color: var(--text-dim);
 }
 
@@ -1112,6 +1127,47 @@ textarea[readonly] {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
+}
+
+/* 数据导入方式菜单（v0.32.0）：选项带第二行小字说明（覆盖 / 合并选择），需允许换行 */
+.dataio-menu .dataio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.dataio-menu .dataio-label {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.dataio-menu .dataio-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45;
+  max-width: 240px;
+}
+
+/* 自定义下拉菜单（v0.31.1）：JSON 缩进 / MD5 结果格式共用，
+   间距沿用菜单规范（容器内边距 6px、菜单项上下内边距 10px、项间 2px 间隙） */
+.select-menu {
+  padding: 6px;
+  gap: 2px;
+  min-width: 116px;
+}
+
+.select-menu button {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.select-menu button .select-check {
+  margin-left: auto;
+  width: 13px;
+  height: 13px;
 }
 
 .theme-menu button .theme-check {
@@ -1347,10 +1403,25 @@ textarea[readonly] {
   color: var(--text-dim);
 }
 
+/* 拖动排序：任务行整行可拖（按钮 / 勾选框上按下的拖动不启动） */
+.task-item.dragging {
+  opacity: 0.45;
+}
+
+.task-item.drag-over-top {
+  border-top: 2px solid var(--primary);
+}
+
+.task-item.drag-over-bottom {
+  border-bottom: 2px solid var(--primary);
+}
+
+/* 行内单元统一以「首行文本」（20px 行高）为对齐基准：
+   序号 / 勾选框 / 徽标 / 编辑按钮的垂直中心均落在首行中心线上 */
 .task-no {
   flex-shrink: 0;
-  min-width: 18px;
-  padding-top: 1px;
+  min-width: 20px;
+  line-height: 20px;
   text-align: right;
   font-size: 12.5px;
   color: var(--text-dim);
@@ -1361,7 +1432,9 @@ textarea[readonly] {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding-top: 1px;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
 }
 
@@ -1369,18 +1442,19 @@ textarea[readonly] {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .task-text {
   min-width: 0;
   font-size: 13px;
+  line-height: 20px;
   color: var(--text);
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-line;      /* 多行文本：长内容自动换行，保留换行符 */
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .task-text-empty {
@@ -1389,18 +1463,20 @@ textarea[readonly] {
 }
 
 .task-open {
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
   font-size: 13px;
+  line-height: 20px;
   font-weight: 600;
   font-family: var(--sans);
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .task-open:hover {
@@ -1410,7 +1486,11 @@ textarea[readonly] {
 
 .task-badge {
   flex-shrink: 0;
-  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  margin-top: 2px;            /* 16px 徽标在 20px 首行中垂直居中 */
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--primary);
@@ -1470,8 +1550,16 @@ textarea[readonly] {
   background: var(--input-bg);
   color: var(--text);
   font-size: 13px;
+  line-height: 20px;
   font-family: var(--sans);
   outline: none;
+  resize: none;               /* textarea：高度由脚本按内容自适应 */
+  overflow: hidden;
+}
+
+/* 编辑态：保存 / 取消按钮与文本框首行对齐 */
+.task-main [data-inline] {
+  margin-top: 4px;
 }
 
 .task-empty {
@@ -1825,6 +1913,19 @@ textarea[readonly] {
   border-color: var(--active-item-border);
 }
 
+/* 拖动排序：分组行整行可拖 */
+.acc-group-item.dragging {
+  opacity: 0.45;
+}
+
+.acc-group-item.drag-over-top {
+  border-top: 2px solid var(--primary);
+}
+
+.acc-group-item.drag-over-bottom {
+  border-bottom: 2px solid var(--primary);
+}
+
 .acc-group-item-name {
   flex: 1;
   min-width: 0;
@@ -1935,12 +2036,53 @@ textarea[readonly] {
 
 .acc-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 7px 8px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--panel-bg-subtle);
+}
+
+/* 拖动排序手柄：行内均为输入框 / 按钮，手柄提供明确的拖动区 */
+.acc-item-grip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 24px;
+  margin-top: 4px; /* 与第一行输入框垂直居中 */
+  color: var(--text-dim);
+  cursor: grab;
+  opacity: 0.55;
+}
+
+.acc-item-grip:hover {
+  opacity: 1;
+  color: var(--text);
+}
+
+.acc-item-grip:active {
+  cursor: grabbing;
+}
+
+.acc-item-grip svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 拖动排序：条目行经手柄拖动 */
+.acc-item.dragging {
+  opacity: 0.45;
+}
+
+.acc-item.drag-over-top {
+  border-top: 2px solid var(--primary);
+}
+
+.acc-item.drag-over-bottom {
+  border-bottom: 2px solid var(--primary);
 }
 
 .acc-input {
@@ -1968,15 +2110,84 @@ textarea[readonly] {
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
-.acc-item-actions {
+/* 账号 / 密码字段 + 下方备注描述（条目两行结构） */
+.acc-item-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  gap: 5px;
-  flex-shrink: 0;
-  align-items: center;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.acc-item-actions .btn.small {
-  padding: 5px 8px;
+.acc-item-fields {
+  display: flex;
+  gap: 8px;
+}
+
+/* 账号描述：位于账号 / 密码下方，灰色小字全量展示（无边框，点击直接编辑） */
+.acc-item-note {
+  flex: none; /* 覆盖全局 textarea 的 flex:1（纵向容器中会压扁高度） */
+  width: 100%;
+  min-height: 15px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 15px;
+  font-family: var(--sans);
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  user-select: text;
+}
+
+.acc-item-note::placeholder {
+  color: var(--text-dim);
+  opacity: 0.55;
+}
+
+.acc-item-note:hover {
+  color: var(--text);
+}
+
+.acc-item-note:focus {
+  color: var(--text);
+  background: var(--hover-bg);
+}
+
+.acc-item-actions {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+  align-items: center;
+  margin-top: 4px; /* 与第一行输入框垂直居中 */
+}
+
+/* 行内操作图标按钮（复制账号 / 复制密码 / 一键复制，hover 显示 title 提示） */
+.acc-icon-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acc-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.acc-icon-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .acc-item-remove {
@@ -2550,6 +2761,11 @@ textarea[readonly] {
   word-break: break-word;
 }
 
+/* 多行确认文案（覆盖 / 合并导入）：保留 \n 换行与分节空行（showConfirm 检测到换行时自动启用） */
+.modal-message.is-multiline {
+  white-space: pre-line;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -2841,6 +3057,68 @@ textarea[readonly] {
   padding: 3px 10px;
   font-size: 11.5px;
   flex-shrink: 0;
+}
+
+/* ===== 数据恢复弹窗（v0.32.0）：自动备份列表 + 单条恢复 ===== */
+#restore-modal .modal-card {
+  width: 460px;
+}
+
+.restore-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.restore-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--hover-bg);
+  border-radius: 8px;
+}
+
+.restore-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.restore-item-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.restore-item-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.restore-run {
+  padding: 3px 12px;
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+
+.restore-loading {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 8px 2px;
+  list-style: none;
+}
+
+.restore-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 10px 2px;
 }
 
 .switch {

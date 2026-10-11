@@ -55,13 +55,42 @@
     }, SAVE_DELAY);
   }
 
+  // 单条记录归一化（兼容旧数据缺字段）：id 缺失补生成、time 缺失补 0、各内容字段补空串/
+  // 缺省类型；字段集合与 Rust 侧记录结构一一对应
+  function normRec(kind, r) {
+    const rec = r && typeof r === 'object' ? r : {};
+    const id = rec.id || genId();
+    const time = Number(rec.time) || 0;
+    const str = function (v) { return String(v == null ? '' : v); };
+    if (kind === 'json') {
+      return { id, input: str(rec.input), output: str(rec.output), time };
+    }
+    if (kind === 'diff') {
+      return { id, left: str(rec.left), right: str(rec.right), time };
+    }
+    if (kind === 'md5') {
+      return {
+        id,
+        kind: rec.kind === 'file' ? 'file' : 'text',
+        input: str(rec.input),
+        hash: str(rec.hash),
+        time,
+      };
+    }
+    return { id, input: str(rec.input), time };
+  }
+
   async function load() {
     if (!invoke) return;
     try {
       const data = await invoke('history_load');
       if (data) {
         for (const kind of ['json', 'diff', 'md5', 'str']) {
-          if (Array.isArray(data[kind])) state[kind] = data[kind];
+          if (Array.isArray(data[kind])) {
+            state[kind] = data[kind]
+              .filter((r) => r && typeof r === 'object')
+              .map((r) => normRec(kind, r));
+          }
         }
       }
     } catch (e) { /* 首次使用或文件损坏时按空数据继续 */ }

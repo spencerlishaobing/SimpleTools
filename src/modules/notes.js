@@ -609,6 +609,7 @@
       const li = document.createElement('li');
       li.className = 'task-item' + (t.kind === 'rich' ? ' is-rich' : '') + (t.done ? ' done' : '');
       li.dataset.id = t.id;
+      li.draggable = true;
       const noHtml = note.auto_no !== false ? '<span class="task-no">' + (i + 1) + '.</span>' : '';
       const checkHtml = '<label class="task-check" title="标记完成 / 未完成">' +
         '<input type="checkbox" class="task-done"' + (t.done ? ' checked' : '') + ' /></label>';
@@ -657,16 +658,22 @@
     scheduleSave();
   });
 
-  // 简单任务行内编辑（保存 / 取消按钮提交，无键盘快捷操作）
+  // 简单任务行内编辑（保存 / 取消按钮提交，无键盘快捷操作；textarea 高度随内容自适应）
   function startEditSimple(li, task) {
     li.classList.add('editing');
     const mainEl = li.querySelector('.task-main');
-    mainEl.innerHTML = '<input class="task-inline-input" spellcheck="false" />' +
+    mainEl.innerHTML = '<textarea class="task-inline-input" spellcheck="false" rows="1"></textarea>' +
       '<button class="task-btn primary" data-inline="ok">保存</button>' +
       '<button class="task-btn" data-inline="cancel">取消</button>';
     const input = mainEl.querySelector('.task-inline-input');
     input.value = task.text;
+    const syncHeight = () => {
+      input.style.height = 'auto';
+      input.style.height = input.scrollHeight + 'px';
+    };
+    syncHeight();
     input.focus();
+    input.addEventListener('input', syncHeight);
     const finish = (save) => {
       if (save) {
         task.text = input.value.trim();
@@ -1425,6 +1432,77 @@
     scheduleSave(true);
   }
 
+  // ---------- 任务拖动排序（任务组视图整行可拖；按钮 / 勾选框上按下的拖动不启动） ----------
+
+  let taskDragId = null;
+
+  taskListEl.addEventListener('dragstart', (e) => {
+    const li = e.target.closest('.task-item');
+    if (!li || li.classList.contains('editing')) return;
+    if (e.target.closest('button, input, label')) {
+      e.preventDefault();
+      return;
+    }
+    taskDragId = li.dataset.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', taskDragId);
+    }
+  });
+
+  taskListEl.addEventListener('dragover', (e) => {
+    if (!taskDragId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const li = e.target.closest('.task-item');
+    taskListEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    if (!li || li.dataset.id === taskDragId) return;
+    const rect = li.getBoundingClientRect();
+    const before = e.clientY - rect.top < rect.height / 2;
+    li.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  taskListEl.addEventListener('drop', (e) => {
+    if (!taskDragId) return;
+    e.preventDefault();
+    const li = e.target.closest('.task-item');
+    const targetId = li && li.dataset.id;
+    const before = li && li.classList.contains('drag-over-top');
+    if (targetId && targetId !== taskDragId) {
+      moveTask(taskDragId, targetId, before);
+    }
+    cleanupTaskDrag();
+  });
+
+  taskListEl.addEventListener('dragend', cleanupTaskDrag);
+
+  function cleanupTaskDrag() {
+    taskDragId = null;
+    taskListEl.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  function moveTask(fromId, targetId, before) {
+    const note = getCurrent();
+    if (!isTaskNote(note)) return;
+    const from = note.tasks.findIndex((t) => t.id === fromId);
+    if (from < 0) return;
+    const item = note.tasks.splice(from, 1)[0];
+    let to = note.tasks.findIndex((t) => t.id === targetId);
+    if (to < 0) {
+      note.tasks.splice(from, 0, item);
+      return;
+    }
+    if (!before) to += 1;
+    note.tasks.splice(to, 0, item);
+    renderTaskList();
+    scheduleSave(true);
+  }
+
   // ---------- 初始化 ----------
 
   async function init() {
@@ -1434,19 +1512,22 @@
     }
     try {
       const notes = await invoke('notes_load');
-      // 归一化：旧数据无 type 字段按 text 处理；任务笔记补全 tasks / auto_no 缺省值
-      state.notes = (Array.isArray(notes) ? notes : []).map((n) => {
-        const type = n.type === 'md' ? 'md' : (n.type === 'task' ? 'task' : 'text');
-        return {
-          id: n.id,
-          title: n.title,
-          content: n.content,
-          type,
-          tasks: type === 'task' && Array.isArray(n.tasks) ? n.tasks.map(normTask) : [],
-          auto_no: n.auto_no === undefined ? true : !!n.auto_no,
-          updated_at: n.updated_at,
-        };
-      });
+      // 归一化（兼容旧数据缺字段）：无 type 按 text；任务笔记补全 tasks / auto_no；
+      // id 缺失补生成、title / content 缺失补空串、updated_at 缺失补 0
+      state.notes = (Array.isArray(notes) ? notes : [])
+        .filter((n) => n && typeof n === 'object')
+        .map((n) => {
+          const type = n.type === 'md' ? 'md' : (n.type === 'task' ? 'task' : 'text');
+          return {
+            id: n.id || genId(),
+            title: String(n.title == null ? '' : n.title),
+            content: String(n.content == null ? '' : n.content),
+            type,
+            tasks: type === 'task' && Array.isArray(n.tasks) ? n.tasks.map(normTask) : [],
+            auto_no: n.auto_no === undefined ? true : !!n.auto_no,
+            updated_at: Number(n.updated_at) || 0,
+          };
+        });
     } catch (e) {
       window.toast('加载记事本失败：' + e);
       state.notes = [];

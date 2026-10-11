@@ -5,10 +5,16 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 
 /// 单条账号密码记录
+///
+/// 兼容原则（v0.32.0）：核心字段全部 `serde(default)` —— 旧版本数据缺字段时按
+/// 默认值解析，不因单个字段缺失导致整个文件解析失败（前端加载时补全缺失 id）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountItem {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub account: String,
+    #[serde(default)]
     pub password: String,
     /// 备注（可选，默认空；v0.20.0 新增，旧数据自动补空）
     #[serde(default)]
@@ -21,7 +27,9 @@ pub struct AccountItem {
 /// 账号分组（标题）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountGroup {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub items: Vec<AccountItem>,
@@ -103,4 +111,47 @@ pub fn accounts_export(dir: String, files: Vec<ExportFile>) -> Result<usize, Str
             .map_err(|e| format!("写入 {} 失败: {e}", f.name))?;
     }
     Ok(files.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AccountGroup, AccountItem};
+
+    /// 旧版数据缺核心字段（分组 / 条目的 id、name / account、password）时按默认值解析，
+    /// 不导致整文件失败；v0.20.0 前的旧数据无 note / updated_at 同样兼容（v0.32.0）
+    #[test]
+    fn legacy_missing_fields_parse() {
+        let legacy = r#"[{"name":"旧分组","items":[{"account":"a@b.c"}]}]"#;
+        let groups: Vec<AccountGroup> = serde_json::from_str(legacy).expect("缺字段旧数据应能解析");
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].id, "");
+        assert_eq!(groups[0].name, "旧分组");
+        let item = &groups[0].items[0];
+        assert_eq!(item.id, "");
+        assert_eq!(item.account, "a@b.c");
+        assert_eq!(item.password, "");
+        assert_eq!(item.note, "");
+        assert_eq!(item.updated_at, 0);
+    }
+
+    /// 规范数据往返：字段完整时序列化后能原样反序列化
+    #[test]
+    fn account_roundtrip() {
+        let g = AccountGroup {
+            id: "g1".into(),
+            name: "G".into(),
+            items: vec![AccountItem {
+                id: "i1".into(),
+                account: "a".into(),
+                password: "p".into(),
+                note: "n".into(),
+                updated_at: 1,
+            }],
+        };
+        let json = serde_json::to_string(&g).expect("应能序列化");
+        let back: AccountGroup = serde_json::from_str(&json).expect("应能反序列化");
+        assert_eq!(back.items[0].account, "a");
+        assert_eq!(back.items[0].note, "n");
+        assert_eq!(back.items[0].updated_at, 1);
+    }
 }

@@ -134,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.31.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.32.0 <span class="version-stack">· Tauri + Rust</span></div>
     </div>
   </aside>
 
@@ -147,13 +147,12 @@
           <label class="checkbox" title="对整体被转义的 JSON 字符串（如从日志/代码中复制）自动去除转义">
             <input type="checkbox" id="json-unescape" checked />自动去转义
           </label>
-          <label class="select-label">缩进
-            <select id="json-indent">
-              <option value="2" selected>2 空格</option>
-              <option value="4">4 空格</option>
-              <option value="tab">Tab</option>
-            </select>
-          </label>
+          <div class="select-label">缩进
+            <button type="button" class="select-btn" id="json-indent-btn" aria-haspopup="listbox" aria-expanded="false" title="选择格式化缩进方式">
+              <span id="json-indent-label">2 空格</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
           <span class="divider"></span>
           <button class="btn primary" id="json-format">格式化</button>
           <button class="btn" id="json-minify">压缩</button>
@@ -386,13 +385,12 @@
       <header class="panel-header">
         <h2>MD5 计算</h2>
         <div class="panel-actions">
-          <label class="select-label">结果格式
-            <select id="md5-format" title="选择输出格式">
-              <option value="lower" selected>小写（hex）</option>
-              <option value="upper">大写（HEX）</option>
-              <option value="base64">Base64</option>
-            </select>
-          </label>
+          <div class="select-label">结果格式
+            <button type="button" class="select-btn" id="md5-format-btn" aria-haspopup="listbox" aria-expanded="false" title="选择输出格式">
+              <span id="md5-format-label">小写（hex）</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
           <div class="hist-anchor">
             <button class="btn" id="md5-history-btn" title="查看 MD5 计算历史记录（点击记录可恢复）">历史记录</button>
             <div class="hist-pop hidden" id="md5-history-pop">
@@ -582,11 +580,20 @@
             <div class="settings-row">
               <div class="settings-row-text">
                 <div class="settings-row-title">数据导入导出</div>
-                <div class="settings-row-desc">一键备份 / 恢复全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份）与应用配置，支持 ZIP 压缩包或文件夹</div>
+                <div class="settings-row-desc">一键备份全部用户数据（记事本 / 账号密码 / 历史记录 / 记事本备份）与应用配置；支持 ZIP 压缩包或文件夹，导入可选「覆盖」或「合并」</div>
               </div>
               <div class="settings-actions">
                 <button class="btn" id="data-export-btn">导出</button>
                 <button class="btn" id="data-import-btn">导入</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">数据恢复</div>
+                <div class="settings-row-desc">误导入的撤销入口：每次「导入 / 合并」前应用会自动备份当前数据；若导入结果不理想（误覆盖、合并内容不符预期），在此选择对应时间的备份，一键还原到操作前的状态</div>
+              </div>
+              <div class="settings-actions">
+                <button class="btn" id="data-restore-btn" title="从导入 / 合并前自动生成的备份恢复数据">恢复数据</button>
               </div>
             </div>
           </div>
@@ -619,6 +626,19 @@
       </div>
       <div class="modal-actions">
         <button class="btn" id="storage-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据恢复弹窗（v0.32.0）：列出导入 / 合并前自动生成的备份，选择后覆盖恢复（恢复不生成新备份） -->
+  <div id="restore-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="restore-title">
+      <div class="modal-title" id="restore-title">恢复数据</div>
+      <div class="modal-message">以下为「导入 / 合并数据」前自动生成的备份。选择某条备份后，当前数据将被直接覆盖、还原到该时间点的状态（恢复操作不再生成新备份）。</div>
+      <ul class="restore-list" id="restore-list"></ul>
+      <div class="restore-empty hidden" id="restore-empty">暂无自动备份（执行一次「导入」后自动生成）</div>
+      <div class="modal-actions">
+        <button class="btn" id="restore-close">关闭</button>
       </div>
     </div>
   </div>

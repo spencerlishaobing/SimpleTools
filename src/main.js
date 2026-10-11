@@ -62,6 +62,8 @@
 
       titleEl.textContent = opts.title || '确认操作';
       msgEl.textContent = message;
+      // 含换行的长文案（覆盖 / 合并导入）启用 pre-line 保留分节换行；单行文案不受影响
+      msgEl.classList.toggle('is-multiline', message.indexOf('\n') >= 0);
       okBtn.textContent = opts.okText || '确定';
       mask.classList.remove('hidden');
       cancelBtn.focus(); // 默认焦点放在取消上，避免误回车删除
@@ -674,26 +676,38 @@
   }
 
   // 弹窗内选择菜单（复用导出菜单样式；dataio-menu 层级盖过设置弹窗）
+  // items 支持可选 desc（第二行小字说明，如导入方式选择）；onClose 在「点外部关闭」时回调，
+  // 选择菜单项本身不触发（供 Promise 化选择流程区分「选中」与「取消」）
   let dataioMenuEl = null;
   let dataioMenuDocHandler = null;
+  let dataioMenuOnClose = null;
+  let dataioMenuPicking = false;
 
   function closeDataioMenu() {
+    const onClose = dataioMenuPicking ? null : dataioMenuOnClose;
+    dataioMenuOnClose = null;
     if (dataioMenuEl) {
       dataioMenuEl.remove();
       dataioMenuEl = null;
     }
     if (dataioMenuDocHandler) {
-      document.removeEventListener('click', dataioMenuDocHandler);
+      document.removeEventListener('click', dataioMenuDocHandler, true);
       dataioMenuDocHandler = null;
     }
+    if (onClose) onClose();
   }
 
-  function openDataioMenu(anchor, items) {
+  function openDataioMenu(anchor, items, onClose) {
     closeDataioMenu();
+    dataioMenuOnClose = onClose || null;
     const menu = document.createElement('div');
     menu.className = 'export-menu dataio-menu';
     menu.innerHTML = items.map((it) =>
-      '<button type="button" data-opt="' + it.key + '">' + it.icon + '<span>' + it.label + '</span></button>').join('');
+      '<button type="button" data-opt="' + it.key + '">' + it.icon +
+      (it.desc
+        ? '<span class="dataio-text"><span class="dataio-label">' + it.label + '</span><span class="dataio-desc">' + it.desc + '</span></span>'
+        : '<span>' + it.label + '</span>') +
+      '</button>').join('');
     document.body.appendChild(menu);
     const rect = anchor.getBoundingClientRect();
     let left = rect.left;
@@ -708,8 +722,10 @@
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         const key = b.getAttribute('data-opt');
-        closeDataioMenu();
         const item = items.find((it) => it.key === key);
+        dataioMenuPicking = true;
+        closeDataioMenu();
+        dataioMenuPicking = false;
         if (item) item.run();
       });
     });
@@ -717,7 +733,9 @@
       dataioMenuDocHandler = (ev) => {
         if (dataioMenuEl && !dataioMenuEl.contains(ev.target)) closeDataioMenu();
       };
-      document.addEventListener('click', dataioMenuDocHandler);
+      // 捕获阶段监听（v0.31.1）：设置弹窗遮罩会 stopPropagation 拦截冒泡（在弹窗内点击
+      // 空白处时 click 到不了 document），捕获阶段先于遮罩处理执行，确保菜单可靠关闭
+      document.addEventListener('click', dataioMenuDocHandler, true);
     }, 0);
   }
 
@@ -725,6 +743,146 @@
     '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>';
   const DATAIO_ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+  const DATAIO_ICON_MERGE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M12 3v7"/><path d="M8 7l4 4 4-4"/><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>';
+
+  // ---------- 数据合并（v0.32.0）：导入「合并」模式的内存合并逻辑（纯函数，供探针直接断言） ----------
+  // 合并前为全部新增实体重新生成 UUID（笔记 / 任务 / 分组 / 条目 / 历史记录），
+  // 避免与当前数据中的 ID 冲突；现有实体保持原 ID 不变
+  const MERGE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const HIST_KINDS = ['json', 'diff', 'md5', 'str'];
+  const HIST_MAX = 50;
+
+  function mergeUuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(16) + '-' + Math.random().toString(16).slice(2);
+  }
+
+  function mergeClone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  // 笔记合并：重名不覆盖，自动改名为「名称-N」后新建（原名已带 -N 后缀时从 N+1 继续递增查找）
+  // 兼容旧结构：非数组输入按空处理，非对象项跳过；现有项缺 id 时补 UUID（已有 ID 保持不变）
+  function mergeNotes(existing, incoming) {
+    const result = (Array.isArray(existing) ? existing : [])
+      .filter((n) => n && typeof n === 'object').map(mergeClone);
+    for (const note of result) {
+      if (!note.id) note.id = mergeUuid();
+      if (Array.isArray(note.tasks)) {
+        for (const t of note.tasks) {
+          if (t && typeof t === 'object' && !t.id) t.id = mergeUuid();
+        }
+      }
+    }
+    const titles = new Set(result.map((n) => String(n.title == null ? '' : n.title)));
+    for (const src of Array.isArray(incoming) ? incoming : []) {
+      if (!src || typeof src !== 'object') continue;
+      const note = mergeClone(src);
+      note.id = mergeUuid();
+      if (Array.isArray(note.tasks)) {
+        note.tasks.forEach((t) => { if (t && typeof t === 'object') t.id = mergeUuid(); });
+      }
+      const raw = String(note.title == null ? '' : note.title);
+      let title = raw;
+      if (titles.has(title)) {
+        const m = /^(.*?)-(\d+)$/.exec(raw);
+        const base = m ? m[1] : raw;
+        let n = m ? parseInt(m[2], 10) + 1 : 1;
+        while (titles.has(base + '-' + n)) n += 1;
+        title = base + '-' + n;
+      }
+      note.title = title;
+      titles.add(title);
+      result.push(note);
+    }
+    return result;
+  }
+
+  // 分组合并：同名分组归一（只保留一个）；条目按账号去重（账号非空且组内已存在则跳过，空账号直接加入）
+  // 兼容旧结构：非数组输入按空处理，非对象项跳过；现有组 / 条目缺 id 时补 UUID，缺 items 时补空数组
+  function mergeAccounts(existing, incoming) {
+    const result = (Array.isArray(existing) ? existing : [])
+      .filter((g) => g && typeof g === 'object').map(mergeClone);
+    for (const g of result) {
+      if (!g.id) g.id = mergeUuid();
+      if (!Array.isArray(g.items)) g.items = [];
+      for (const it of g.items) {
+        if (it && typeof it === 'object' && !it.id) it.id = mergeUuid();
+      }
+    }
+    for (const src of Array.isArray(incoming) ? incoming : []) {
+      if (!src || typeof src !== 'object') continue;
+      const group = mergeClone(src);
+      group.id = mergeUuid();
+      const name = String(group.name == null ? '' : group.name);
+      const srcItems = Array.isArray(group.items) ? group.items : [];
+      let target = result.find((g) => String(g.name == null ? '' : g.name) === name);
+      if (!target) {
+        target = { id: group.id, name: group.name, items: [] };
+        result.push(target);
+      }
+      if (!Array.isArray(target.items)) target.items = [];
+      for (const srcItem of srcItems) {
+        if (!srcItem || typeof srcItem !== 'object') continue;
+        const item = mergeClone(srcItem);
+        item.id = mergeUuid();
+        const account = String(item.account == null ? '' : item.account);
+        const dup = account !== '' &&
+          target.items.some((it) => it && String(it.account == null ? '' : it.account) === account);
+        if (!dup) target.items.push(item);
+      }
+    }
+    return result;
+  }
+
+  // 历史记录去重键（按内容比较，与 history.js 的各类型字段对应）
+  function histKey(kind, r) {
+    if (kind === 'json') return 'j\u0000' + (r.input || '') + '\u0000' + (r.output || '');
+    if (kind === 'diff') return 'd\u0000' + (r.left || '') + '\u0000' + (r.right || '');
+    if (kind === 'md5') return 'm\u0000' + (r.kind || '') + '\u0000' + (r.input || '') + '\u0000' + (r.hash || '');
+    return 's\u0000' + (r.input || '');
+  }
+
+  // 历史合并：四类各自按内容去重 → 时间倒序 → 每类最多保留 50 条（与 history.js MAX_ITEMS 一致）；
+  // 兼容旧结构：非数组按空处理，非对象记录跳过；现有记录缺 id 时补 UUID，新增记录重排 UUID
+  function mergeHistory(existing, incoming) {
+    const out = {};
+    for (const kind of HIST_KINDS) {
+      const seen = new Set();
+      const list = [];
+      const cur = Array.isArray(existing && existing[kind]) ? existing[kind] : [];
+      const inc = Array.isArray(incoming && incoming[kind]) ? incoming[kind] : [];
+      for (const r of cur) {
+        if (!r || typeof r !== 'object') continue;
+        const key = histKey(kind, r);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const rec = mergeClone(r);
+        if (!rec.id) rec.id = mergeUuid();
+        list.push(rec);
+      }
+      for (const r of inc) {
+        if (!r || typeof r !== 'object') continue;
+        const key = histKey(kind, r);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const rec = mergeClone(r);
+        rec.id = mergeUuid();
+        list.push(rec);
+      }
+      list.sort((a, b) => (b.time || 0) - (a.time || 0));
+      out[kind] = list.slice(0, HIST_MAX);
+    }
+    return out;
+  }
+
+  window.__dataMerge = {
+    mergeNotes: mergeNotes,
+    mergeAccounts: mergeAccounts,
+    mergeHistory: mergeHistory,
+    uuidRe: MERGE_UUID_RE,
+  };
 
   // 导出：zip=保存对话框选择备份文件位置；dir=选择目标文件夹后在其中创建时间戳子文件夹
   async function runDataExport(kind) {
@@ -766,7 +924,7 @@
     }
   }
 
-  // 导入：zip=选备份文件；dir=选备份文件夹；确认后由后端导入（自动备份 → 覆盖 → 重载）
+  // 导入：zip=选备份文件；dir=选备份文件夹；选完文件后再选导入方式（覆盖 / 合并）
   async function runDataImport(kind) {
     if (!invokeApi || !dialogApi || !dialogApi.open) {
       window.toast('Tauri 接口不可用（请通过应用运行）');
@@ -790,21 +948,156 @@
       return;
     }
     if (!source) return;
+    const mode = await chooseImportMode();
+    if (mode === 'overwrite') await runOverwriteImport(source);
+    else if (mode === 'merge') await runMergeImport(source);
+  }
+
+  // 选完备份文件后弹出「覆盖 / 合并」方式菜单（点外部关闭视为取消）
+  function chooseImportMode() {
+    return new Promise((resolve) => {
+      openDataioMenu(dataImportBtn, [
+        {
+          key: 'overwrite', label: '覆盖导入', icon: DATAIO_ICON_ARCHIVE,
+          desc: '用备份数据替换当前数据（与旧版一致）',
+          run: () => resolve('overwrite'),
+        },
+        {
+          key: 'merge', label: '合并导入', icon: DATAIO_ICON_MERGE,
+          desc: '保留当前数据再合并：相同分组归一、笔记重名自动改名、重复记录去重',
+          run: () => resolve('merge'),
+        },
+      ], () => resolve(null));
+    });
+  }
+
+  // 读取当前数据目录（确认弹窗展示备份完整路径用；失败时回退通用描述，不阻断导入流程）
+  async function resolveDataDirForMsg() {
+    try {
+      const info = await invokeApi('data_dir_info');
+      if (info && info.current) return info.current;
+    } catch (e) { /* 读取失败：用通用描述 */ }
+    return '数据目录';
+  }
+
+  // 覆盖导入：确认后由后端导入（自动备份 → 整文件覆盖 → 重载）
+  // 确认文案三要素：说明覆盖规则；备份提示（完整路径 = 数据目录 + 本次时间戳）；如何恢复旧数据；加密限制风险
+  async function runOverwriteImport(source) {
+    const backupName = 'import-backup-' + stampNow();
+    const backupPath = (await resolveDataDirForMsg()) + '\\' + backupName;
     const ok = await window.showConfirm(
-      '将从所选备份恢复数据文件（同名覆盖，备份中未包含的文件不受影响）。导入前会自动把当前数据备份到数据目录下的 import-backup-时间戳 文件夹。注意：账号密码数据经系统加密，仅能在导出时的同一 Windows 用户下恢复。',
-      { title: '导入数据', okText: '开始导入' }
+      '将用所选备份完整替换当前数据（同名覆盖，备份中未包含的文件不受影响）。\n\n' +
+      '备份提示：导入前会自动把当前数据备份到：\n' + backupPath + '\n\n' +
+      '如何恢复旧数据：若导入结果不理想，点「恢复数据」（设置 → 数据恢复），选择本次备份即可一键还原到导入前的状态。\n\n' +
+      '注意：账号密码数据经系统加密，仅能在导出时的同一 Windows 用户下恢复。',
+      { title: '覆盖导入', okText: '开始导入' }
     );
     if (!ok) return;
     dataImportBtn.disabled = true;
     dataExportBtn.disabled = true;
     try {
-      const res = await invokeApi('data_import', { source, backupName: 'import-backup-' + stampNow() });
+      const res = await invokeApi('data_import', { source, backupName });
       let msg = '已导入 ' + ((res && res.imported && res.imported.length) || 0) + ' 个文件';
       if (res && res.fallback) msg += '（存储位置不可用，已回退默认目录）';
       window.toast(msg + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
     } catch (e) {
       window.toast('导入失败：' + ((e && e.message) || e));
+      dataImportBtn.disabled = false;
+      dataExportBtn.disabled = false;
+    }
+  }
+
+  // 合并导入：读取备份明文 + 当前数据 → 内存合并（含统计）→ 确认后由后端备份并整体落盘
+  async function runMergeImport(source) {
+    let prep;
+    try {
+      prep = await invokeApi('data_import_prepare', { source });
+    } catch (e) {
+      window.toast('读取备份失败：' + ((e && e.message) || e));
+      return;
+    }
+    const loadSafe = async (cmd) => {
+      try {
+        return await invokeApi(cmd);
+      } catch (e) {
+        return null;
+      }
+    };
+    const warnings = ((prep && prep.warnings) || []).slice();
+    const curNotes = prep.notes ? await loadSafe('notes_load') : null;
+    const curAccounts = prep.accounts ? await loadSafe('accounts_load') : null;
+    const curHistory = prep.history ? await loadSafe('history_load') : null;
+    // 当前数据读取失败时跳过对应文件的合并（宁可少写，不覆盖丢失）
+    if (prep.notes && curNotes === null) warnings.push('当前笔记数据读取失败，已跳过笔记合并');
+    if (prep.accounts && curAccounts === null) warnings.push('当前账号数据读取失败，已跳过账号合并');
+    if (prep.history && curHistory === null) warnings.push('当前历史记录读取失败，已跳过历史合并');
+
+    const merged = {
+      notes: prep.notes && curNotes !== null ? mergeNotes(curNotes, prep.notes) : null,
+      accounts: prep.accounts && curAccounts !== null ? mergeAccounts(curAccounts, prep.accounts) : null,
+      history: prep.history && curHistory !== null ? mergeHistory(curHistory, prep.history) : null,
+    };
+    if (merged.notes === null && merged.accounts === null && merged.history === null) {
+      window.toast('备份中没有可合并的数据');
+      return;
+    }
+
+    // 统计（供确认弹窗展示合并影响：新增条数 / 自动改名数）
+    const parts = [];
+    let totalAdded = 0;
+    if (merged.notes) {
+      const added = merged.notes.length - curNotes.length;
+      totalAdded += added;
+      let renamed = 0;
+      for (let i = 0; i < prep.notes.length; i++) {
+        const srcTitle = String((prep.notes[i] || {}).title == null ? '' : prep.notes[i].title);
+        if (merged.notes[curNotes.length + i].title !== srcTitle) renamed += 1;
+      }
+      parts.push('笔记新增 ' + added + ' 条' + (renamed ? '（' + renamed + ' 条重名自动改名）' : ''));
+    }
+    if (merged.accounts) {
+      const countItems = (gs) => (gs || []).reduce((s, g) => s + (((g.items || []).length)), 0);
+      const addedItems = countItems(merged.accounts) - countItems(curAccounts);
+      const addedGroups = merged.accounts.length - curAccounts.length;
+      totalAdded += addedItems;
+      parts.push('账号新增 ' + addedGroups + ' 个分组、' + addedItems + ' 条记录');
+    }
+    if (merged.history) {
+      const countHist = (h) => HIST_KINDS.reduce((s, k) => s + (((h && h[k]) || []).length), 0);
+      const addedHist = countHist(merged.history) - countHist(curHistory);
+      totalAdded += addedHist;
+      parts.push('历史记录新增 ' + addedHist + ' 条');
+    }
+    if (totalAdded <= 0) {
+      window.toast('没有需要合并的新数据，已跳过');
+      return;
+    }
+    // 确认文案：合并说明（规则）→ 本次合并统计 → 备份提示（完整路径 + 恢复指引）→ 风险提示
+    const backupName = 'import-backup-' + stampNow();
+    const backupPath = (await resolveDataDirForMsg()) + '\\' + backupName;
+    let msg = '合并说明：保留当前数据，把备份内容合并进来 —— 相同分组自动归一、重复记录自动去重、笔记重名自动改名（如「名称-1」）。\n\n' +
+      '本次合并：' + parts.join('；') + '。\n\n' +
+      '备份提示：合并前会自动把当前数据备份到：\n' + backupPath + '\n若合并结果不理想，点「恢复数据」（设置 → 数据恢复），选择本次备份即可一键还原到合并前的状态。\n\n' +
+      '风险提示：合并后新旧数据合为一体、无法自动拆分；账号密码数据经系统加密，仅能在导出时的同一 Windows 用户下恢复。';
+    if (warnings.length) msg += '\n\n注意：' + warnings.join('；') + '。';
+    const ok = await window.showConfirm(msg, { title: '合并导入', okText: '开始合并' });
+    if (!ok) return;
+    dataImportBtn.disabled = true;
+    dataExportBtn.disabled = true;
+    try {
+      const res = await invokeApi('data_merge_write', {
+        notes: merged.notes,
+        accounts: merged.accounts,
+        history: merged.history,
+        backupName: backupName,
+      });
+      let out = '已合并 ' + ((res && res.written && res.written.length) || 0) + ' 个数据文件';
+      if (warnings.length) out += '（' + warnings.join('；') + '）';
+      window.toast(out + '，正在重新加载…');
+      setTimeout(function () { location.reload(); }, 1000);
+    } catch (e) {
+      window.toast('合并失败：' + ((e && e.message) || e));
       dataImportBtn.disabled = false;
       dataExportBtn.disabled = false;
     }
@@ -823,6 +1116,104 @@
       { key: 'zip', label: '从 ZIP 压缩包导入', icon: DATAIO_ICON_ARCHIVE, run: function () { runDataImport('zip'); } },
       { key: 'dir', label: '从文件夹导入', icon: DATAIO_ICON_FOLDER, run: function () { runDataImport('dir'); } },
     ]);
+  });
+
+  // ---------- 数据恢复（v0.32.0）：从自动备份列表选择 → 覆盖恢复 ----------
+  // 列表 = 数据目录下的 import-backup-* 文件夹（导入 / 合并前自动生成）；
+  // 恢复直接覆盖当前数据，不再生成新备份（恢复本身即回退操作）
+  const dataRestoreBtn = document.getElementById('data-restore-btn');
+  const restoreModal = document.getElementById('restore-modal');
+  const restoreListEl = document.getElementById('restore-list');
+  const restoreEmptyEl = document.getElementById('restore-empty');
+  const restoreCloseBtn = document.getElementById('restore-close');
+
+  // import-backup-20261011-153045 → 2026-10-11 15:30:45（名称不合规时原样展示）
+  function formatBackupTime(name) {
+    const m = /^import-backup-(\d{8})-(\d{6})$/.exec(name);
+    if (!m) return name;
+    const d = m[1];
+    const t = m[2];
+    return d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8) + ' ' +
+      t.slice(0, 2) + ':' + t.slice(2, 4) + ':' + t.slice(4, 6);
+  }
+
+  function formatSize(bytes) {
+    if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
+  }
+
+  async function openRestoreModal() {
+    if (!invokeApi) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    restoreModal.classList.remove('hidden');
+    restoreListEl.innerHTML = '<li class="restore-loading">读取中…</li>';
+    restoreEmptyEl.classList.add('hidden');
+    let list = [];
+    try {
+      list = (await invokeApi('data_backup_list')) || [];
+    } catch (e) {
+      window.toast('读取备份列表失败：' + ((e && e.message) || e));
+    }
+    renderRestoreList(list);
+  }
+
+  function renderRestoreList(list) {
+    restoreListEl.innerHTML = '';
+    if (!list.length) {
+      restoreEmptyEl.classList.remove('hidden');
+      return;
+    }
+    restoreEmptyEl.classList.add('hidden');
+    for (const b of list) {
+      const li = document.createElement('li');
+      li.className = 'restore-item';
+      const files = (b.files || []).length;
+      li.innerHTML =
+        '<div class="restore-item-text">' +
+        '<div class="restore-item-time">' + formatBackupTime(b.name) + '</div>' +
+        '<div class="restore-item-meta">' + b.name + ' · ' + files + ' 个文件 · ' + formatSize(b.size || 0) + '</div>' +
+        '</div>' +
+        '<button class="btn restore-run">恢复</button>';
+      li.querySelector('.restore-run').addEventListener('click', () => runRestore(b.name));
+      restoreListEl.appendChild(li);
+    }
+  }
+
+  async function runRestore(name) {
+    const ok = await window.showConfirm(
+      '将用备份「' + formatBackupTime(name) + '」覆盖当前数据（笔记 / 账号密码 / 历史记录 / 记事本备份，备份中若包含应用设置则一并还原）。恢复操作不会再生成备份，当前数据将被直接替换。',
+      { title: '恢复数据', okText: '覆盖恢复' }
+    );
+    if (!ok) return;
+    dataRestoreBtn.disabled = true;
+    dataImportBtn.disabled = true;
+    dataExportBtn.disabled = true;
+    try {
+      const res = await invokeApi('data_restore', { name });
+      const n = (res && res.restored && res.restored.length) || 0;
+      window.toast('已恢复 ' + n + ' 个数据文件，正在重新加载…');
+      setTimeout(function () { location.reload(); }, 1000);
+    } catch (e) {
+      window.toast('恢复失败：' + ((e && e.message) || e));
+      dataRestoreBtn.disabled = false;
+      dataImportBtn.disabled = false;
+      dataExportBtn.disabled = false;
+    }
+  }
+
+  dataRestoreBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    openRestoreModal();
+  });
+  restoreCloseBtn.addEventListener('click', function () {
+    restoreModal.classList.add('hidden');
+  });
+  restoreModal.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (e.target === restoreModal) restoreModal.classList.add('hidden');
   });
 
   settingsBtn.addEventListener('click', openSettings);
