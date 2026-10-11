@@ -95,6 +95,11 @@
   const navItems = document.querySelectorAll('.nav-item');
   const panels = document.querySelectorAll('.panel');
 
+  function activatePanel(target) {
+    navItems.forEach((b) => b.classList.toggle('active', b.dataset.panel === target));
+    panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + target));
+  }
+
   navItems.forEach((btn) => {
     btn.addEventListener('click', async () => {
       const target = btn.dataset.panel;
@@ -103,10 +108,113 @@
         const ok = await requireHelloVerify('验证以查看「账号密码」');
         if (!ok) return;
       }
-      navItems.forEach((b) => b.classList.toggle('active', b === btn));
-      panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + target));
+      activatePanel(target);
     });
   });
+
+  // ---------- 功能显示（v0.26.0）：侧边栏导航样式（图标 / 名称 / 两者）+ 功能显隐 ----------
+  // - 导航样式：both（图标 + 名称，默认）/ icon（仅图标，侧边栏缩窄为 64px）/ label（仅名称）
+  // - 功能显隐：取消勾选的功能从侧边栏隐藏（数据不受影响），至少保留一个功能
+  // - 持久化于 localStorage；页面加载时由 head 内联脚本尽早应用样式，避免启动时闪动
+  const NAV_STYLE_KEY = 'simpletools-nav-style';
+  const NAV_HIDDEN_KEY = 'simpletools-nav-hidden';
+  const NAV_STYLE_ALL = ['both', 'icon', 'label'];
+  const navStyleGroup = document.getElementById('nav-style-group');
+  const navFeatureGrid = document.getElementById('nav-feature-grid');
+  const htmlRoot = document.documentElement;
+
+  function readNavStyle() {
+    try {
+      const v = localStorage.getItem(NAV_STYLE_KEY);
+      return NAV_STYLE_ALL.indexOf(v) >= 0 ? v : 'both';
+    } catch (e) {
+      return 'both';
+    }
+  }
+
+  const navHidden = (function () {
+    try {
+      const arr = JSON.parse(localStorage.getItem(NAV_HIDDEN_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr.filter((k) => typeof k === 'string') : []);
+    } catch (e) {
+      return new Set();
+    }
+  })();
+
+  function writeNavHidden() {
+    try {
+      if (navHidden.size) localStorage.setItem(NAV_HIDDEN_KEY, JSON.stringify([...navHidden]));
+      else localStorage.removeItem(NAV_HIDDEN_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function applyNavStyle(style) {
+    if (style === 'both') htmlRoot.removeAttribute('data-nav-style');
+    else htmlRoot.setAttribute('data-nav-style', style);
+    // 仅图标模式下给按钮加悬停提示（提示功能名）
+    navItems.forEach((btn) => {
+      const label = btn.querySelector('.nav-label');
+      if (style === 'icon' && label) btn.title = label.textContent.trim();
+      else btn.removeAttribute('title');
+    });
+    navStyleGroup.querySelectorAll('.nav-style-item').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.navStyle === style);
+    });
+  }
+
+  function applyNavHidden() {
+    navItems.forEach((btn) => {
+      btn.classList.toggle('nav-hidden', navHidden.has(btn.dataset.panel));
+    });
+    navFeatureGrid.querySelectorAll('input[data-feature]').forEach((cb) => {
+      cb.checked = !navHidden.has(cb.dataset.feature);
+      cb.closest('.nav-feature-item').classList.toggle('is-on', cb.checked);
+    });
+  }
+
+  // 当前激活的功能被隐藏时，自动切到第一个可见功能
+  // （「账号密码」需 Hello 校验：自动切换不绕过校验，改选下一个可见功能；无替代时保持现状）
+  function ensureActiveNav() {
+    const list = Array.prototype.slice.call(navItems);
+    const active = list.find((b) => b.classList.contains('active'));
+    if (active && !active.classList.contains('nav-hidden')) return;
+    const visible = list.filter((b) => !b.classList.contains('nav-hidden'));
+    if (!visible.length) return;
+    let target = visible[0];
+    if (target.dataset.panel === 'accounts' && accLockEnabled()) {
+      const alt = visible.find((b) => b.dataset.panel !== 'accounts');
+      if (!alt) return;
+      target = alt;
+    }
+    activatePanel(target.dataset.panel);
+  }
+
+  navStyleGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('.nav-style-item');
+    if (!btn) return;
+    try { localStorage.setItem(NAV_STYLE_KEY, btn.dataset.navStyle); } catch (err) { /* ignore */ }
+    applyNavStyle(btn.dataset.navStyle);
+  });
+
+  navFeatureGrid.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-feature]');
+    if (!cb) return;
+    const key = cb.dataset.feature;
+    // 至少保留一个功能：取消最后一个可见功能时阻止
+    if (!cb.checked && !navHidden.has(key) && navHidden.size >= navItems.length - 1) {
+      cb.checked = true;
+      window.toast('至少需要保留一个功能');
+      return;
+    }
+    if (cb.checked) navHidden.delete(key);
+    else navHidden.add(key);
+    writeNavHidden();
+    applyNavHidden();
+    ensureActiveNav();
+  });
+
+  applyNavStyle(readNavStyle());
+  applyNavHidden();
 
   // ---------- 主题切换（浅色 / 深色 / 深浅混搭 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
   const THEME_KEY = 'simpletools-theme';

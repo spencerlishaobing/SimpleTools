@@ -12,6 +12,11 @@
         if (t === 'dark' || t === 'khaki' || t === 'mix') {
           document.documentElement.setAttribute('data-theme', t);
         }
+        // 尽早应用已保存的侧边栏导航样式（功能显示配置，v0.26.0），避免启动时侧边栏宽度闪动
+        var ns = localStorage.getItem('simpletools-nav-style');
+        if (ns === 'icon' || ns === 'label') {
+          document.documentElement.setAttribute('data-nav-style', ns);
+        }
       } catch (e) { /* ignore */ }
     })();
   </script>
@@ -30,7 +35,7 @@
           <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
           <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1 2 2 2 2 0 0 1-2 2v5a2 2 0 0 1-2 2h-1" />
         </svg>
-        JSON 格式化
+        <span class="nav-label">JSON 格式化</span>
       </button>
       <button class="nav-item" data-panel="diff">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -42,7 +47,7 @@
           <line x1="15" y1="8" x2="20" y2="8" />
           <line x1="15" y1="16" x2="20" y2="16" />
         </svg>
-        文本对比
+        <span class="nav-label">文本对比</span>
       </button>
       <button class="nav-item" data-panel="notes">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -50,14 +55,14 @@
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
-        记事本
+        <span class="nav-label">记事本</span>
       </button>
       <button class="nav-item" data-panel="accounts">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
         </svg>
-        账号密码
+        <span class="nav-label">账号密码</span>
       </button>
       <button class="nav-item" data-panel="md5">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -67,7 +72,7 @@
           <line x1="10" y1="3" x2="8" y2="21" />
           <line x1="16" y1="3" x2="14" y2="21" />
         </svg>
-        MD5 计算
+        <span class="nav-label">MD5 计算</span>
       </button>
       <button class="nav-item" data-panel="str">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -76,7 +81,7 @@
           <line x1="9" y1="20" x2="15" y2="20" />
           <line x1="12" y1="4" x2="12" y2="20" />
         </svg>
-        字符串转换
+        <span class="nav-label">字符串转换</span>
       </button>
       <button class="nav-item" data-panel="md">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -85,7 +90,7 @@
           <line x1="17.5" y1="4" x2="17.5" y2="21" />
           <polyline points="13.5 17 17.5 21 21.5 17" />
         </svg>
-        Markdown 预览
+        <span class="nav-label">Markdown 预览</span>
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -129,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.25.0 · Tauri + Rust</div>
+      <div class="version">v0.26.0 <span class="version-stack">· Tauri + Rust</span></div>
     </div>
   </aside>
 
@@ -490,6 +495,28 @@
   <div id="settings-modal" class="modal-mask hidden">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="modal-title" id="settings-title">应用设置</div>
+      <div class="settings-label">功能显示</div>
+      <div class="settings-row settings-row-col">
+        <div class="settings-row-title">侧边栏导航样式</div>
+        <div class="nav-style-group" id="nav-style-group" role="radiogroup" aria-label="侧边栏导航样式">
+          <button type="button" class="nav-style-item" data-nav-style="both">图标 + 名称</button>
+          <button type="button" class="nav-style-item" data-nav-style="icon">仅图标</button>
+          <button type="button" class="nav-style-item" data-nav-style="label">仅名称</button>
+        </div>
+      </div>
+      <div class="settings-row settings-row-col">
+        <div class="settings-row-title">显示的功能</div>
+        <div class="settings-row-desc">取消勾选后该功能从侧边栏隐藏（数据不受影响），至少保留一个功能</div>
+        <div class="nav-feature-grid" id="nav-feature-grid">
+          <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><span>JSON 格式化</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><span>文本对比</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><span>记事本</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><span>账号密码</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><span>MD5 计算</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><span>字符串转换</span></label>
+          <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><span>Markdown 预览</span></label>
+        </div>
+      </div>
       <div class="settings-label">安全</div>
       <div class="settings-row">
         <div class="settings-row-text">

@@ -226,6 +226,8 @@ body {
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   border-right: 1px solid var(--sidebar-border);
+  /* 导航样式切换（仅图标）时平滑改变宽度；颜色类保留全局主题过渡 */
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, width 0.18s ease;
 }
 
 .brand {
@@ -370,6 +372,59 @@ body {
   color: var(--sidebar-dim);
   text-align: center;
   user-select: none;
+}
+
+/* ===== 功能显示（v0.26.0）：侧边栏导航样式（图标 / 名称 / 两者）+ 功能显隐 ===== */
+/* 仅图标：侧边栏缩窄为 64px，品牌 / 底部按钮只留图标，导航项居中 */
+html[data-nav-style="icon"] .sidebar {
+  width: 64px;
+}
+
+html[data-nav-style="icon"] .brand {
+  justify-content: center;
+  padding: 18px 0;
+}
+
+html[data-nav-style="icon"] .brand-name {
+  display: none;
+}
+
+html[data-nav-style="icon"] .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+html[data-nav-style="icon"] .nav-label {
+  display: none;
+}
+
+html[data-nav-style="icon"] .theme-toggle {
+  justify-content: center;
+  padding: 9px 0;
+}
+
+html[data-nav-style="icon"] #theme-label,
+html[data-nav-style="icon"] #settings-btn span {
+  display: none;
+}
+
+html[data-nav-style="icon"] .version {
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+html[data-nav-style="icon"] .version-stack {
+  display: none;
+}
+
+/* 仅名称：隐藏图标（侧边栏宽度不变） */
+html[data-nav-style="label"] .nav-icon {
+  display: none;
+}
+
+/* 取消勾选的功能：从侧边栏隐藏（数据保留） */
+.nav-item.nav-hidden {
+  display: none;
 }
 
 /* ===== 主内容区 ===== */
@@ -2166,6 +2221,75 @@ textarea[readonly] {
 
 #data-dir-path {
   word-break: break-all;
+}
+
+/* ===== 应用设置弹窗：功能显示（v0.26.0） ===== */
+.settings-row-col {
+  display: block;
+}
+
+.nav-style-group {
+  display: flex;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.nav-style-item {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.nav-style-item:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.nav-style-item.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.nav-feature-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.nav-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.nav-feature-item input {
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.nav-feature-item:hover {
+  border-color: var(--primary);
+}
+
+.nav-feature-item.is-on {
+  border-color: var(--primary);
+  color: var(--text);
+  background: var(--hover-bg);
 }
 
 /* ===== 数据存储说明弹窗（v0.23.0） ===== */
