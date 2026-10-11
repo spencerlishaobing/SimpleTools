@@ -1,3 +1,4 @@
+mod accounts;
 mod history;
 mod md5calc;
 mod notes;
@@ -9,6 +10,8 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            accounts::accounts_load,
+            accounts::accounts_save,
             notes::notes_load,
             notes::notes_save,
             notes::notes_backup,

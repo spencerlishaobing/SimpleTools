@@ -1003,6 +1003,371 @@ textarea[readonly] {
   margin-left: auto;
 }
 
+/* ---------- 记事本标题搜索 ---------- */
+
+.notes-search-wrap {
+  position: relative;
+  display: flex;
+}
+
+.notes-search-input {
+  width: 100%;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--sans);
+  outline: none;
+}
+
+.notes-search-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+.notes-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.notes-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notes-search-clear:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+/* ===== 账号密码 ===== */
+.acc-layout {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+}
+
+.acc-side {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.acc-search-wrap {
+  position: relative;
+  display: flex;
+}
+
+.acc-search-input {
+  width: 100%;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--sans);
+  outline: none;
+}
+
+.acc-search-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+.acc-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.acc-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.acc-search-clear:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.acc-group-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acc-group-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.acc-group-item:hover {
+  background: var(--hover-bg);
+}
+
+.acc-group-item.active {
+  background: var(--active-item-bg);
+  border-color: var(--active-item-border);
+}
+
+.acc-group-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acc-group-item-count {
+  flex-shrink: 0;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  text-align: center;
+}
+
+.acc-group-empty,
+.acc-item-empty {
+  padding: 18px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.acc-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.acc-main-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.panel-actions .save-status {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.acc-group-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.acc-main-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.acc-group-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--sans);
+  outline: none;
+  user-select: text;
+}
+
+.acc-group-name-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+.acc-group-name-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.acc-main-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.acc-item-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acc-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--panel-bg-subtle);
+}
+
+.acc-input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--mono);
+  outline: none;
+  user-select: text;
+}
+
+.acc-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.7;
+  font-family: var(--sans);
+}
+
+.acc-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.acc-item-actions {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.acc-item-actions .btn.small {
+  padding: 5px 8px;
+}
+
+.acc-item-remove {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acc-item-remove svg {
+  width: 14px;
+  height: 14px;
+}
+
+.acc-item-remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.acc-search-head {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.acc-search-group {
+  flex-shrink: 0;
+  max-width: 110px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acc-search-account {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acc-search-password {
+  flex-shrink: 0;
+  max-width: 160px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ===== MD5 计算 ===== */
 .md5-layout {
   flex: 1;

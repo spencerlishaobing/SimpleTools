@@ -52,6 +52,13 @@
         </svg>
         记事本
       </button>
+      <button class="nav-item" data-panel="accounts">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+        </svg>
+        账号密码
+      </button>
       <button class="nav-item" data-panel="md5">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -109,7 +116,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.10.0 · Tauri + Rust</div>
+      <div class="version">v0.11.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -232,6 +239,10 @@
               <button class="btn small" id="notes-multi-exit">取消</button>
             </div>
           </div>
+          <div class="notes-search-wrap">
+            <input id="notes-search" class="notes-search-input" placeholder="搜索标题（关键字）" spellcheck="false" />
+            <button id="notes-search-clear" class="notes-search-clear hidden" title="清空搜索">×</button>
+          </div>
           <ul id="notes-list" class="notes-list" title="按住拖动可排序"></ul>
           <div class="notes-empty" id="notes-empty">暂无记录，点击"新建记录"开始</div>
         </aside>
@@ -246,6 +257,48 @@
             <span id="note-meta" class="note-meta"></span>
             <button class="btn small danger" id="note-delete">删除当前记录</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 账号密码 ===== -->
+    <section id="panel-accounts" class="panel">
+      <header class="panel-header">
+        <h2>账号密码</h2>
+        <div class="panel-actions">
+          <span id="acc-status" class="save-status">就绪</span>
+          <button class="btn small" id="acc-toggle-pwd" title="显示 / 隐藏所有密码">显示密码</button>
+        </div>
+      </header>
+      <div class="acc-layout">
+        <aside class="acc-side">
+          <div class="acc-search-wrap">
+            <input id="acc-search" class="acc-search-input" placeholder="搜索账号（关键字）" spellcheck="false" />
+            <button id="acc-search-clear" class="acc-search-clear hidden" title="清空搜索">×</button>
+          </div>
+          <button class="btn primary small" id="acc-new-group">+ 新增分组</button>
+          <ul id="acc-group-list" class="acc-group-list"></ul>
+          <div class="acc-group-empty hidden" id="acc-group-empty">暂无分组，点击"新增分组"开始</div>
+        </aside>
+        <div class="acc-main">
+          <div id="acc-group-view" class="acc-group-view hidden">
+            <div class="acc-main-head">
+              <input id="acc-group-name" class="acc-group-name-input" placeholder="分组名称（可直接编辑）"
+                spellcheck="false" />
+              <div class="acc-main-actions">
+                <button class="btn small" id="acc-add-item">+ 新增账号</button>
+                <button class="btn small danger" id="acc-del-group">删除分组</button>
+              </div>
+            </div>
+            <ul id="acc-item-list" class="acc-item-list"></ul>
+            <div class="acc-item-empty hidden" id="acc-item-empty">本组暂无账号，点击"新增账号"添加</div>
+          </div>
+          <div id="acc-search-view" class="acc-group-view hidden">
+            <div class="acc-search-head" id="acc-search-head">找到 0 条匹配</div>
+            <ul id="acc-search-list" class="acc-item-list"></ul>
+            <div class="acc-item-empty hidden" id="acc-search-empty">没有匹配的账号</div>
+          </div>
+          <div class="acc-main-empty hidden" id="acc-main-empty">选择左侧分组，或点击"新增分组"开始</div>
         </div>
       </div>
     </section>
@@ -402,6 +455,7 @@
   <script src="modules/json-format.js"></script>
   <script src="modules/text-diff.js"></script>
   <script src="modules/notes.js"></script>
+  <script src="modules/accounts.js"></script>
   <script src="modules/md5.js"></script>
   <script src="modules/str.js"></script>
   <script src="modules/markdown.js"></script>

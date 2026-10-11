@@ -21,10 +21,13 @@
   const delSelBtn = document.getElementById('notes-delsel');
   const multiExitBtn = document.getElementById('notes-multi-exit');
   const exportSelBtn = document.getElementById('notes-exportsel');
+  const searchEl = document.getElementById('notes-search');
+  const searchClearEl = document.getElementById('notes-search-clear');
 
   const state = {
     notes: [],      // [{ id, title, content, updated_at }]
     currentId: null,
+    filter: '',     // 标题搜索关键字（过滤列表显示）
   };
 
   const multi = { active: false, selected: new Set() };  // 批量操作（多选）模式
@@ -92,14 +95,19 @@
   // ---------- 渲染 ----------
 
   function renderList() {
+    // 标题过滤：有关键字时仅显示匹配记录（过滤状态下禁用拖动排序）
+    const kw = state.filter.trim().toLowerCase();
+    const visible = kw
+      ? state.notes.filter((n) => (n.title || '').toLowerCase().indexOf(kw) >= 0)
+      : state.notes;
     listEl.innerHTML = '';
-    for (const n of state.notes) {
+    for (const n of visible) {
       const selected = multi.active && multi.selected.has(n.id);
       const li = document.createElement('li');
       li.className = 'note-item' + (n.id === state.currentId ? ' active' : '') +
         (selected ? ' selected' : '');
       li.dataset.id = n.id;
-      li.draggable = !multi.active;
+      li.draggable = !multi.active && !kw;
       li.innerHTML =
         (multi.active ? '<span class="note-check">' + (selected ? '✓' : '') + '</span>' : '') +
         '<div class="note-item-title">' + esc(n.title || '未命名') + '</div>' +
@@ -122,7 +130,15 @@
       });
       listEl.appendChild(li);
     }
-    emptyEl.style.display = state.notes.length ? 'none' : 'block';
+    if (!state.notes.length) {
+      emptyEl.textContent = '暂无记录，点击"新建记录"开始';
+      emptyEl.style.display = 'block';
+    } else if (!visible.length) {
+      emptyEl.textContent = '没有匹配「' + state.filter.trim() + '」的记录';
+      emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+    }
     updateMultiUI();
   }
 
@@ -143,6 +159,7 @@
     const now = Date.now();
     const note = { id: genId(), title: '新记录', content: '', updated_at: now };
     state.notes.unshift(note);
+    clearNoteSearch(); // 新建后显示全部记录，确保新记录可见
     renderList();
     selectNote(note.id);
     titleEl.focus();
@@ -191,6 +208,7 @@
 
   function enterMulti() {
     if (multi.active || !state.notes.length) return;
+    clearNoteSearch(); // 批量模式基于全部记录，先退出标题过滤
     multi.active = true;
     multi.selected.clear();
     sideEl.classList.add('batch-mode');
@@ -400,6 +418,34 @@
     return listEl.querySelector('.note-item[data-id="' + id + '"]');
   }
 
+  // ---------- 标题搜索过滤 ----------
+
+  function clearNoteSearch() {
+    if (!state.filter && !searchEl.value) return;
+    state.filter = '';
+    searchEl.value = '';
+    searchClearEl.classList.add('hidden');
+  }
+
+  searchEl.addEventListener('input', () => {
+    state.filter = searchEl.value;
+    searchClearEl.classList.toggle('hidden', !state.filter.trim());
+    renderList();
+  });
+
+  searchEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchEl.value) {
+      e.stopPropagation();
+      clearNoteSearch();
+      renderList();
+    }
+  });
+
+  searchClearEl.addEventListener('click', () => {
+    clearNoteSearch();
+    renderList();
+  });
+
   titleEl.addEventListener('input', () => {
     const note = getCurrent();
     if (!note) return;
@@ -410,6 +456,7 @@
       li.querySelector('.note-item-title').textContent = note.title || '未命名';
       li.querySelector('.note-item-meta').textContent = formatTime(note.updated_at);
     }
+    if (state.filter) renderList(); // 过滤中修改标题需同步过滤结果
     scheduleSave();
   });
 
