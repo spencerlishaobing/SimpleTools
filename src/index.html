@@ -9,7 +9,7 @@
     (function () {
       try {
         var t = localStorage.getItem('simpletools-theme');
-        if (t === 'dark' || t === 'khaki') {
+        if (t === 'dark' || t === 'khaki' || t === 'mix') {
           document.documentElement.setAttribute('data-theme', t);
         }
       } catch (e) { /* ignore */ }
@@ -89,7 +89,7 @@
       </button>
     </nav>
     <div class="sidebar-footer">
-      <button class="theme-toggle" id="theme-toggle" title="切换主题（浅色 / 深色 / 卡其色）">
+      <button class="theme-toggle" id="theme-toggle" title="切换主题（浅色 / 深色 / 深浅混搭 / 卡其色）">
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -114,6 +114,11 @@
           <line x1="10" y1="1" x2="10" y2="4" />
           <line x1="14" y1="1" x2="14" y2="4" />
         </svg>
+        <svg class="icon-mix" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
+        </svg>
         <span id="theme-label">浅色模式</span>
       </button>
       <button class="theme-toggle" id="settings-btn" title="应用设置（安全选项）">
@@ -124,7 +129,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.20.0 · Tauri + Rust</div>
+      <div class="version">v0.21.0 · Tauri + Rust</div>
     </div>
   </aside>
 

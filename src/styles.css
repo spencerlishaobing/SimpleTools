@@ -183,6 +183,21 @@
   --stripe-b: #1a1814;
 }
 
+/* ---------- 主题变量：深浅混搭（v0.21.0：浅色主体 + 深色功能菜单） ---------- */
+[data-theme="mix"] {
+  color-scheme: light;  /* 主体保持浅色，表单控件 / 滚动条跟随浅色 */
+
+  /* 仅覆盖侧边栏（功能菜单）相关变量为深色，其余全部继承 :root 浅色 */
+  --sidebar-bg: #020617;
+  --sidebar-hover: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-strong: #f1f5f9;
+  --sidebar-btn-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-btn-hover: rgba(255, 255, 255, 0.13);
+  --sidebar-dim: #64748b;
+  --sidebar-border: #1e293b;
+}
+
 /* 主题切换的平滑过渡（颜色类属性） */
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -319,8 +334,9 @@ body {
   flex-shrink: 0;
 }
 
-/* 主题图标：显示当前主题（浅色→太阳 / 深色→月亮 / 卡其→杯子） */
+/* 主题图标：显示当前主题（浅色→太阳 / 深色→月亮 / 深浅混搭→明暗对比 / 卡其→杯子） */
 .theme-toggle .icon-moon,
+.theme-toggle .icon-mix,
 .theme-toggle .icon-khaki {
   display: none;
 }
@@ -330,6 +346,14 @@ body {
 }
 
 [data-theme="dark"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+[data-theme="mix"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+[data-theme="mix"] .theme-toggle .icon-mix {
   display: block;
 }
 

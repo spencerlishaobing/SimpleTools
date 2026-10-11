@@ -108,18 +108,20 @@
     });
   });
 
-  // ---------- 主题切换（浅色 / 深色 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
+  // ---------- 主题切换（浅色 / 深色 / 深浅混搭 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
   const THEME_KEY = 'simpletools-theme';
-  const THEME_ORDER = ['light', 'dark', 'khaki'];
-  const THEME_LABEL = { light: '浅色模式', dark: '深色模式', khaki: '卡其模式' };
+  const THEME_ORDER = ['light', 'dark', 'mix', 'khaki'];
+  const THEME_LABEL = { light: '浅色模式', dark: '深色模式', mix: '深浅混搭', khaki: '卡其模式' };
   const themeToggle = document.getElementById('theme-toggle');
   const themeLabel = document.getElementById('theme-label');
   const invokeApi = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
 
   // 各主题的系统标题栏配色（背景 / 标题文字 / 下边框，与主题变量一致）
+  // 深浅混搭（v0.21.0）：标题栏跟随深色侧边栏（#020617），与深色功能菜单连成一体
   const TITLEBAR_COLORS = {
     light: { bg: '#f6f7f9', text: '#1f2937', border: '#e2e8f0' },
     dark: { bg: '#0f172a', text: '#e2e8f0', border: '#334155' },
+    mix: { bg: '#020617', text: '#e2e8f0', border: '#1e293b' },
     khaki: { bg: '#0f0e0c', text: '#e8e0d0', border: '#2e2b24' },
   };
 
@@ -134,7 +136,7 @@
 
   function currentTheme() {
     const t = document.documentElement.getAttribute('data-theme');
-    return t === 'dark' || t === 'khaki' ? t : 'light';
+    return t === 'dark' || t === 'khaki' || t === 'mix' ? t : 'light';
   }
 
   function updateToggleUI(theme) {
@@ -164,6 +166,8 @@
       '<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
     dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    mix: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>',
     khaki: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>' +
       '<line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
