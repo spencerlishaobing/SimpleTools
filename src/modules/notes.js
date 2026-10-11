@@ -24,6 +24,7 @@
   const searchEl = document.getElementById('notes-search');
   const searchClearEl = document.getElementById('notes-search-clear');
   const searchModeEl = document.getElementById('notes-search-mode');
+  const searchModeLabelEl = document.getElementById('notes-search-mode-label');
   const bodyWrapEl = document.getElementById('note-body-wrap');
   const noteMdRenderEl = document.getElementById('note-md-render');
   const noteMdScrollEl = document.getElementById('note-md-scroll');
@@ -43,9 +44,11 @@
   const taskDetailEl = document.getElementById('task-detail');
   const taskDetailTitleEl = document.getElementById('task-detail-title');
   const taskRichEditorEl = document.getElementById('task-rich-editor');
+  const noteRichEditorEl = document.getElementById('note-rich-editor');
 
   const state = {
-    // [{ id, title, content, type: 'text' | 'md' | 'task', tasks, auto_no, updated_at }]
+    // [{ id, title, content, type: 'text' | 'md' | 'task', rich, tasks, auto_no, updated_at }]
+    //   type='text' 普通笔记：content 为富文本 HTML（v0.34.0 起；旧版纯文本加载时自动转换，rich 标记内容格式）
     //   type='task' 任务笔记：tasks 为任务列表（简单 / 富文本任务），auto_no 是否启用自动序号
     notes: [],
     currentId: null,
@@ -64,7 +67,7 @@
 
   // ---------- 工具 ----------
 
-  // 类型图标（线性 24 viewBox）：普通文本（文档）/ Markdown（M↓ 徽标）
+  // 类型图标（线性 24 viewBox）：普通笔记（文档）/ Markdown（M↓ 徽标）
   const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const ICON_TEXT = '<svg class="note-type-icon" ' + ICON_ATTRS + '>' +
@@ -224,7 +227,8 @@
     const visible = kw
       ? state.notes.filter((n) => {
         if (isContent && n.type === 'task') return taskHits(n, kw).length > 0;
-        const src = isContent ? (n.content || '') : (n.title || '');
+        // 普通笔记内容为富文本 HTML，匹配前先转纯文本（v0.34.0）
+        const src = isContent ? (n.type === 'text' ? htmlToText(n.content) : (n.content || '')) : (n.title || '');
         return src.toLowerCase().indexOf(kw) >= 0;
       })
       : state.notes;
@@ -238,7 +242,8 @@
       li.draggable = !multi.active && !kw;
       // 搜索时：标题命中片段高亮；内容模式额外展示命中摘要行（任务笔记改为命中任务行）
       const titleHtml = kw ? hlHtml(n.title || '未命名', raw) : esc(n.title || '未命名');
-      const snippet = kw && isContent && n.type !== 'task' ? pickSnippet(n.content, raw) : '';
+      const snippet = kw && isContent && n.type !== 'task'
+        ? pickSnippet(n.type === 'text' ? htmlToText(n.content) : n.content, raw) : '';
       let hitsHtml = '';
       if (kw && isContent && n.type === 'task' && !multi.active) {
         hitsHtml = taskHits(n, kw).map((h) => {
@@ -304,14 +309,14 @@
     if (id !== state.currentId && taskDetailId) syncTaskRichContent(); // 离开前落盘未保存的富文本编辑
     state.currentId = id;
     titleEl.value = note.title;
-    contentEl.value = note.content;
+    contentEl.value = note.type === 'md' ? note.content : ''; // 普通笔记内容走富文本编辑器（见 setEditorMode）
     metaEl.textContent = '最后更新:' + formatTime(note.updated_at);
     editorEl.classList.remove('hidden');
     setEditorMode(note.type);
     renderList();
   }
 
-  // 编辑器模式：普通文本单栏 / Markdown 笔记左编辑右实时预览
+  // 编辑器模式：普通笔记富文本单栏（v0.34.0）/ Markdown 笔记左编辑右实时预览 / 任务笔记任务组
   let mdPreviewTimer = null;
 
   // ---------- Markdown 笔记：预览渲染 + 目录 + 全文搜索（v0.25.0，移植自 Markdown 预览面板） ----------
@@ -343,8 +348,10 @@
   function setEditorMode(type) {
     const isMd = type === 'md';
     const isTask = type === 'task';
+    const isRich = !isMd && !isTask; // 普通笔记：富文本编辑器（v0.34.0）
     bodyWrapEl.classList.toggle('is-md', isMd);
     bodyWrapEl.classList.toggle('is-task', isTask);
+    bodyWrapEl.classList.toggle('is-rich', isRich);
     clearTimeout(mdPreviewTimer);
     // 切换笔记 / 模式时回到任务组列表视图
     taskDetailId = null;
@@ -353,6 +360,7 @@
     taskWrapEl.classList.remove('hidden');
     if (isMd) renderMdPreview();
     if (isTask) renderTaskList();
+    if (isRich) renderNoteRich();
   }
 
   // ---- 目录 ----
@@ -793,10 +801,10 @@
     return '';
   }
 
-  // 编辑器内图片：data-path 记录原始引用（落盘用，v0.33.0 起新图为新格式相对路径 images/xxx），
+  // 编辑器内图片（任务详情与普通笔记共用）：data-path 记录原始引用（落盘用，v0.33.0 起新图为新格式相对路径 images/xxx），
   // src 换为 asset URL 显示；相对路径基于数据目录解析（未知时先读取一次）
-  async function hydrateTaskImages() {
-    const imgs = Array.from(taskRichEditorEl.querySelectorAll('img'));
+  async function hydrateImages(editorEl) {
+    const imgs = Array.from(editorEl.querySelectorAll('img'));
     const needDir = imgs.some((img) =>
       isRelativeImgRef(img.getAttribute('data-path') || '') ||
       isRelativeImgRef(img.getAttribute('src') || ''));
@@ -817,9 +825,9 @@
     });
   }
 
-  // 序列化编辑器内容：图片 src 还原为原始路径；mark 高亮由白名单清洗自动解包
-  function serializeTaskContent() {
-    const clone = taskRichEditorEl.cloneNode(true);
+  // 序列化编辑器内容（任务详情与普通笔记共用）：图片 src 还原为原始路径；mark 高亮由白名单清洗自动解包
+  function serializeRichContent(editorEl) {
+    const clone = editorEl.cloneNode(true);
     clone.querySelectorAll('img').forEach((img) => {
       const p = img.getAttribute('data-path');
       if (p) { img.setAttribute('src', p); img.removeAttribute('data-path'); }
@@ -831,7 +839,7 @@
     const note = getCurrent();
     const task = getTask(note, taskDetailId);
     if (!task) return;
-    task.content = serializeTaskContent();
+    task.content = serializeRichContent(taskRichEditorEl);
     note.updated_at = Date.now();
     scheduleSave();
   }
@@ -845,7 +853,7 @@
     taskRichEditorEl.innerHTML = sanitizeRichHtml(task.content || '');
     taskWrapEl.classList.add('hidden');
     taskDetailEl.classList.remove('hidden');
-    await hydrateTaskImages();
+    await hydrateImages(taskRichEditorEl);
     applyTaskDetailHighlight();
   }
 
@@ -872,37 +880,44 @@
 
   taskRichEditorEl.addEventListener('input', syncTaskRichContent);
 
-  // 粘贴统一转纯文本插入，避免带入外部样式与危险标签
-  taskRichEditorEl.addEventListener('paste', (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
-    if (!text) return;
-    const html = text.split(/\r\n|\r|\n/).map((line) => esc(line)).join('<br>');
-    document.execCommand('insertHTML', false, html);
-    syncTaskRichContent();
-  });
+  // 粘贴统一转纯文本插入，避免带入外部样式与危险标签（任务详情与普通笔记共用）
+  function bindRichPaste(editorEl, syncFn) {
+    editorEl.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+      if (!text) return;
+      const html = text.split(/\r\n|\r|\n/).map((line) => esc(line)).join('<br>');
+      document.execCommand('insertHTML', false, html);
+      syncFn();
+    });
+  }
 
-  // 工具栏：mousedown 阻止默认，避免点击按钮时编辑器选区丢失
-  const richCommands = [
+  bindRichPaste(taskRichEditorEl, syncTaskRichContent);
+
+  // 工具栏：mousedown 阻止默认，避免点击按钮时编辑器选区丢失（任务详情与普通笔记共用）
+  function bindRichToolbar(editorEl, syncFn, commands) {
+    commands.forEach(([id, cmd]) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', () => {
+        editorEl.focus();
+        document.execCommand(cmd, false, null);
+        syncFn();
+      });
+    });
+  }
+
+  bindRichToolbar(taskRichEditorEl, syncTaskRichContent, [
     ['task-tool-bold', 'bold'],
     ['task-tool-italic', 'italic'],
     ['task-tool-underline', 'underline'],
     ['task-tool-ul', 'insertUnorderedList'],
     ['task-tool-ol', 'insertOrderedList'],
-  ];
-  richCommands.forEach(([id, cmd]) => {
-    const btn = document.getElementById(id);
-    btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => {
-      taskRichEditorEl.focus();
-      document.execCommand(cmd, false, null);
-      syncTaskRichContent();
-    });
-  });
+  ]);
 
-  const taskImageBtn = document.getElementById('task-tool-image');
-  taskImageBtn.addEventListener('mousedown', (e) => e.preventDefault());
-  taskImageBtn.addEventListener('click', async () => {
+  // 插入本地图片（任务详情与普通笔记共用）：复制到数据目录 images/，内容存相对路径
+  async function insertImageInto(editorEl, syncFn) {
     if (!dialogApi || !dialogApi.open) {
       window.toast('Tauri 接口不可用（请通过应用运行）');
       return;
@@ -929,7 +944,7 @@
       return;
     }
     await ensureDataDir();
-    taskRichEditorEl.focus();
+    editorEl.focus();
     // 折叠选区到末尾，避免选中文本时插图直接替换选区内容
     const sel = window.getSelection();
     if (sel && sel.rangeCount) {
@@ -941,8 +956,18 @@
     const url = toAssetUrl(imgAbsPath(rel)) || rel;
     document.execCommand('insertHTML', false,
       '<img src="' + esc(url) + '" data-path="' + esc(rel) + '">');
-    syncTaskRichContent();
-  });
+    syncFn();
+  }
+
+  // 绑定图片按钮：mousedown 阻止默认保住编辑器选区，点击走插入流程
+  function bindRichImage(id, editorEl, syncFn) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => insertImageInto(editorEl, syncFn));
+  }
+
+  bindRichImage('task-tool-image', taskRichEditorEl, syncTaskRichContent);
 
   // 搜索命中富文本内容进入详情：正文中高亮命中词（序列化时自动清除，不落盘）
   function applyTaskDetailHighlight() {
@@ -989,9 +1014,47 @@
     }
   }
 
+  // ---------- 普通笔记：富文本编辑（v0.34.0，与富文本任务同款所见即所得编辑器） ----------
+
+  // 旧版纯文本内容 → 富文本 HTML（转义 + 换行转 <br>；仅在数据加载时对旧版普通笔记执行一次）
+  function plainToRichHtml(text) {
+    return String(text == null ? '' : text)
+      .split(/\r\n|\r|\n/)
+      .map((line) => esc(line))
+      .join('<br>');
+  }
+
+  function renderNoteRich() {
+    const note = getCurrent();
+    noteRichEditorEl.innerHTML = sanitizeRichHtml((note && note.content) || '');
+    if (note) hydrateImages(noteRichEditorEl);
+  }
+
+  function syncNoteRichContent() {
+    const note = getCurrent();
+    if (!note || note.type !== 'text') return;
+    note.content = serializeRichContent(noteRichEditorEl);
+    note.updated_at = Date.now();
+    const li = getLi(note.id);
+    if (li) li.querySelector('.note-item-meta').textContent = formatTime(note.updated_at);
+    if (state.filter && state.searchMode === 'content') renderList(); // 内容过滤中修改内容需同步
+    scheduleSave();
+  }
+
+  noteRichEditorEl.addEventListener('input', syncNoteRichContent);
+  bindRichPaste(noteRichEditorEl, syncNoteRichContent);
+  bindRichToolbar(noteRichEditorEl, syncNoteRichContent, [
+    ['note-tool-bold', 'bold'],
+    ['note-tool-italic', 'italic'],
+    ['note-tool-underline', 'underline'],
+    ['note-tool-ul', 'insertUnorderedList'],
+    ['note-tool-ol', 'insertOrderedList'],
+  ]);
+  bindRichImage('note-tool-image', noteRichEditorEl, syncNoteRichContent);
+
   // ---------- 操作 ----------
 
-  // 新建记录（type: 'text' 普通文本 / 'md' Markdown 笔记 / 'task' 任务笔记）
+  // 新建记录（type: 'text' 普通笔记 / 'md' Markdown 笔记 / 'task' 任务笔记）
   function createNote(type) {
     const isMd = type === 'md';
     const isTask = type === 'task';
@@ -1001,6 +1064,7 @@
       title: isMd ? '新 Markdown 笔记' : (isTask ? '新任务组' : '新记录'),
       content: '',
       type: isMd ? 'md' : (isTask ? 'task' : 'text'),
+      rich: !isMd && !isTask, // 普通笔记内容为富文本 HTML（v0.34.0）
       tasks: [],
       auto_no: true,
       updated_at: now,
@@ -1179,13 +1243,13 @@
     }, 0);
   }
 
-  // 点「新建记录」后弹出类型菜单（普通文本 / Markdown 笔记 / 任务笔记；与导出菜单共用弹出 / 关闭机制）
+  // 点「新建记录」后弹出类型菜单（普通笔记 / Markdown 笔记 / 任务笔记；与导出菜单共用弹出 / 关闭机制）
   function openNewNoteMenu(btn) {
     closeExportMenu();
     const menu = document.createElement('div');
     menu.className = 'export-menu note-type-menu';
     menu.innerHTML =
-      '<button type="button" data-note-type="text">' + ICON_TEXT + '普通文本</button>' +
+      '<button type="button" data-note-type="text">' + ICON_TEXT + '普通笔记</button>' +
       '<button type="button" data-note-type="md">' + ICON_MD + 'Markdown 笔记</button>' +
       '<button type="button" data-note-type="task">' + ICON_TASK + '任务笔记</button>';
     document.body.appendChild(menu);
@@ -1239,6 +1303,7 @@
 
   function noteToJson(n) {
     const out = { title: n.title, content: n.content, type: n.type || 'text', updated_at: n.updated_at };
+    if (n.type === 'text' && n.rich) out.rich = true; // v0.34.0：普通笔记内容为富文本 HTML
     if (n.type === 'task') {
       out.tasks = (n.tasks || []).map((t) => ({
         id: t.id, kind: t.kind, text: t.text, title: t.title, content: t.content, done: !!t.done,
@@ -1270,7 +1335,8 @@
       for (let i = 2; used.has(name.toLowerCase()); i++) name = base + '(' + i + ')';
       used.add(name.toLowerCase());
       const body = (n.title ? n.title + '\n\n' : '') +
-        (n.type === 'task' ? taskNoteToText(n) : (n.content || ''));
+        (n.type === 'task' ? taskNoteToText(n)
+          : (n.type === 'text' ? htmlToText(n.content) : (n.content || '')));
       files.push({ name: name + '.txt', content: '\uFEFF' + body });
     }
     return files;
@@ -1320,7 +1386,7 @@
   // 模式按钮与占位符同步当前搜索范围
   function syncSearchModeUI() {
     const isContent = state.searchMode === 'content';
-    searchModeEl.textContent = isContent ? '内容' : '标题';
+    searchModeLabelEl.textContent = isContent ? '内容' : '标题';
     searchModeEl.classList.toggle('is-content', isContent);
     searchModeEl.title = isContent
       ? '搜索范围：内容模糊匹配——点击切换为标题'
@@ -1396,7 +1462,9 @@
       return;
     }
     const note = getCurrent();
-    const text = isTaskNote(note) ? taskNoteToText(note) : contentEl.value;
+    const text = isTaskNote(note)
+      ? taskNoteToText(note)
+      : (note.type === 'text' ? htmlToText(note.content) : contentEl.value);
     if (!text) {
       window.toast('内容为空，无可复制');
       return;
@@ -1478,19 +1546,29 @@
       setSaveStatus('', 'Tauri 接口不可用（请通过应用运行）');
       return;
     }
+    let migrated = false; // v0.34.0：旧版纯文本 → 富文本 HTML 的转换标记（转换后立即回写 rich）
     try {
       const notes = await invoke('notes_load');
       // 归一化（兼容旧数据缺字段）：无 type 按 text；任务笔记补全 tasks / auto_no；
-      // id 缺失补生成、title / content 缺失补空串、updated_at 缺失补 0
+      // id 缺失补生成、title / content 缺失补空串、updated_at 缺失补 0；
+      // v0.34.0：普通笔记为富文本 HTML，旧版纯文本内容加载时一次性转换并置 rich
       state.notes = (Array.isArray(notes) ? notes : [])
         .filter((n) => n && typeof n === 'object')
         .map((n) => {
           const type = n.type === 'md' ? 'md' : (n.type === 'task' ? 'task' : 'text');
+          let content = String(n.content == null ? '' : n.content);
+          let rich = !!n.rich;
+          if (type === 'text' && !rich) {
+            content = plainToRichHtml(content);
+            rich = true;
+            migrated = true;
+          }
           return {
             id: n.id || genId(),
             title: String(n.title == null ? '' : n.title),
-            content: String(n.content == null ? '' : n.content),
+            content,
             type,
+            rich,
             tasks: type === 'task' && Array.isArray(n.tasks) ? n.tasks.map(normTask) : [],
             auto_no: n.auto_no === undefined ? true : !!n.auto_no,
             updated_at: Number(n.updated_at) || 0,
@@ -1508,6 +1586,7 @@
     } else {
       editorEl.classList.add('hidden');
     }
+    if (migrated) scheduleSave(); // 转换结果尽快回写（rich 标记），避免下次启动重复转换
   }
 
   init();

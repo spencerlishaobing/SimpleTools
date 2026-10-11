@@ -16,9 +16,13 @@ pub struct Note {
     pub title: String,
     #[serde(default)]
     pub content: String,
-    /// 类型："text" 普通文本 / "md" Markdown 笔记 / "task" 任务笔记；旧数据缺省按 text 处理
+    /// 类型："text" 普通笔记（富文本内容）/ "md" Markdown 笔记 / "task" 任务笔记；旧数据缺省按 text 处理
     #[serde(default = "default_note_type", rename = "type")]
     pub note_type: String,
+    /// 普通笔记内容是否为富文本 HTML（v0.34.0：旧版纯文本数据加载时由前端转换并回写 true；
+    /// 缺省 false 兼容旧数据，false 时不写出保持旧文件干净）
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub rich: bool,
     /// 任务笔记的任务列表（仅 type = "task" 使用；其余类型序列化时省略）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tasks: Vec<TaskItem>,
@@ -52,7 +56,7 @@ pub struct TaskItem {
     pub done: bool,
 }
 
-/// serde 缺省值：旧版数据（无 type 字段）视作普通文本
+/// serde 缺省值：旧版数据（无 type 字段）视作普通笔记（text）
 fn default_note_type() -> String {
     "text".to_string()
 }
@@ -338,6 +342,7 @@ mod tests {
             title: "t".into(),
             content: "c".into(),
             note_type: "md".into(),
+            rich: false,
             tasks: Vec::new(),
             auto_no: true,
             updated_at: 1,
@@ -359,6 +364,7 @@ mod tests {
             title: "任务组".into(),
             content: String::new(),
             note_type: "task".into(),
+            rich: false,
             tasks: vec![
                 TaskItem {
                     id: "t1".into(),
@@ -393,5 +399,31 @@ mod tests {
         assert_eq!(back.tasks[1].title, "方案评审");
         assert_eq!(back.tasks[1].content, "<b>要点</b>");
         assert!(!back.auto_no);
+    }
+
+    /// v0.34.0 普通笔记富文本标记：rich=true 写出、缺省 false 兼容旧数据、false 不写出
+    #[test]
+    fn rich_note_roundtrip() {
+        let note = Note {
+            id: "n1".into(),
+            title: "笔记".into(),
+            content: "<b>要点</b>".into(),
+            note_type: "text".into(),
+            rich: true,
+            tasks: Vec::new(),
+            auto_no: true,
+            updated_at: 3,
+        };
+        let json = serde_json::to_string(&note).expect("应能序列化");
+        assert!(json.contains(r#""rich":true"#));
+        let mut back: Note = serde_json::from_str(&json).expect("应能反序列化");
+        assert!(back.rich);
+        // 旧数据无 rich 字段：缺省 false（按纯文本，前端加载时转换）
+        let legacy: Note =
+            serde_json::from_str(r#"{"id":"n2","type":"text","content":"纯文本"}"#).expect("旧数据应能解析");
+        assert!(!legacy.rich);
+        // rich=false 时不写出该字段，保持旧文件格式干净
+        back.rich = false;
+        assert!(!serde_json::to_string(&back).expect("应能序列化").contains("rich"));
     }
 }

@@ -134,7 +134,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.33.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.34.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -276,7 +276,7 @@
             </div>
           </div>
           <div class="notes-search-wrap">
-            <button id="notes-search-mode" class="notes-search-mode" title="搜索范围：标题——点击切换为内容模糊匹配">标题</button>
+            <button id="notes-search-mode" class="notes-search-mode" title="搜索范围：标题——点击切换为内容模糊匹配"><svg class="notes-search-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></svg><span id="notes-search-mode-label">标题</span></button>
             <input id="notes-search" class="notes-search-input" placeholder="搜索标题（关键字）" spellcheck="false" />
             <button id="notes-search-clear" class="notes-search-clear hidden" title="清空搜索">×</button>
           </div>
@@ -288,6 +288,17 @@
           <div class="note-body-wrap" id="note-body-wrap">
             <textarea id="note-content" class="note-content-input" spellcheck="false"
               placeholder="正文内容..."></textarea>
+            <div class="note-rich-wrap" id="note-rich-wrap">
+              <div class="task-toolbar">
+                <button class="task-tool-btn" id="note-tool-bold" title="加粗"><span class="tt-bold">B</span></button>
+                <button class="task-tool-btn" id="note-tool-italic" title="斜体"><span class="tt-italic">I</span></button>
+                <button class="task-tool-btn" id="note-tool-underline" title="下划线"><span class="tt-underline">U</span></button>
+                <button class="task-tool-btn" id="note-tool-ul" title="无序列表">• 列表</button>
+                <button class="task-tool-btn" id="note-tool-ol" title="有序列表">1. 列表</button>
+                <button class="task-tool-btn" id="note-tool-image" title="插入本地图片">图片</button>
+              </div>
+              <div class="task-rich-editor note-rich-editor" id="note-rich-editor" contenteditable="true" spellcheck="false"></div>
+            </div>
             <div class="note-md-preview" id="note-md-preview">
               <div class="note-md-bar">
                 <span class="note-md-bar-label">预览</span>

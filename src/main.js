@@ -570,11 +570,11 @@
   // - 路径由 storage_info 实时解析，切换数据存储位置后随之变化（不写死）
   // - 「打开」按钮调 open_in_explorer：文件已生成时在资源管理器中定位，否则打开所在目录
   const STORAGE_FILE_META = {
-    'notes.json': { label: '记事本', desc: '笔记内容（普通文本 / Markdown），输入自动保存' },
+    'notes.json': { label: '记事本', desc: '笔记内容（普通笔记 / Markdown），输入自动保存' },
     'accounts.json': { label: '账号密码', desc: '分组与条目（含备注），经 DPAPI 加密存储' },
     'history.json': { label: '历史记录', desc: '格式化 / 对比 / MD5 / 转换记录，各最多 50 条' },
     'notes.backup.json': { label: '记事本备份', desc: '点记事本「备份」按钮生成的数据副本' },
-    'images': { label: '富文本图片', desc: '任务笔记富文本插入的本地图片（相对路径引用，随数据迁移与备份）' },
+    'images': { label: '富文本图片', desc: '任务笔记与普通笔记富文本插入的本地图片（相对路径引用，随数据迁移与备份）' },
     'settings.json': { label: '应用设置', desc: '记录数据存储位置等配置' },
   };
   const dataDirHelpBtn = document.getElementById('data-dir-help');
