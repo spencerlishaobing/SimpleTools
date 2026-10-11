@@ -129,7 +129,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.24.1 · Tauri + Rust</div>
+      <div class="version">v0.25.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -266,7 +266,30 @@
             <textarea id="note-content" class="note-content-input" spellcheck="false"
               placeholder="正文内容..."></textarea>
             <div class="note-md-preview" id="note-md-preview">
-              <div class="md-body note-md-body" id="note-md-render"></div>
+              <div class="note-md-bar">
+                <span class="note-md-bar-label">预览</span>
+                <div class="note-md-bar-tools">
+                  <button class="md-tool-btn" id="note-md-toc-btn" title="显示 / 隐藏目录">目录</button>
+                  <button class="md-tool-btn" id="note-md-search-btn" title="全文搜索（忽略大小写）">搜索</button>
+                </div>
+              </div>
+              <div class="note-md-scroll" id="note-md-scroll">
+                <div class="md-body note-md-body" id="note-md-render"></div>
+              </div>
+              <aside class="md-toc hidden" id="note-md-toc">
+                <div class="md-toc-head">目录</div>
+                <div class="md-toc-list" id="note-md-toc-list"></div>
+              </aside>
+              <div class="md-search hidden" id="note-md-search">
+                <input id="note-md-search-input" type="text" placeholder="搜索笔记内容..." autocomplete="off" spellcheck="false" />
+                <span class="md-search-count" id="note-md-search-count"></span>
+                <label class="md-search-sync" title="勾选后，切换命中时左侧源文件同步滚动到对应位置">
+                  <input type="checkbox" id="note-md-search-sync" checked />同步源文件
+                </label>
+                <button class="md-tool-btn" id="note-md-search-prev" title="上一个（Shift+Enter）">↑</button>
+                <button class="md-tool-btn" id="note-md-search-next" title="下一个（Enter）">↓</button>
+                <button class="md-tool-btn" id="note-md-search-close" title="关闭搜索（Esc）">×</button>
+              </div>
             </div>
           </div>
           <div class="notes-editor-footer">
@@ -449,6 +472,9 @@
           <div class="md-search hidden" id="md-search">
             <input id="md-search-input" type="text" placeholder="搜索文档内容..." autocomplete="off" spellcheck="false" />
             <span class="md-search-count" id="md-search-count"></span>
+            <label class="md-search-sync" title="勾选后，切换命中时左侧源文件同步滚动到对应位置">
+              <input type="checkbox" id="md-search-sync" checked />同步源文件
+            </label>
             <button class="md-tool-btn" id="md-search-prev" title="上一个（Shift+Enter）">↑</button>
             <button class="md-tool-btn" id="md-search-next" title="下一个（Enter）">↓</button>
             <button class="md-tool-btn" id="md-search-close" title="关闭搜索（Esc）">×</button>

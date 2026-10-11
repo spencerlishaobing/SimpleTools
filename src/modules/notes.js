@@ -26,6 +26,15 @@
   const searchModeEl = document.getElementById('notes-search-mode');
   const bodyWrapEl = document.getElementById('note-body-wrap');
   const noteMdRenderEl = document.getElementById('note-md-render');
+  const noteMdScrollEl = document.getElementById('note-md-scroll');
+  const noteMdTocEl = document.getElementById('note-md-toc');
+  const noteMdTocListEl = document.getElementById('note-md-toc-list');
+  const noteMdTocBtn = document.getElementById('note-md-toc-btn');
+  const noteMdSearchBtn = document.getElementById('note-md-search-btn');
+  const noteMdSearchEl = document.getElementById('note-md-search');
+  const noteMdSearchInput = document.getElementById('note-md-search-input');
+  const noteMdSearchCount = document.getElementById('note-md-search-count');
+  const noteMdSearchSyncEl = document.getElementById('note-md-search-sync');
 
   const state = {
     notes: [],      // [{ id, title, content, type: 'text' | 'md', updated_at }]
@@ -223,12 +232,30 @@
   // 编辑器模式：普通文本单栏 / Markdown 笔记左编辑右实时预览
   let mdPreviewTimer = null;
 
-  // Markdown 笔记预览：复用 Markdown 预览面板的解析器（window.mdRender）
+  // ---------- Markdown 笔记：预览渲染 + 目录 + 全文搜索（v0.25.0，移植自 Markdown 预览面板） ----------
+
+  const NOTE_MD_EMPTY = '<div class="note-md-empty">输入 Markdown 内容，此处实时渲染预览</div>';
+  let noteHeadings = [];     // 当前笔记的标题 [{ id, level, text }]（目录用）
+  let noteHeadingEls = [];   // 标题对应 DOM 元素（目录高亮用）
+  let noteRawHtml = '';      // 渲染后的原始 HTML（搜索重建 / 清除高亮用）
+
+  // Markdown 笔记预览：复用 Markdown 预览面板的解析器（window.mdRender）；
+  // 标题 id 加 note- 前缀，避免与预览面板的 md-h-* 在同文档内冲突
   function renderMdPreview() {
     if (!bodyWrapEl.classList.contains('is-md')) return;
-    const html = (typeof window.mdRender === 'function') ? window.mdRender(contentEl.value) : '';
-    noteMdRenderEl.innerHTML = html ||
-      '<div class="note-md-empty">输入 Markdown 内容，此处实时渲染预览</div>';
+    noteHeadings = [];
+    const html = (typeof window.mdRender === 'function')
+      ? window.mdRender(contentEl.value, { idPrefix: 'note-md-h-', headings: noteHeadings })
+      : '';
+    noteRawHtml = html;
+    noteMdRenderEl.innerHTML = html || NOTE_MD_EMPTY;
+    noteHeadingEls = noteHeadings.map((h) => document.getElementById(h.id));
+    buildNoteToc();
+    // 搜索进行中：重建后重新高亮
+    if (!noteMdSearchEl.classList.contains('hidden') && noteMdSearchInput.value.trim()) {
+      applyNoteSearch(noteMdSearchInput.value);
+    }
+    updateNoteActiveHeading();
   }
 
   function setEditorMode(isMd) {
@@ -236,6 +263,180 @@
     clearTimeout(mdPreviewTimer);
     if (isMd) renderMdPreview();
   }
+
+  // ---- 目录 ----
+
+  function buildNoteToc() {
+    if (!noteHeadings.length) {
+      noteMdTocListEl.innerHTML = '<div class="md-toc-empty">无标题</div>';
+      return;
+    }
+    noteMdTocListEl.innerHTML = noteHeadings.map((h) =>
+      '<button type="button" class="md-toc-item lv' + h.level + '" data-id="' + h.id + '">' +
+      esc(h.text || '未命名标题') + '</button>'
+    ).join('');
+  }
+
+  noteMdTocListEl.addEventListener('click', (e) => {
+    const item = e.target && e.target.closest ? e.target.closest('.md-toc-item') : null;
+    if (!item) return;
+    const el = document.getElementById(item.dataset.id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  noteMdTocBtn.addEventListener('click', () => {
+    noteMdTocEl.classList.toggle('hidden');
+  });
+
+  // 目录高亮：预览滚动时标记当前所在章节
+  let noteTocTick = false;
+  noteMdScrollEl.addEventListener('scroll', () => {
+    if (noteTocTick) return;
+    noteTocTick = true;
+    requestAnimationFrame(() => {
+      noteTocTick = false;
+      updateNoteActiveHeading();
+    });
+  });
+
+  function updateNoteActiveHeading() {
+    const items = noteMdTocListEl.children;
+    if (!noteHeadings.length || !items.length) return;
+    const base = noteMdScrollEl.offsetTop;
+    const top = noteMdScrollEl.scrollTop + 80;
+    let idx = -1;
+    for (let k = 0; k < noteHeadingEls.length; k++) {
+      const el = noteHeadingEls[k];
+      if (el && el.offsetTop - base <= top) idx = k;
+      else break;
+    }
+    for (let k = 0; k < items.length; k++) {
+      if (items[k].classList) items[k].classList.toggle('active', k === idx);
+    }
+  }
+
+  // ---- 全文搜索（高亮 + 计数 + 上下导航 + 源文件联动） ----
+
+  let noteSearchTimer = null;
+  let noteMarks = [];
+  let noteMarkIdx = -1;
+
+  // 勾选框状态（与 Markdown 预览面板共用同一项；默认开启）
+  let noteSyncSrc = true;
+  try { noteSyncSrc = localStorage.getItem('simpletools-md-search-sync') !== '0'; } catch (e) { /* ignore */ }
+  noteMdSearchSyncEl.checked = noteSyncSrc;
+
+  noteMdSearchSyncEl.addEventListener('change', () => {
+    noteSyncSrc = noteMdSearchSyncEl.checked;
+    try { localStorage.setItem('simpletools-md-search-sync', noteSyncSrc ? '1' : '0'); } catch (e) { /* ignore */ }
+  });
+
+  function applyNoteSearch(term) {
+    noteMdRenderEl.innerHTML = noteRawHtml || NOTE_MD_EMPTY; // 先重建，清除旧高亮
+    noteHeadingEls = noteHeadings.map((h) => document.getElementById(h.id));
+    noteMarks = [];
+    noteMarkIdx = -1;
+    const q = String(term).trim();
+    if (!q) {
+      noteMdSearchCount.textContent = '';
+      return;
+    }
+    const walker = document.createTreeWalker(noteMdRenderEl, NodeFilter.SHOW_TEXT, null);
+    const textNodes = [];
+    while (walker.nextNode()) {
+      if (walker.currentNode.nodeValue.trim()) textNodes.push(walker.currentNode);
+    }
+    const lower = q.toLowerCase();
+    for (const node of textNodes) {
+      const text = node.nodeValue;
+      const tl = text.toLowerCase();
+      let idx = tl.indexOf(lower);
+      if (idx === -1) continue;
+      const frag = document.createDocumentFragment();
+      let pos = 0;
+      while (idx !== -1) {
+        if (idx > pos) frag.appendChild(document.createTextNode(text.slice(pos, idx)));
+        const mk = document.createElement('mark');
+        mk.className = 'md-mark';
+        mk.textContent = text.slice(idx, idx + q.length);
+        frag.appendChild(mk);
+        noteMarks.push(mk);
+        pos = idx + q.length;
+        idx = tl.indexOf(lower, pos);
+      }
+      if (pos < text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag, node);
+    }
+    if (!noteMarks.length) {
+      noteMdSearchCount.textContent = '无结果';
+      return;
+    }
+    noteNavTo(0);
+  }
+
+  function noteNavTo(idx) {
+    if (!noteMarks.length) return;
+    if (noteMarkIdx >= 0 && noteMarks[noteMarkIdx]) noteMarks[noteMarkIdx].classList.remove('current');
+    noteMarkIdx = ((idx % noteMarks.length) + noteMarks.length) % noteMarks.length;
+    const mk = noteMarks[noteMarkIdx];
+    mk.classList.add('current');
+    mk.scrollIntoView({ block: 'center' });
+    noteMdSearchCount.textContent = (noteMarkIdx + 1) + '/' + noteMarks.length;
+    syncNoteSource(mk);
+  }
+
+  // 源文件联动：切换命中时左侧源文件同步滚动到对应位置（镜像测量复用预览面板实现）
+  function syncNoteSource(mk) {
+    if (!noteSyncSrc || !mk || noteMarkIdx < 0) return;
+    const q = noteMdSearchInput.value.trim();
+    if (!q) return;
+    if (typeof window.mdFindNthMatch !== 'function' || typeof window.mdScrollTextareaTo !== 'function') return;
+    const idx = window.mdFindNthMatch(contentEl.value, q, noteMarkIdx);
+    if (idx >= 0) window.mdScrollTextareaTo(contentEl, idx);
+  }
+
+  function openNoteSearch() {
+    noteMdSearchEl.classList.remove('hidden');
+    noteMdSearchInput.focus();
+    noteMdSearchInput.select();
+  }
+
+  function closeNoteSearch() {
+    noteMdSearchEl.classList.add('hidden');
+    noteMdSearchInput.value = '';
+    noteMdSearchCount.textContent = '';
+    if (noteMarks.length) {
+      noteMarks = [];
+      noteMarkIdx = -1;
+      noteMdRenderEl.innerHTML = noteRawHtml || NOTE_MD_EMPTY; // 清除高亮
+      noteHeadingEls = noteHeadings.map((h) => document.getElementById(h.id));
+    }
+  }
+
+  noteMdSearchBtn.addEventListener('click', () => {
+    if (noteMdSearchEl.classList.contains('hidden')) openNoteSearch();
+    else closeNoteSearch();
+  });
+
+  noteMdSearchInput.addEventListener('input', () => {
+    clearTimeout(noteSearchTimer);
+    noteSearchTimer = setTimeout(() => applyNoteSearch(noteMdSearchInput.value), 280);
+  });
+
+  noteMdSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!noteMarks.length) applyNoteSearch(noteMdSearchInput.value);
+      else noteNavTo(noteMarkIdx + (e.shiftKey ? -1 : 1));
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeNoteSearch();
+    }
+  });
+
+  document.getElementById('note-md-search-prev').addEventListener('click', () => noteNavTo(noteMarkIdx - 1));
+  document.getElementById('note-md-search-next').addEventListener('click', () => noteNavTo(noteMarkIdx + 1));
+  document.getElementById('note-md-search-close').addEventListener('click', closeNoteSearch);
 
   // ---------- 操作 ----------
 

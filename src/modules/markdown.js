@@ -19,6 +19,7 @@
   const searchEl = document.getElementById('md-search');
   const searchInput = document.getElementById('md-search-input');
   const searchCount = document.getElementById('md-search-count');
+  const searchSyncEl = document.getElementById('md-search-sync');
 
   const RENDER_DEBOUNCE = 120;
   const SEARCH_DEBOUNCE = 280;
@@ -185,7 +186,7 @@
       if (mHead) {
         const level = mHead[1].length;
         const inner = renderInline(mHead[2].replace(/\s+#+\s*$/, '').trim());
-        const id = 'md-h-' + (ctx.headings.length + 1);
+        const id = (ctx.idPrefix || 'md-h-') + (ctx.headings.length + 1);
         ctx.headings.push({ id, level, text: stripTags(inner) });
         out.push('<h' + level + ' id="' + id + '">' + inner + '</h' + level + '>');
         i++;
@@ -353,10 +354,17 @@
   // ---------- 对外渲染接口 ----------
 
   // 渲染 Markdown 源码为 HTML（与预览面板同一解析器；供记事本 Markdown 笔记复用）
-  window.mdRender = function (md) {
+  // options：{ idPrefix } 自定义标题 id 前缀（避免与预览面板同文档 id 冲突）；
+  //           { headings } 传入数组时收集标题信息 [{ id, level, text }]（供笔记内目录使用）
+  window.mdRender = function (md, options) {
     const s = String(md == null ? '' : md);
     if (!s.trim()) return '';
-    return parseBlocks(s.replace(/\r\n?/g, '\n').split('\n'), { headings: [] });
+    const opts = options || {};
+    const ctx = {
+      idPrefix: opts.idPrefix || 'md-h-',
+      headings: opts.headings || [],
+    };
+    return parseBlocks(s.replace(/\r\n?/g, '\n').split('\n'), ctx);
   };
 
   // ---------- 目录（TOC） ----------
@@ -474,6 +482,76 @@
     mk.classList.add('current');
     mk.scrollIntoView({ block: 'center' });
     searchCount.textContent = (markIdx + 1) + '/' + marks.length;
+    syncSource(mk);
+  }
+
+  // ---------- 源文件联动（v0.25.0）：切换命中时左侧源文件同步滚动到对应位置 ----------
+
+  // 勾选框状态（与记事本 Markdown 笔记共用同一项；默认开启）
+  const SYNC_KEY = 'simpletools-md-search-sync';
+  let searchSync = true;
+  try { searchSync = localStorage.getItem(SYNC_KEY) !== '0'; } catch (e) { /* ignore */ }
+  searchSyncEl.checked = searchSync;
+
+  searchSyncEl.addEventListener('change', () => {
+    searchSync = searchSyncEl.checked;
+    try { localStorage.setItem(SYNC_KEY, searchSync ? '1' : '0'); } catch (e) { /* ignore */ }
+  });
+
+  // 在文本中查找关键字的第 n 个匹配（大小写不敏感；数量不足时循环取模），返回字符索引，未找到返回 -1
+  function findNthMatch(text, q, n) {
+    const lower = String(text).toLowerCase();
+    const k = String(q).toLowerCase();
+    if (!k) return -1;
+    const all = [];
+    let i = lower.indexOf(k);
+    while (i !== -1) {
+      all.push(i);
+      i = lower.indexOf(k, i + k.length);
+    }
+    if (!all.length) return -1;
+    return all[((n % all.length) + all.length) % all.length];
+  }
+
+  // 把 textarea 滚动到指定字符位置（镜像测量：用同款式隐藏 div 定位命中处的高度）
+  function scrollTextareaTo(ta, index) {
+    if (!ta || index < 0) return;
+    const cs = getComputedStyle(ta);
+    const mirror = document.createElement('div');
+    try {
+      const copy = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing',
+        'lineHeight', 'textTransform', 'textIndent', 'paddingTop', 'paddingRight',
+        'paddingBottom', 'paddingLeft', 'whiteSpace', 'wordBreak', 'overflowWrap'];
+      copy.forEach((p) => { mirror.style[p] = cs[p]; });
+      mirror.style.position = 'absolute';
+      mirror.style.visibility = 'hidden';
+      mirror.style.left = '-9999px';
+      mirror.style.top = '0';
+      mirror.style.width = ta.clientWidth + 'px';
+      mirror.textContent = ta.value.slice(0, index);
+      const marker = document.createElement('span');
+      marker.textContent = '\u200b';
+      mirror.appendChild(marker);
+      document.body.appendChild(mirror);
+      const markerTop = marker.getBoundingClientRect().top - mirror.getBoundingClientRect().top;
+      const lineH = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 13) * 1.5;
+      const max = ta.scrollHeight - ta.clientHeight;
+      ta.scrollTop = Math.max(0, Math.min(max, markerTop - ta.clientHeight / 2 + lineH / 2));
+    } catch (e) { /* 测量失败时保持原滚动位置 */ } finally {
+      mirror.remove();
+    }
+  }
+
+  // 供记事本 Markdown 笔记复用
+  window.mdScrollTextareaTo = scrollTextareaTo;
+  window.mdFindNthMatch = findNthMatch;
+
+  function syncSource(mk) {
+    if (!searchSync || !mk || markIdx < 0) return;
+    const q = searchInput.value.trim();
+    if (!q) return;
+    const idx = findNthMatch(inputEl.value, q, markIdx);
+    if (idx >= 0) scrollTextareaTo(inputEl, idx);
   }
 
   function closeSearch() {
