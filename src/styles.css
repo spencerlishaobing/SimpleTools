@@ -27,6 +27,9 @@
   --sidebar-dim: #94a3b8;                     /* 版本号等次级文字 */
   --sidebar-border: #e2e8f0;                  /* 侧栏右分隔线 */
 
+  --brand-icon-bg: linear-gradient(135deg, #3b82f6, #8b5cf6);  /* 品牌图标底（蓝紫渐变，浅色 / 深色主题共用） */
+  --brand-icon-text: #fff;                                     /* 品牌图标文字 */
+
   --text: #1f2937;
   --text-dim: #6b7280;
   --border: #e2e8f0;
@@ -139,6 +142,9 @@
   --sidebar-dim: #6f6555;
   --sidebar-border: #24211c;
 
+  --brand-icon-bg: linear-gradient(135deg, #d8ba82, #9c7a3d);  /* 品牌图标底（卡其金渐变，适配暖色暗调） */
+  --brand-icon-text: #221a0e;                                  /* 品牌图标文字（暖黑，金底高对比） */
+
   --text: #e8e0d0;             /* 暖米白 */
   --text-dim: #8a8070;         /* 暖灰 */
   --border: #2e2b24;
@@ -219,8 +225,8 @@ body {
   height: 34px;
   flex-shrink: 0;
   border-radius: 9px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: #fff;
+  background: var(--brand-icon-bg);
+  color: var(--brand-icon-text);
   font-weight: 700;
   font-size: 14px;
   display: flex;
