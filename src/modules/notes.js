@@ -23,9 +23,11 @@
   const exportSelBtn = document.getElementById('notes-exportsel');
   const searchEl = document.getElementById('notes-search');
   const searchClearEl = document.getElementById('notes-search-clear');
+  const bodyWrapEl = document.getElementById('note-body-wrap');
+  const noteMdRenderEl = document.getElementById('note-md-render');
 
   const state = {
-    notes: [],      // [{ id, title, content, updated_at }]
+    notes: [],      // [{ id, title, content, type: 'text' | 'md', updated_at }]
     currentId: null,
     filter: '',     // 标题搜索关键字（过滤列表显示）
   };
@@ -37,6 +39,24 @@
   let saving = false;
 
   // ---------- 工具 ----------
+
+  // 类型图标（线性 24 viewBox）：普通文本（文档）/ Markdown（M↓ 徽标）
+  const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const ICON_TEXT = '<svg class="note-type-icon" ' + ICON_ATTRS + '>' +
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+    '<polyline points="14 2 14 8 20 8"/>' +
+    '<line x1="16" y1="13" x2="8" y2="13"/>' +
+    '<line x1="16" y1="17" x2="8" y2="17"/>' +
+    '<polyline points="10 9 9 9 8 9"/></svg>';
+  const ICON_MD = '<svg class="note-type-icon is-md" ' + ICON_ATTRS + '>' +
+    '<rect x="3" y="3" width="18" height="18" rx="4.5"/>' +
+    '<path d="M7 15.5V8.5l3 3 3-3v7"/>' +
+    '<path d="M17 8.5v6.5m0 0l-2-2m2 2l2-2"/></svg>';
+
+  function noteIcon(type) {
+    return type === 'md' ? ICON_MD : ICON_TEXT;
+  }
 
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function esc(s) {
@@ -110,7 +130,8 @@
       li.draggable = !multi.active && !kw;
       li.innerHTML =
         (multi.active ? '<span class="note-check">' + (selected ? '✓' : '') + '</span>' : '') +
-        '<div class="note-item-title">' + esc(n.title || '未命名') + '</div>' +
+        '<div class="note-item-title">' + noteIcon(n.type) +
+        '<span class="note-item-name">' + esc(n.title || '未命名') + '</span></div>' +
         '<div class="note-item-meta">' + formatTime(n.updated_at) + '</div>' +
         '<button class="note-item-remove" title="删除该记录">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -150,14 +171,40 @@
     contentEl.value = note.content;
     metaEl.textContent = '最后更新:' + formatTime(note.updated_at);
     editorEl.classList.remove('hidden');
+    setEditorMode(note.type === 'md');
     renderList();
+  }
+
+  // 编辑器模式：普通文本单栏 / Markdown 笔记左编辑右实时预览
+  let mdPreviewTimer = null;
+
+  // Markdown 笔记预览：复用 Markdown 预览面板的解析器（window.mdRender）
+  function renderMdPreview() {
+    if (!bodyWrapEl.classList.contains('is-md')) return;
+    const html = (typeof window.mdRender === 'function') ? window.mdRender(contentEl.value) : '';
+    noteMdRenderEl.innerHTML = html ||
+      '<div class="note-md-empty">输入 Markdown 内容，此处实时渲染预览</div>';
+  }
+
+  function setEditorMode(isMd) {
+    bodyWrapEl.classList.toggle('is-md', isMd);
+    clearTimeout(mdPreviewTimer);
+    if (isMd) renderMdPreview();
   }
 
   // ---------- 操作 ----------
 
-  function createNote() {
+  // 新建记录（type: 'text' 普通文本 / 'md' Markdown 笔记）
+  function createNote(type) {
+    const isMd = type === 'md';
     const now = Date.now();
-    const note = { id: genId(), title: '新记录', content: '', updated_at: now };
+    const note = {
+      id: genId(),
+      title: isMd ? '新 Markdown 笔记' : '新记录',
+      content: '',
+      type: isMd ? 'md' : 'text',
+      updated_at: now,
+    };
     state.notes.unshift(note);
     clearNoteSearch(); // 新建后显示全部记录，确保新记录可见
     renderList();
@@ -188,6 +235,7 @@
         titleEl.value = '';
         contentEl.value = '';
         metaEl.textContent = '';
+        setEditorMode(false);
       }
     }
     renderList();
@@ -267,11 +315,13 @@
         contentEl.value = next.content;
         metaEl.textContent = '最后更新:' + formatTime(next.updated_at);
         editorEl.classList.remove('hidden');
+        setEditorMode(next.type === 'md');
       } else {
         editorEl.classList.add('hidden');
         titleEl.value = '';
         contentEl.value = '';
         metaEl.textContent = '';
+        setEditorMode(false);
       }
     }
     exitMulti();
@@ -329,6 +379,44 @@
     }, 0);
   }
 
+  // 点「新建记录」后弹出类型菜单（普通文本 / Markdown 笔记；与导出菜单共用弹出 / 关闭机制）
+  function openNewNoteMenu(btn) {
+    closeExportMenu();
+    const menu = document.createElement('div');
+    menu.className = 'export-menu note-type-menu';
+    menu.innerHTML =
+      '<button type="button" data-note-type="text">' + ICON_TEXT + '普通文本</button>' +
+      '<button type="button" data-note-type="md">' + ICON_MD + 'Markdown 笔记</button>';
+    document.body.appendChild(menu);
+    const rect = btn.getBoundingClientRect();
+    let left = rect.left;
+    if (left + menu.offsetWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menu.offsetWidth - 8;
+    }
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + menu.offsetHeight > window.innerHeight - 8) {
+      top = rect.top - menu.offsetHeight - 6;
+    }
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    exportMenuEl = menu;
+    menu.querySelectorAll('button[data-note-type]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const type = b.dataset.noteType;
+        closeExportMenu();
+        createNote(type);
+      });
+    });
+    setTimeout(() => {
+      exportMenuDocHandler = (ev) => {
+        if (exportMenuEl && !exportMenuEl.contains(ev.target)) closeExportMenu();
+      };
+      document.addEventListener('click', exportMenuDocHandler);
+    }, 0);
+  }
+
   // 清洗文件名：替换 Windows 非法字符，去掉结尾的点 / 空格并限长
   function sanitizeName(title) {
     let name = String(title || '').trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_');
@@ -349,7 +437,7 @@
   }
 
   function noteToJson(n) {
-    return { title: n.title, content: n.content, updated_at: n.updated_at };
+    return { title: n.title, content: n.content, type: n.type || 'text', updated_at: n.updated_at };
   }
 
   // 组装待写入文件：JSON 单条为对象、批量为数组单文件；TXT 每篇一个文件（重名自动加序号）
@@ -453,7 +541,7 @@
     note.updated_at = Date.now();
     const li = getLi(note.id);
     if (li) {
-      li.querySelector('.note-item-title').textContent = note.title || '未命名';
+      li.querySelector('.note-item-name').textContent = note.title || '未命名';
       li.querySelector('.note-item-meta').textContent = formatTime(note.updated_at);
     }
     if (state.filter) renderList(); // 过滤中修改标题需同步过滤结果
@@ -467,13 +555,21 @@
     note.updated_at = Date.now();
     const li = getLi(note.id);
     if (li) li.querySelector('.note-item-meta').textContent = formatTime(note.updated_at);
+    // Markdown 笔记：防抖同步右侧实时预览
+    if (bodyWrapEl.classList.contains('is-md')) {
+      clearTimeout(mdPreviewTimer);
+      mdPreviewTimer = setTimeout(renderMdPreview, 150);
+    }
     scheduleSave();
   });
 
   // 失焦时立即落盘，减少关窗丢数据的窗口期
   window.addEventListener('blur', () => doSave(true));
 
-  document.getElementById('note-new').addEventListener('click', createNote);
+  document.getElementById('note-new').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openNewNoteMenu(e.currentTarget);
+  });
   document.getElementById('note-backup').addEventListener('click', backup);
   document.getElementById('note-copy').addEventListener('click', async () => {
     if (!state.currentId) {
@@ -582,7 +678,14 @@
     }
     try {
       const notes = await invoke('notes_load');
-      state.notes = Array.isArray(notes) ? notes : [];
+      // 归一化：旧数据无 type 字段按 text 处理
+      state.notes = (Array.isArray(notes) ? notes : []).map((n) => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        type: n.type === 'md' ? 'md' : 'text',
+        updated_at: n.updated_at,
+      }));
     } catch (e) {
       window.toast('加载记事本失败：' + e);
       state.notes = [];

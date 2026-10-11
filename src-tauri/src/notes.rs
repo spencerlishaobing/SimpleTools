@@ -9,8 +9,16 @@ pub struct Note {
     pub id: String,
     pub title: String,
     pub content: String,
+    /// 类型："text" 普通文本 / "md" Markdown 笔记；旧数据缺省按 text 处理
+    #[serde(default = "default_note_type", rename = "type")]
+    pub note_type: String,
     /// 最后更新时间（毫秒时间戳）
     pub updated_at: u64,
+}
+
+/// serde 缺省值：旧版数据（无 type 字段）视作普通文本
+fn default_note_type() -> String {
+    "text".to_string()
 }
 
 /// 记事本数据文件路径：{AppData}/com.simpletools.desktop/notes.json
@@ -97,4 +105,33 @@ fn write_atomic(path: &PathBuf, notes: &[Note]) -> Result<(), String> {
     fs::write(&tmp, data).map_err(|e| format!("写入失败: {e}"))?;
     fs::rename(&tmp, path).map_err(|e| format!("保存失败: {e}"))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Note;
+
+    /// 旧版数据（无 type 字段）反序列化时缺省为 text，保证升级后兼容
+    #[test]
+    fn legacy_json_defaults_type_to_text() {
+        let legacy = r#"[{"id":"n1","title":"t","content":"c","updated_at":1}]"#;
+        let notes: Vec<Note> = serde_json::from_str(legacy).expect("旧数据应能解析");
+        assert_eq!(notes[0].note_type, "text");
+    }
+
+    /// type 字段以 JSON 键 "type" 序列化，且 md 类型往返一致
+    #[test]
+    fn note_type_roundtrip() {
+        let note = Note {
+            id: "n1".into(),
+            title: "t".into(),
+            content: "c".into(),
+            note_type: "md".into(),
+            updated_at: 1,
+        };
+        let json = serde_json::to_string(&note).expect("应能序列化");
+        assert!(json.contains(r#""type":"md""#));
+        let back: Note = serde_json::from_str(&json).expect("应能反序列化");
+        assert_eq!(back.note_type, "md");
+    }
 }

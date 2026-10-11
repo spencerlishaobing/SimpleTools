@@ -802,12 +802,30 @@ textarea[readonly] {
 }
 
 .note-item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
   font-weight: 500;
+  padding-right: 30px;
+}
+
+.note-item-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 30px;
+}
+
+/* 列表类型图标：普通文本（灰）/ Markdown（主题色） */
+.note-type-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.note-type-icon.is-md {
+  color: var(--primary);
 }
 
 .note-item-meta {
@@ -1003,9 +1021,56 @@ textarea[readonly] {
 
 .note-content-input {
   flex: 1;
+  min-width: 0;
   font-family: var(--sans);
   font-size: 13px;
   line-height: 1.7;
+}
+
+/* 正文区：普通文本单栏 / Markdown 笔记左编辑右实时预览 */
+.note-body-wrap {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
+.note-md-preview {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+}
+
+.note-body-wrap.is-md .note-md-preview {
+  display: block;
+}
+
+.note-md-body {
+  max-width: none;
+  padding: 12px 16px 30px;
+  font-size: 13px;
+}
+
+.note-md-empty {
+  color: var(--text-dim);
+  font-size: 12.5px;
+  padding: 8px 2px;
+}
+
+/* 新建记录类型菜单：图标 + 文字横排 */
+.note-type-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-type-menu button .note-type-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .notes-editor-footer {

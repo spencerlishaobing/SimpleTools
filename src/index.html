@@ -124,7 +124,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.15.0 · Tauri + Rust</div>
+      <div class="version">v0.16.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -256,8 +256,13 @@
         </aside>
         <div class="notes-editor" id="notes-editor">
           <input id="note-title" class="note-title-input" placeholder="标题" />
-          <textarea id="note-content" class="note-content-input" spellcheck="false"
-            placeholder="正文内容..."></textarea>
+          <div class="note-body-wrap" id="note-body-wrap">
+            <textarea id="note-content" class="note-content-input" spellcheck="false"
+              placeholder="正文内容..."></textarea>
+            <div class="note-md-preview" id="note-md-preview">
+              <div class="md-body note-md-body" id="note-md-render"></div>
+            </div>
+          </div>
           <div class="notes-editor-footer">
             <button class="btn small" id="note-copy" title="复制当前记录的正文内容">复制内容</button>
             <button class="btn small" id="note-export" title="导出当前记录（JSON / TXT，自选文件夹）">导出</button>

@@ -350,6 +350,15 @@
     updateActiveHeading();
   }
 
+  // ---------- 对外渲染接口 ----------
+
+  // 渲染 Markdown 源码为 HTML（与预览面板同一解析器；供记事本 Markdown 笔记复用）
+  window.mdRender = function (md) {
+    const s = String(md == null ? '' : md);
+    if (!s.trim()) return '';
+    return parseBlocks(s.replace(/\r\n?/g, '\n').split('\n'), { headings: [] });
+  };
+
   // ---------- 目录（TOC） ----------
 
   function buildToc() {
