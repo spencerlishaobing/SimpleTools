@@ -101,7 +101,20 @@
 
   // ---------- 事件 ----------
 
-  inputEl.addEventListener('input', render);
+  const RECORD_DELAY = 1200; // 输入停止后写入历史记录的防抖延迟
+  let recordTimer = null;
+
+  function recordHistory() {
+    if (!inputEl.value.trim()) return;
+    window.historyStore.add('str', { input: inputEl.value });
+  }
+
+  inputEl.addEventListener('input', () => {
+    render();
+    // 连续输入时延迟记录，避免记录中间状态
+    clearTimeout(recordTimer);
+    recordTimer = setTimeout(recordHistory, RECORD_DELAY);
+  });
 
   resultsEl.addEventListener('click', async function (e) {
     const btn = e.target.closest('.pane-copy');
@@ -119,4 +132,19 @@
 
   buildRows();
   render();
+
+  // ---------- 历史记录 ----------
+
+  window.historyStore.bindPanel({
+    kind: 'str',
+    label: '转换记录',
+    btn: document.getElementById('str-history-btn'),
+    pop: document.getElementById('str-history-pop'),
+    list: document.getElementById('str-history-list'),
+    clear: document.getElementById('str-history-clear'),
+    onRestore(rec) {
+      inputEl.value = rec.input;
+      render();
+    },
+  });
 })();

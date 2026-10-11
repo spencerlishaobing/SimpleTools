@@ -9,7 +9,7 @@
   const SAVE_DELAY = 400;     // 保存防抖延迟
 
   // 内存数据（invoke 不可用时的降级 / 无头测试环境）
-  const state = { json: [], diff: [] };
+  const state = { json: [], diff: [], md5: [], str: [] };
   const pane = {};            // kind → { btn, pop, list, clear, onRestore }
   let openKind = null;
   let saveTimer = null;
@@ -49,8 +49,9 @@
     if (!invoke) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
-      invoke('history_save', { data: { json: state.json, diff: state.diff } })
-        .catch(function () { /* 保存失败不打断主流程 */ });
+      invoke('history_save', {
+        data: { json: state.json, diff: state.diff, md5: state.md5, str: state.str },
+      }).catch(function () { /* 保存失败不打断主流程 */ });
     }, SAVE_DELAY);
   }
 
@@ -59,12 +60,12 @@
     try {
       const data = await invoke('history_load');
       if (data) {
-        if (Array.isArray(data.json)) state.json = data.json;
-        if (Array.isArray(data.diff)) state.diff = data.diff;
+        for (const kind of ['json', 'diff', 'md5', 'str']) {
+          if (Array.isArray(data[kind])) state[kind] = data[kind];
+        }
       }
     } catch (e) { /* 首次使用或文件损坏时按空数据继续 */ }
-    render('json');
-    render('diff');
+    ['json', 'diff', 'md5', 'str'].forEach(render);
   }
 
   // ---------- 数据操作 ----------
@@ -73,7 +74,9 @@
     const top = state[kind][0];
     if (!top) return false;
     if (kind === 'json') return top.input === rec.input && top.output === rec.output;
-    return top.left === rec.left && top.right === rec.right;
+    if (kind === 'diff') return top.left === rec.left && top.right === rec.right;
+    if (kind === 'md5') return top.kind === rec.kind && top.input === rec.input && top.hash === rec.hash;
+    return top.input === rec.input; // str
   }
 
   /**
@@ -82,7 +85,11 @@
   function add(kind, rec) {
     if (kind === 'json') {
       if (rec.input.length > MAX_TEXT || rec.output.length > MAX_TEXT) return 'too-large';
-    } else if (rec.left.length > MAX_TEXT || rec.right.length > MAX_TEXT) {
+    } else if (kind === 'diff') {
+      if (rec.left.length > MAX_TEXT || rec.right.length > MAX_TEXT) return 'too-large';
+    } else if (kind === 'md5') {
+      if (rec.input.length > MAX_TEXT || rec.hash.length > MAX_TEXT) return 'too-large';
+    } else if (rec.input.length > MAX_TEXT) {
       return 'too-large';
     }
     if (isDuplicate(kind, rec)) return 'dup';
@@ -115,11 +122,21 @@
     if (kind === 'json') {
       return '<div class="hist-item-summary">' + esc(digest(rec.input, 90)) + '</div>';
     }
-    return '<div class="hist-item-lines">' +
-      '<div class="hist-line"><span class="hist-tag tag-left">左</span>' +
-      esc(digest(rec.left, 60)) + '</div>' +
-      '<div class="hist-line"><span class="hist-tag tag-right">右</span>' +
-      esc(digest(rec.right, 60)) + '</div></div>';
+    if (kind === 'diff') {
+      return '<div class="hist-item-lines">' +
+        '<div class="hist-line"><span class="hist-tag tag-left">左</span>' +
+        esc(digest(rec.left, 60)) + '</div>' +
+        '<div class="hist-line"><span class="hist-tag tag-right">右</span>' +
+        esc(digest(rec.right, 60)) + '</div></div>';
+    }
+    if (kind === 'md5') {
+      return '<div class="hist-item-lines">' +
+        '<div class="hist-line"><span class="hist-tag tag-kind">' +
+        (rec.kind === 'file' ? '件' : '文') + '</span>' + esc(digest(rec.input, 46)) + '</div>' +
+        '<div class="hist-line hist-hash">' + esc(rec.hash) + '</div></div>';
+    }
+    // str
+    return '<div class="hist-item-summary">' + esc(digest(rec.input, 90)) + '</div>';
   }
 
   function render(kind) {

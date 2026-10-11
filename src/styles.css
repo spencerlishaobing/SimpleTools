@@ -1138,6 +1138,17 @@ textarea[readonly] {
   color: var(--red-strong);
 }
 
+.hist-tag.tag-kind {
+  background: var(--border-light);
+  color: var(--text-dim);
+}
+
+.hist-line.hist-hash {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
 .hist-item-time {
   font-size: 11.5px;
   color: var(--text-dim);

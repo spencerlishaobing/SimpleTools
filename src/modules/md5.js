@@ -77,9 +77,12 @@
       return;
     }
     calcTimer = setTimeout(async () => {
+      const text = textEl.value;
       try {
-        textHash = await invoke('md5_text', { text: textEl.value });
+        textHash = await invoke('md5_text', { text: text });
         renderResults();
+        // 写入字符串计算历史记录
+        window.historyStore.add('md5', { kind: 'text', input: text, hash: textHash });
       } catch (e) {
         textHash = '';
         setError(textResultEl, String(e));
@@ -105,6 +108,8 @@
       fileHash = r.hash;
       fileInfoEl.textContent = r.name + '（' + humanSize(r.size) + '）';
       renderResults();
+      // 写入文件计算历史记录
+      window.historyStore.add('md5', { kind: 'file', input: fileInfoEl.textContent, hash: fileHash });
     } catch (e) {
       setError(fileResultEl, String(e));
       fileInfoEl.textContent = '';
@@ -160,5 +165,26 @@
       return;
     }
     await window.copyText(formatHash(fileHash), '已复制 MD5');
+  });
+
+  // ---------- 历史记录 ----------
+
+  window.historyStore.bindPanel({
+    kind: 'md5',
+    label: 'MD5 记录',
+    btn: document.getElementById('md5-history-btn'),
+    pop: document.getElementById('md5-history-pop'),
+    list: document.getElementById('md5-history-list'),
+    clear: document.getElementById('md5-history-clear'),
+    onRestore(rec) {
+      if (rec.kind === 'file') {
+        fileHash = rec.hash;
+        fileInfoEl.textContent = rec.input;
+      } else {
+        textEl.value = rec.input;
+        textHash = rec.hash;
+      }
+      renderResults();
+    },
   });
 })();

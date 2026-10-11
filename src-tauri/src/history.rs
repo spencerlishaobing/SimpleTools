@@ -23,6 +23,28 @@ pub struct DiffRecord {
     pub time: u64,
 }
 
+/// 单条 MD5 计算记录（kind: "text" 字符串 / "file" 文件）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Md5Record {
+    pub id: String,
+    pub kind: String,
+    /// 文本原文或"文件名（大小）"
+    pub input: String,
+    /// 原始小写 hex 哈希
+    pub hash: String,
+    /// 记录时间（毫秒时间戳）
+    pub time: u64,
+}
+
+/// 单条字符串转换记录
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrRecord {
+    pub id: String,
+    pub input: String,
+    /// 记录时间（毫秒时间戳）
+    pub time: u64,
+}
+
 /// 全部历史记录数据
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HistoryData {
@@ -30,6 +52,10 @@ pub struct HistoryData {
     pub json: Vec<JsonRecord>,
     #[serde(default)]
     pub diff: Vec<DiffRecord>,
+    #[serde(default)]
+    pub md5: Vec<Md5Record>,
+    #[serde(default)]
+    pub str: Vec<StrRecord>,
 }
 
 /// 历史数据文件路径：{AppData}/com.simpletools.desktop/history.json

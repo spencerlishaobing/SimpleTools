@@ -59,7 +59,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.4.0 · Tauri + Rust</div>
+      <div class="version">v0.5.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -201,6 +201,16 @@
               <option value="base64">Base64</option>
             </select>
           </label>
+          <div class="hist-anchor">
+            <button class="btn" id="md5-history-btn" title="查看 MD5 计算历史记录（点击记录可恢复）">历史</button>
+            <div class="hist-pop hidden" id="md5-history-pop">
+              <div class="hist-head">
+                <span class="hist-title">MD5 记录</span>
+                <button class="hist-clear" id="md5-history-clear">清空全部</button>
+              </div>
+              <div class="hist-list" id="md5-history-list"></div>
+            </div>
+          </div>
         </div>
       </header>
       <div class="md5-layout">
@@ -233,6 +243,16 @@
         <h2>字符串转换</h2>
         <div class="panel-actions">
           <span class="str-tip">大小写 / 驼峰 / 下划线 / 中划线 / 常量，输入即生成</span>
+          <div class="hist-anchor">
+            <button class="btn" id="str-history-btn" title="查看转换历史记录（点击记录可恢复）">历史</button>
+            <div class="hist-pop hidden" id="str-history-pop">
+              <div class="hist-head">
+                <span class="hist-title">转换记录</span>
+                <button class="hist-clear" id="str-history-clear">清空全部</button>
+              </div>
+              <div class="hist-list" id="str-history-list"></div>
+            </div>
+          </div>
         </div>
       </header>
       <div class="str-layout">
