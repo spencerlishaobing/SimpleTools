@@ -62,7 +62,7 @@
         </svg>
         <span id="theme-label">深色模式</span>
       </button>
-      <div class="version">v0.8.0 · Tauri + Rust</div>
+      <div class="version">v0.8.1 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -314,10 +314,12 @@
               <button class="md-tool-btn" id="md-search-btn" title="全文搜索（忽略大小写）">搜索</button>
             </div>
           </div>
-          <div class="md-reader-wrap" id="md-reader-wrap">
+          <div class="md-reader-box">
             <div class="md-progress"><div class="md-progress-bar" id="md-progress-bar"></div></div>
-            <div class="md-empty" id="md-empty">输入 Markdown 或打开 .md 文件，实时渲染预览</div>
-            <article id="md-reader" class="md-body hidden"></article>
+            <div class="md-reader-wrap" id="md-reader-wrap">
+              <div class="md-empty" id="md-empty">输入 Markdown 或打开 .md 文件，实时渲染预览</div>
+              <article id="md-reader" class="md-body hidden"></article>
+            </div>
             <aside class="md-toc hidden" id="md-toc">
               <div class="md-toc-head">目录</div>
               <div class="md-toc-list" id="md-toc-list"></div>

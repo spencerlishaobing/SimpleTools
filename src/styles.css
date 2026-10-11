@@ -1548,15 +1548,23 @@ textarea[readonly] {
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
-/* 阅读区容器 */
-.md-reader-wrap {
+/* 阅读区容器（外层定位 + 内层滚动：进度条 / 目录浮层固定，不随内容滚动移动） */
+.md-reader-box {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel-bg);
+}
+
+.md-reader-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .md-progress {

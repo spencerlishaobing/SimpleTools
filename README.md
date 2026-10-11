@@ -75,7 +75,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.8.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.8.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -138,6 +138,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.8.1（2026-10-11）
+
+- 修复 Markdown 预览的目录浮层与阅读进度条随内容滚动移动的问题（现固定在预览区，滚动时保持不动）
 
 ### v0.8.0（2026-10-11）
 
