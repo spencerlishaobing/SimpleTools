@@ -412,6 +412,118 @@
     if (dataDirInfo && dataDirInfo.default) migrateDataDir(dataDirInfo.default);
   });
 
+  // ---------- 数据存储说明（v0.23.0）：展示各数据文件的当前位置与大小，可打开对应文件夹 ----------
+  // - 路径由 storage_info 实时解析，切换数据存储位置后随之变化（不写死）
+  // - 「打开」按钮调 open_in_explorer：文件已生成时在资源管理器中定位，否则打开所在目录
+  const STORAGE_FILE_META = {
+    'notes.json': { label: '记事本', desc: '笔记内容（普通文本 / Markdown），输入自动保存' },
+    'accounts.json': { label: '账号密码', desc: '分组与条目（含备注），经 DPAPI 加密存储' },
+    'history.json': { label: '历史记录', desc: '格式化 / 对比 / MD5 / 转换记录，各最多 50 条' },
+    'notes.backup.json': { label: '记事本备份', desc: '点记事本「备份」按钮生成的数据副本' },
+    'settings.json': { label: '应用设置', desc: '记录数据存储位置等配置' },
+  };
+  const dataDirHelpBtn = document.getElementById('data-dir-help');
+  const storageMask = document.getElementById('storage-modal');
+  const storageCloseBtn = document.getElementById('storage-close');
+  const storageDirTagEl = document.getElementById('storage-dir-tag');
+  const storageDirPathEl = document.getElementById('storage-dir-path');
+  const storageOpenDirBtn = document.getElementById('storage-open-dir');
+  const storageListEl = document.getElementById('storage-list');
+  const storageSettingsListEl = document.getElementById('storage-settings-list');
+
+  function fmtFileSize(n) {
+    if (!n) return '0 B';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // 单个数据文件行：文件名 + 用途说明 + 状态（大小 / 未生成）+ 打开按钮
+  function renderStorageItem(f) {
+    const meta = STORAGE_FILE_META[f.name] || { label: '', desc: '' };
+    const li = document.createElement('li');
+    li.className = 'storage-item';
+    li.title = f.path;
+
+    const text = document.createElement('div');
+    text.className = 'storage-item-text';
+    const nameRow = document.createElement('div');
+    nameRow.className = 'storage-item-name';
+    const code = document.createElement('code');
+    code.textContent = f.name;
+    nameRow.appendChild(code);
+    const label = document.createElement('span');
+    label.className = 'storage-item-label';
+    label.textContent = meta.label;
+    nameRow.appendChild(label);
+    const desc = document.createElement('div');
+    desc.className = 'storage-item-desc';
+    desc.textContent = meta.desc;
+    text.appendChild(nameRow);
+    text.appendChild(desc);
+
+    const status = document.createElement('span');
+    status.className = 'storage-item-status';
+    status.textContent = f.exists ? fmtFileSize(f.size) : '未生成';
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn storage-item-open';
+    openBtn.setAttribute('data-file', f.name);
+    openBtn.textContent = '打开';
+
+    li.appendChild(text);
+    li.appendChild(status);
+    li.appendChild(openBtn);
+    return li;
+  }
+
+  function renderStorageInfo(info) {
+    storageDirTagEl.textContent = info.is_custom ? '（自定义）' : '（默认）';
+    storageDirPathEl.textContent = info.current;
+    storageListEl.textContent = '';
+    (info.files || []).forEach(function (f) { storageListEl.appendChild(renderStorageItem(f)); });
+    storageSettingsListEl.textContent = '';
+    if (info.settings) storageSettingsListEl.appendChild(renderStorageItem(info.settings));
+  }
+
+  async function openStorageHelp() {
+    storageMask.classList.remove('hidden');
+    storageCloseBtn.focus();
+    if (!invokeApi) return;
+    try {
+      renderStorageInfo(await invokeApi('storage_info'));
+    } catch (e) {
+      storageDirPathEl.textContent = '读取失败：' + ((e && e.message) || e);
+    }
+  }
+
+  // 打开数据文件所在位置（file 为空时打开数据目录）
+  async function openStorageTarget(file) {
+    if (!invokeApi) return;
+    try {
+      await invokeApi('open_in_explorer', { file: file || null });
+    } catch (e) {
+      window.toast('无法打开：' + ((e && e.message) || e));
+    }
+  }
+
+  function closeStorageHelp() {
+    storageMask.classList.add('hidden');
+  }
+
+  dataDirHelpBtn.addEventListener('click', openStorageHelp);
+  storageCloseBtn.addEventListener('click', closeStorageHelp);
+  storageMask.addEventListener('click', function (e) {
+    if (e.target === storageMask) closeStorageHelp();
+  });
+  storageOpenDirBtn.addEventListener('click', function () { openStorageTarget(''); });
+  [storageListEl, storageSettingsListEl].forEach(function (listEl) {
+    listEl.addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-file]');
+      if (btn) openStorageTarget(btn.getAttribute('data-file'));
+    });
+  });
+
   settingsBtn.addEventListener('click', openSettings);
   settingsCloseBtn.addEventListener('click', closeSettings);
   settingsMask.addEventListener('click', function (e) {

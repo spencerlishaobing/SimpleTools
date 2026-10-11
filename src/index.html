@@ -129,7 +129,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.22.2 · Tauri + Rust</div>
+      <div class="version">v0.23.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -481,12 +481,38 @@
           <div class="settings-row-desc" id="data-dir-path">读取中…</div>
         </div>
         <div class="settings-actions">
+          <button class="btn" id="data-dir-help" title="查看各数据文件的位置与用途">说明</button>
           <button class="btn" id="data-dir-change">更改位置</button>
           <button class="btn hidden" id="data-dir-reset">恢复默认</button>
         </div>
       </div>
       <div class="modal-actions">
         <button class="btn" id="settings-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据存储说明弹窗（v0.23.0：动态展示各数据文件当前存放位置与大小，可打开对应文件夹） -->
+  <div id="storage-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="storage-title">
+      <div class="modal-title" id="storage-title">数据存储说明</div>
+      <div class="modal-message">以下数据保存在本机，可自行备份；切换「数据存储位置」后，此处路径同步更新。</div>
+      <div class="storage-sec">
+        <div class="storage-sec-head">
+          <span class="storage-sec-title">数据目录 <span class="storage-dir-tag" id="storage-dir-tag"></span></span>
+          <button class="btn" id="storage-open-dir">打开目录</button>
+        </div>
+        <div class="storage-path" id="storage-dir-path">读取中…</div>
+        <ul class="storage-list" id="storage-list"></ul>
+      </div>
+      <div class="storage-sec">
+        <div class="storage-sec-head">
+          <span class="storage-sec-title">应用配置 <span class="storage-dir-tag">固定于默认目录，不随迁移</span></span>
+        </div>
+        <ul class="storage-list" id="storage-settings-list"></ul>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="storage-close">关闭</button>
       </div>
     </div>
   </div>

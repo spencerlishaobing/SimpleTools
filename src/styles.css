@@ -2088,6 +2088,112 @@ textarea[readonly] {
   word-break: break-all;
 }
 
+/* ===== 数据存储说明弹窗（v0.23.0） ===== */
+#storage-modal .modal-card {
+  width: 460px;
+}
+
+.storage-sec {
+  margin-bottom: 14px;
+}
+
+.storage-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.storage-sec-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.storage-sec-head .btn {
+  padding: 3px 12px;
+  font-size: 11.5px;
+}
+
+.storage-dir-tag {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.storage-path {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  word-break: break-all;
+  user-select: text;
+}
+
+.storage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--hover-bg);
+  border-radius: 8px;
+}
+
+.storage-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.storage-item-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.storage-item-name code {
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: Consolas, 'Courier New', monospace;
+  color: var(--text);
+}
+
+.storage-item-label {
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.storage-item-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+.storage-item-status {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.storage-item-open {
+  padding: 3px 10px;
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+
 .switch {
   position: relative;
   width: 38px;

@@ -18,6 +18,8 @@ pub fn run() {
             accounts::accounts_export,
             datadir::data_dir_info,
             datadir::data_dir_set,
+            datadir::storage_info,
+            datadir::open_in_explorer,
             notes::notes_load,
             notes::notes_save,
             notes::notes_backup,

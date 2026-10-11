@@ -98,6 +98,109 @@ pub fn data_dir_info(app: AppHandle) -> Result<DataDirInfo, String> {
     })
 }
 
+/// 单个数据文件的存储信息（v0.23.0 数据存储说明弹窗）
+#[derive(Debug, Clone, Serialize)]
+pub struct StorageFileInfo {
+    pub name: String,
+    pub path: String,
+    pub exists: bool,
+    pub size: u64,
+}
+
+/// 数据存储说明信息（v0.23.0）
+#[derive(Debug, Clone, Serialize)]
+pub struct StorageInfo {
+    pub current: String,
+    pub default: String,
+    pub is_custom: bool,
+    /// 数据文件（位于当前数据目录，随迁移变化）
+    pub files: Vec<StorageFileInfo>,
+    /// 应用配置文件（settings.json，固定于默认目录）
+    pub settings: StorageFileInfo,
+}
+
+/// 收集单个数据文件的信息（存在性与实际大小）
+fn file_info(dir: &Path, name: &str) -> StorageFileInfo {
+    let path = dir.join(name);
+    let meta = fs::metadata(&path).ok().filter(|m| m.is_file());
+    StorageFileInfo {
+        name: name.to_string(),
+        path: display_path(&path),
+        exists: meta.is_some(),
+        size: meta.map(|m| m.len()).unwrap_or(0),
+    }
+}
+
+/// 构建存储说明信息（目录均已解析；抽为纯函数便于单测）
+fn storage_info_of(current: &Path, default: &Path, is_custom: bool) -> StorageInfo {
+    StorageInfo {
+        current: display_path(current),
+        default: display_path(default),
+        is_custom,
+        files: DATA_FILES.iter().map(|n| file_info(current, n)).collect(),
+        settings: file_info(default, "settings.json"),
+    }
+}
+
+/// 查询数据存储说明（v0.23.0：说明弹窗展示各文件当前位置与实际大小，
+/// 路径实时解析，切换数据存储位置后随之变化）
+#[tauri::command]
+pub fn storage_info(app: AppHandle) -> Result<StorageInfo, String> {
+    let default = default_dir(&app)?;
+    let is_custom = !read_settings(&default).data_dir.trim().is_empty();
+    let current = data_dir(&app)?;
+    Ok(storage_info_of(&current, &default, is_custom))
+}
+
+/// 在资源管理器中打开数据目录，或定位到指定数据文件（v0.23.0）
+/// file 为空时打开当前数据目录；指定文件名时定位选中该文件（尚未生成时退化为打开所在目录）
+#[tauri::command]
+pub fn open_in_explorer(app: AppHandle, file: Option<String>) -> Result<(), String> {
+    let name = file.unwrap_or_default().trim().to_string();
+    if name.is_empty() {
+        let dir = data_dir(&app)?;
+        let _ = fs::create_dir_all(&dir);
+        return reveal(&dir, None);
+    }
+    // 仅允许打开已知数据文件（白名单校验，防止任意路径打开）
+    if name != "settings.json" && !DATA_FILES.contains(&name.as_str()) {
+        return Err("未知的数据文件".into());
+    }
+    // 配置文件固定位于默认目录，其余数据文件位于当前数据目录
+    let dir = if name == "settings.json" {
+        default_dir(&app)?
+    } else {
+        data_dir(&app)?
+    };
+    let path = dir.join(&name);
+    if path.is_file() {
+        reveal(&dir, Some(&path))
+    } else {
+        let _ = fs::create_dir_all(&dir);
+        reveal(&dir, None)
+    }
+}
+
+/// 调起资源管理器：file 为 Some 时选中该文件，否则打开目录
+#[cfg(windows)]
+fn reveal(dir: &Path, file: Option<&Path>) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    let mut cmd = std::process::Command::new("explorer.exe");
+    // raw_arg 直接传原始命令行片段（explorer 的 /select,"路径" 需要精确保留引号）
+    match file {
+        Some(f) => cmd.raw_arg(format!("/select,\"{}\"", f.display())),
+        None => cmd.raw_arg(format!("\"{}\"", dir.display())),
+    };
+    cmd.spawn()
+        .map(|_| ())
+        .map_err(|e| format!("无法打开资源管理器: {e}"))
+}
+
+#[cfg(not(windows))]
+fn reveal(_dir: &Path, _file: Option<&Path>) -> Result<(), String> {
+    Err("仅支持 Windows".into())
+}
+
 /// 迁移数据文件（逐个复制 + 逐文件大小校验；不删除源文件，原位置保留作为备份）
 fn migrate_data_files(from: &Path, to: &Path) -> Result<usize, String> {
     let mut copied = 0usize;
@@ -154,7 +257,7 @@ pub fn data_dir_set(app: AppHandle, dir: String) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{migrate_data_files, read_settings, write_settings, AppSettings};
+    use super::{migrate_data_files, read_settings, storage_info_of, write_settings, AppSettings};
     use std::fs;
     use std::path::PathBuf;
 
@@ -199,6 +302,27 @@ mod tests {
         assert_eq!(copied, 0);
         let _ = fs::remove_dir_all(&from);
         let _ = fs::remove_dir_all(&to);
+    }
+
+    /// 存储说明：文件存在时记录实际大小，不存在时标记存在性为 false（v0.23.0）
+    #[test]
+    fn storage_info_reports_file_state() {
+        let dir = test_dir("storage_info");
+        fs::write(dir.join("notes.json"), "0123456789").unwrap();
+        let info = storage_info_of(&dir, &dir, false);
+        assert_eq!(info.files.len(), 4);
+        let notes = info.files.iter().find(|f| f.name == "notes.json").unwrap();
+        assert!(notes.exists && notes.size == 10, "存在文件应记录大小");
+        let acc = info
+            .files
+            .iter()
+            .find(|f| f.name == "accounts.json")
+            .unwrap();
+        assert!(!acc.exists && acc.size == 0, "不存在文件应标记未生成");
+        assert_eq!(info.settings.name, "settings.json");
+        assert!(!info.settings.exists);
+        assert!(!info.is_custom);
+        let _ = fs::remove_dir_all(&dir);
     }
 
     /// 设置读写往返：自定义路径能正确保存与读回
