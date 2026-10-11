@@ -68,7 +68,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.6.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.6.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -128,6 +128,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.6.1（2026-10-11）
+
+- 记事本列表删除按钮改造：单击小号 `×` 字符改为 24px 垃圾桶图标按钮（与主题图标统一的线性风格），悬停显示更清晰
 
 ### v0.6.0（2026-10-11）
 

@@ -726,7 +726,7 @@ textarea[readonly] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 18px;
+  padding-right: 30px;
 }
 
 .note-item-meta {
@@ -740,20 +740,24 @@ textarea[readonly] {
 
 .note-item-remove {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
+}
+
+.note-item-remove svg {
+  width: 14px;
+  height: 14px;
 }
 
 .note-item:hover .note-item-remove,
