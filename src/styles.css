@@ -1028,6 +1028,12 @@ textarea[readonly] {
   font-weight: 600;
 }
 
+/* 卡其色主题：未选中项改用暖灰（v0.22.1 修复——--text 的暖米白亮度过高、视觉近乎白色，
+   与暖调界面不符；同优先级下需用 :not 提升优先级避开 is-active 规则） */
+[data-theme="khaki"] .theme-menu button:not(.is-active) {
+  color: var(--sidebar-text);
+}
+
 .notes-empty {
   padding: 18px 8px;
   text-align: center;

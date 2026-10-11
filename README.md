@@ -97,7 +97,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.22.0_x64-setup.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.22.1_x64-setup.exe`
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -166,6 +166,10 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.22.1（2026-10-11）
+
+- 修复卡其色主题下「主题选择菜单」未选中项文字过亮偏白的问题：未选中项由正文色（暖米白，视觉近乎白色）改用暖灰色，与卡其色暖调界面一致；选中项保持卡其金强调色（颜色 / 字重 / 对勾三重区分），浅色 / 深色 / 深浅混搭主题不受影响
 
 ### v0.22.0（2026-10-11）
 
