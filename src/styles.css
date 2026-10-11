@@ -867,6 +867,26 @@ textarea[readonly] {
   text-overflow: ellipsis;
 }
 
+/* 内容搜索命中摘要行（内容模式） */
+.note-item-snippet {
+  margin-top: 2px;
+  padding-right: 30px;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 搜索命中高亮片段 */
+.note-hl {
+  background: var(--primary-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+
 .note-item-remove {
   position: absolute;
   top: 5px;
@@ -1161,11 +1181,40 @@ textarea[readonly] {
   display: flex;
 }
 
+/* 搜索范围切换：标题（默认）/ 内容，与输入框拼为一体 */
+.notes-search-mode {
+  flex-shrink: 0;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  background: var(--input-bg);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.notes-search-mode:hover {
+  color: var(--text);
+  background: var(--hover-bg);
+}
+
+/* 内容模式：按钮主题色强调 */
+.notes-search-mode.is-content {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.notes-search-wrap:focus-within .notes-search-mode {
+  border-color: var(--primary);
+}
+
 .notes-search-input {
   width: 100%;
   padding: 7px 28px 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0 8px 8px 0;
   background: var(--input-bg);
   color: var(--text);
   font-size: 12.5px;

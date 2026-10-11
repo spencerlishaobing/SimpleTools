@@ -23,13 +23,15 @@
   const exportSelBtn = document.getElementById('notes-exportsel');
   const searchEl = document.getElementById('notes-search');
   const searchClearEl = document.getElementById('notes-search-clear');
+  const searchModeEl = document.getElementById('notes-search-mode');
   const bodyWrapEl = document.getElementById('note-body-wrap');
   const noteMdRenderEl = document.getElementById('note-md-render');
 
   const state = {
     notes: [],      // [{ id, title, content, type: 'text' | 'md', updated_at }]
     currentId: null,
-    filter: '',     // 标题搜索关键字（过滤列表显示）
+    filter: '',     // 搜索关键字（过滤列表显示）
+    searchMode: 'title',  // 搜索范围：'title' 标题（默认）/ 'content' 内容（模糊）
   };
 
   const multi = { active: false, selected: new Set() };  // 批量操作（多选）模式
@@ -61,6 +63,40 @@
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+  }
+
+  // 命中高亮：把 text 中所有匹配 keyword 的片段（大小写不敏感）包裹为 <mark> 后返回安全 HTML
+  // 注意：必须先分段再逐段转义，不能先转义后匹配（转义会改变命中位置）
+  function hlHtml(text, keyword) {
+    const s = String(text == null ? '' : text);
+    const kw = String(keyword || '');
+    if (!kw) return esc(s);
+    const lower = s.toLowerCase();
+    const k = kw.toLowerCase();
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+      const idx = lower.indexOf(k, i);
+      if (idx < 0) {
+        out += esc(s.slice(i));
+        break;
+      }
+      out += esc(s.slice(i, idx)) + '<mark class="note-hl">' + esc(s.slice(idx, idx + k.length)) + '</mark>';
+      i = idx + k.length;
+    }
+    return out;
+  }
+
+  // 内容摘要：折叠空白后取首个命中位置的前后上下文（供内容搜索时列表展示）
+  function pickSnippet(text, keyword) {
+    const s = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    const kw = String(keyword || '');
+    if (!s || !kw) return '';
+    const idx = s.toLowerCase().indexOf(kw.toLowerCase());
+    if (idx < 0) return '';
+    const start = Math.max(0, idx - 12);
+    const end = Math.min(s.length, idx + kw.length + 24);
+    return (start > 0 ? '…' : '') + s.slice(start, end) + (end < s.length ? '…' : '');
   }
 
   function genId() {
@@ -115,10 +151,15 @@
   // ---------- 渲染 ----------
 
   function renderList() {
-    // 标题过滤：有关键字时仅显示匹配记录（过滤状态下禁用拖动排序）
-    const kw = state.filter.trim().toLowerCase();
+    // 搜索过滤：按当前范围（标题 / 内容）仅显示匹配记录（过滤状态下禁用拖动排序）
+    const raw = state.filter.trim();
+    const kw = raw.toLowerCase();
+    const isContent = state.searchMode === 'content';
     const visible = kw
-      ? state.notes.filter((n) => (n.title || '').toLowerCase().indexOf(kw) >= 0)
+      ? state.notes.filter((n) => {
+        const src = isContent ? (n.content || '') : (n.title || '');
+        return src.toLowerCase().indexOf(kw) >= 0;
+      })
       : state.notes;
     listEl.innerHTML = '';
     for (const n of visible) {
@@ -128,10 +169,14 @@
         (selected ? ' selected' : '');
       li.dataset.id = n.id;
       li.draggable = !multi.active && !kw;
+      // 搜索时：标题命中片段高亮；内容模式额外展示命中摘要行
+      const titleHtml = kw ? hlHtml(n.title || '未命名', raw) : esc(n.title || '未命名');
+      const snippet = kw && isContent ? pickSnippet(n.content, raw) : '';
       li.innerHTML =
         (multi.active ? '<span class="note-check">' + (selected ? '✓' : '') + '</span>' : '') +
         '<div class="note-item-title">' + noteIcon(n.type) +
-        '<span class="note-item-name">' + esc(n.title || '未命名') + '</span></div>' +
+        '<span class="note-item-name">' + titleHtml + '</span></div>' +
+        (snippet ? '<div class="note-item-snippet">' + hlHtml(snippet, raw) + '</div>' : '') +
         '<div class="note-item-meta">' + formatTime(n.updated_at) + '</div>' +
         '<button class="note-item-remove" title="删除该记录">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -506,7 +551,18 @@
     return listEl.querySelector('.note-item[data-id="' + id + '"]');
   }
 
-  // ---------- 标题搜索过滤 ----------
+  // ---------- 搜索过滤（标题 / 内容双模式） ----------
+
+  // 模式按钮与占位符同步当前搜索范围
+  function syncSearchModeUI() {
+    const isContent = state.searchMode === 'content';
+    searchModeEl.textContent = isContent ? '内容' : '标题';
+    searchModeEl.classList.toggle('is-content', isContent);
+    searchModeEl.title = isContent
+      ? '搜索范围：内容模糊匹配——点击切换为标题'
+      : '搜索范围：标题——点击切换为内容模糊匹配';
+    searchEl.placeholder = isContent ? '搜索内容（模糊匹配）' : '搜索标题（关键字）';
+  }
 
   function clearNoteSearch() {
     if (!state.filter && !searchEl.value) return;
@@ -534,6 +590,12 @@
     renderList();
   });
 
+  searchModeEl.addEventListener('click', () => {
+    state.searchMode = state.searchMode === 'title' ? 'content' : 'title';
+    syncSearchModeUI();
+    renderList();
+  });
+
   titleEl.addEventListener('input', () => {
     const note = getCurrent();
     if (!note) return;
@@ -555,6 +617,7 @@
     note.updated_at = Date.now();
     const li = getLi(note.id);
     if (li) li.querySelector('.note-item-meta').textContent = formatTime(note.updated_at);
+    if (state.filter && state.searchMode === 'content') renderList(); // 内容过滤中修改内容需同步
     // Markdown 笔记：防抖同步右侧实时预览
     if (bodyWrapEl.classList.contains('is-md')) {
       clearTimeout(mdPreviewTimer);
