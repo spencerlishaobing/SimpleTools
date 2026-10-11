@@ -129,7 +129,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.21.0 · Tauri + Rust</div>
+      <div class="version">v0.22.0 · Tauri + Rust</div>
     </div>
   </aside>
 
@@ -473,6 +473,17 @@
           <input type="checkbox" id="acc-lock-switch" />
           <span class="switch-slider"></span>
         </label>
+      </div>
+      <div class="settings-label">存储</div>
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <div class="settings-row-title">数据存储位置</div>
+          <div class="settings-row-desc" id="data-dir-path">读取中…</div>
+        </div>
+        <div class="settings-actions">
+          <button class="btn" id="data-dir-change">更改位置</button>
+          <button class="btn hidden" id="data-dir-reset">恢复默认</button>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn" id="settings-close">关闭</button>

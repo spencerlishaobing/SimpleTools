@@ -115,6 +115,7 @@
   const themeToggle = document.getElementById('theme-toggle');
   const themeLabel = document.getElementById('theme-label');
   const invokeApi = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || null;
+  const dialogApi = (window.__TAURI__ && window.__TAURI__.dialog) || null;
 
   // 各主题的系统标题栏配色（背景 / 标题文字 / 下边框，与主题变量一致）
   // 深浅混搭（v0.21.0）：标题栏跟随深色侧边栏（#020617），与深色功能菜单连成一体
@@ -244,6 +245,10 @@
   const authMask = document.getElementById('auth-modal');
   const authTipEl = document.getElementById('auth-tip');
   const authOkBtn = document.getElementById('auth-ok');
+  const dataDirPathEl = document.getElementById('data-dir-path');
+  const dataDirChangeBtn = document.getElementById('data-dir-change');
+  const dataDirResetBtn = document.getElementById('data-dir-reset');
+  let dataDirInfo = null;
 
   function accLockEnabled() {
     try {
@@ -336,6 +341,7 @@
   // 设置弹窗
   function openSettings() {
     accLockSwitch.checked = accLockEnabled();
+    refreshDataDirInfo();
     settingsMask.classList.remove('hidden');
     settingsCloseBtn.focus();
   }
@@ -343,6 +349,68 @@
   function closeSettings() {
     settingsMask.classList.add('hidden');
   }
+
+  // ---------- 数据存储位置（v0.22.0）：查看 / 更改 / 恢复默认；切换时迁移数据 ----------
+  // - 数据目录默认 {AppData}/com.simpletools.desktop，可在设置中选择自定义文件夹
+  // - 迁移由 Rust 侧执行（复制 + 逐文件大小校验，原位置文件保留），成功后重新加载应用生效
+  async function refreshDataDirInfo() {
+    if (!invokeApi) return;
+    try {
+      dataDirInfo = await invokeApi('data_dir_info');
+      dataDirPathEl.textContent = '当前：' + dataDirInfo.current + (dataDirInfo.is_custom ? '（自定义）' : '（默认）');
+      dataDirResetBtn.classList.toggle('hidden', !dataDirInfo.is_custom);
+    } catch (e) {
+      dataDirPathEl.textContent = '当前：读取失败';
+    }
+  }
+
+  // 迁移到新目录：确认 → 后端迁移 → 成功后重新加载（各面板从新目录读取数据）
+  async function migrateDataDir(newDir) {
+    if (!invokeApi || !newDir) return;
+    if (!dataDirInfo) await refreshDataDirInfo();
+    const current = dataDirInfo ? dataDirInfo.current : '';
+    if (current && newDir.toLowerCase() === current.toLowerCase()) {
+      window.toast('新位置与当前位置相同');
+      return;
+    }
+    const ok = await window.showConfirm(
+      '将把数据文件（记事本 / 账号密码 / 历史记录）迁移到：' + newDir + '。原位置文件保留（不删除）。',
+      { title: '迁移数据存储位置', okText: '开始迁移' }
+    );
+    if (!ok) return;
+    dataDirChangeBtn.disabled = true;
+    dataDirResetBtn.disabled = true;
+    try {
+      await invokeApi('data_dir_set', { dir: newDir });
+      window.toast('数据已迁移，正在重新加载…');
+      setTimeout(function () { location.reload(); }, 900);
+    } catch (e) {
+      window.toast('迁移失败：' + ((e && e.message) || e));
+      dataDirChangeBtn.disabled = false;
+      dataDirResetBtn.disabled = false;
+    }
+  }
+
+  dataDirChangeBtn.addEventListener('click', async function () {
+    if (!invokeApi || !dialogApi || !dialogApi.open) {
+      window.toast('Tauri 接口不可用（请通过应用运行）');
+      return;
+    }
+    let picked = null;
+    try {
+      picked = await dialogApi.open({ directory: true, multiple: false, title: '选择数据存储文件夹' });
+    } catch (e) {
+      window.toast('无法打开文件夹选择框');
+      return;
+    }
+    const dir = typeof picked === 'string' ? picked : (picked && picked.path) || '';
+    if (!dir) return;
+    await migrateDataDir(dir);
+  });
+
+  dataDirResetBtn.addEventListener('click', function () {
+    if (dataDirInfo && dataDirInfo.default) migrateDataDir(dataDirInfo.default);
+  });
 
   settingsBtn.addEventListener('click', openSettings);
   settingsCloseBtn.addEventListener('click', closeSettings);

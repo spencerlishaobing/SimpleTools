@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// 单条 JSON 格式化记录（input 为原始输入，output 为格式化/压缩结果）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,13 +58,10 @@ pub struct HistoryData {
     pub str: Vec<StrRecord>,
 }
 
-/// 历史数据文件路径：{AppData}/com.simpletools.desktop/history.json
+/// 历史数据文件路径：{数据目录}/history.json
+/// （数据目录默认 {AppData}/com.simpletools.desktop，可在「应用设置」中自定义）
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法获取数据目录: {e}"))?;
-    Ok(dir.join("history.json"))
+    Ok(crate::datadir::data_dir(app)?.join("history.json"))
 }
 
 /// 读取全部历史记录（文件不存在时返回空数据）

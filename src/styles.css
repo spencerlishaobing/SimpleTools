@@ -2062,6 +2062,26 @@ textarea[readonly] {
   line-height: 1.55;
 }
 
+/* ===== 应用设置弹窗：数据存储位置（v0.22.0） ===== */
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-actions .btn {
+  padding: 5px 12px;
+}
+
+/* 设置弹窗内容较多，适当加宽 */
+#settings-modal .modal-card {
+  width: 410px;
+}
+
+#data-dir-path {
+  word-break: break-all;
+}
+
 .switch {
   position: relative;
   width: 38px;

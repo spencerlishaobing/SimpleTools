@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// 单条记事记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,13 +21,10 @@ fn default_note_type() -> String {
     "text".to_string()
 }
 
-/// 记事本数据文件路径：{AppData}/com.simpletools.desktop/notes.json
+/// 记事本数据文件路径：{数据目录}/notes.json
+/// （数据目录默认 {AppData}/com.simpletools.desktop，可在「应用设置」中自定义）
 fn notes_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法获取数据目录: {e}"))?;
-    Ok(dir.join("notes.json"))
+    Ok(crate::datadir::data_dir(app)?.join("notes.json"))
 }
 
 /// 读取全部记录（文件不存在时返回空列表）
