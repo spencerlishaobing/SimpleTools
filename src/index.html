@@ -19,7 +19,7 @@
         }
         // 尽早应用功能显隐（v0.35.2：默认仅显示「记事本」与「账号密码」），避免启动时侧边栏功能闪动
         // 生成临时引导样式，main.js 启动后移除并由 nav-hidden class 接管；默认集合需与 main.js 的 NAV_HIDDEN_DEFAULT 保持一致
-        var NH_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock'];
+        var NH_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock', 'db'];
         var nhList = NH_DEFAULT;
         var nhRaw = localStorage.getItem('simpletools-nav-hidden');
         if (nhRaw !== null) {
@@ -128,6 +128,15 @@
         </svg>
         <span class="nav-label">模拟服务器</span>
       </button>
+      <button class="nav-item" data-panel="db">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+        <span class="nav-label">数据库查询</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="theme-toggle" id="theme-toggle" title="切换主题（浅色 / 深色 / 深浅混搭 / 卡其色）">
@@ -170,7 +179,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.36.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.37.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -687,6 +696,38 @@
         <div class="mock-empty" id="mock-empty">暂无请求。启动服务后，客户端向上述地址发起的请求会实时显示在这里</div>
       </div>
     </section>
+    <!-- ===== 数据库查询 ===== -->
+    <section id="panel-db" class="panel">
+      <header class="panel-header">
+        <h2>数据库查询</h2>
+        <div class="panel-actions">
+          <span id="db-file-pill" class="db-file-pill hidden"></span>
+          <button class="btn small" id="db-open">打开数据库</button>
+        </div>
+      </header>
+      <div class="db-empty" id="db-empty-state">打开一个 SQLite 数据库文件（.db / .sqlite / .sqlite3 / .db3），以只读方式执行 SQL 查询；输入时会自动提示表名 / 字段名 / SQL 关键字
+      </div>
+      <div class="db-body hidden" id="db-body">
+        <aside class="db-side">
+          <div class="db-side-head">表结构 <span class="db-side-count" id="db-table-count"></span></div>
+          <div class="db-tables" id="db-tables"></div>
+        </aside>
+        <div class="db-main">
+          <div class="db-editor-wrap">
+            <textarea id="db-editor" class="db-editor" placeholder="SELECT * FROM users WHERE id = 1" spellcheck="false"></textarea>
+            <div class="db-suggest hidden" id="db-suggest"></div>
+          </div>
+          <div class="db-toolbar">
+            <button class="btn primary small" id="db-run">执行查询</button>
+            <span class="db-status" id="db-status">输入 SQL 后点击「执行查询」（输入时自动提示 表名 / 字段名 / 关键字）</span>
+          </div>
+          <div class="db-result-wrap">
+            <div class="db-result" id="db-result"></div>
+            <div class="db-result-empty" id="db-result-empty">查询结果将显示在这里</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -725,6 +766,7 @@
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 21 3.5 4 7.5 11 11.5 4 11.5 21" /><line x1="17.5" y1="4" x2="17.5" y2="21" /><polyline points="13.5 17 17.5 21 21.5 17" /></svg><span>Markdown 预览</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="capture" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg><span>抓包</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="mock" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg><span>模拟服务器</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="db" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></svg><span>数据库查询</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
               </div>
             </div>
           </div>
@@ -911,6 +953,7 @@
   <script src="modules/markdown.js"></script>
   <script src="modules/capture.js"></script>
   <script src="modules/mock.js"></script>
+  <script src="modules/db.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

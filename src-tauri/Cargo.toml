@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.36.0"
+version = "0.37.0"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"
@@ -32,6 +32,9 @@ tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt"] }
 # 模拟服务器（v0.36.0）：本地 HTTP 模拟服务（复用 hudsucker 依赖树中的 hyper 1.x，无额外编译负担）
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
+
+# 数据库读取（v0.37.0）：SQLite 只读查询（bundled 内置 SQLite C 源码，无系统依赖）
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # 抓包：枚举本机局域网 IPv4（供手机代理设置显示）
 local-ip-address = "0.6"

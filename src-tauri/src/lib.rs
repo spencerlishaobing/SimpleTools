@@ -2,6 +2,7 @@ mod accounts;
 mod backup;
 mod capture;
 mod datadir;
+mod db;
 mod history;
 mod md5calc;
 mod mock;
@@ -66,7 +67,9 @@ pub fn run() {
             mock::mock_rule_delete,
             mock::mock_requests,
             mock::mock_request_detail,
-            mock::mock_clear_requests
+            mock::mock_clear_requests,
+            db::db_open,
+            db::db_query
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

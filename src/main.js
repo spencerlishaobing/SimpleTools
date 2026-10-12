@@ -148,7 +148,7 @@
   const NAV_STYLE_ALL = ['both', 'icon', 'label'];
   // 默认隐藏的功能（v0.35.2）：默认仅显示「记事本」与「账号密码」，其余功能可在设置中勾选恢复
   // 注意：需与 index.html head 内联脚本的 NH_DEFAULT 保持一致
-  const NAV_HIDDEN_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock'];
+  const NAV_HIDDEN_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock', 'db'];
   const navStyleGroup = document.getElementById('nav-style-group');
   const navFeatureGrid = document.getElementById('nav-feature-grid');
   const htmlRoot = document.documentElement;
