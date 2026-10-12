@@ -92,6 +92,13 @@
         </svg>
         <span class="nav-label">Markdown 预览</span>
       </button>
+      <button class="nav-item" data-panel="capture">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+        <span class="nav-label">抓包</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="theme-toggle" id="theme-toggle" title="切换主题（浅色 / 深色 / 深浅混搭 / 卡其色）">
@@ -134,7 +141,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.34.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.35.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -545,6 +552,60 @@
         </div>
       </div>
     </section>
+    <!-- ===== 抓包 ===== -->
+    <section id="panel-capture" class="panel">
+      <header class="panel-header">
+        <h2>抓包</h2>
+        <div class="panel-actions">
+          <span id="cap-status" class="cap-status"><i class="cap-dot"></i>已停止</span>
+          <button class="btn small" id="cap-export-ca" title="导出根证书（PEM），在手机上安装并信任后才会解密 HTTPS 流量">导出证书</button>
+          <button class="btn small" id="cap-clear" title="清空已捕获的会话记录">清空</button>
+          <button class="btn primary small" id="cap-toggle">启动抓包</button>
+        </div>
+      </header>
+      <div class="cap-guide">
+        <div class="cap-guide-title">手机设置代理即可实时抓包</div>
+        <div class="cap-guide-steps">
+          <span class="cap-step">1. 手机与电脑连接同一 Wi-Fi</span>
+          <span class="cap-step">2. 手机 Wi-Fi 代理设为 <b id="cap-ip">—</b> 端口 <b id="cap-port">8888</b></span>
+          <span class="cap-step">3. 安装「导出证书」的根证书（HTTPS 必需）</span>
+        </div>
+      </div>
+      <div class="cap-toolbar">
+        <div class="cap-filters" id="cap-filters">
+          <button class="cap-filter-btn active" data-cap-filter="all">全部</button>
+          <button class="cap-filter-btn" data-cap-filter="ok">成功</button>
+          <button class="cap-filter-btn" data-cap-filter="fail">失败</button>
+        </div>
+        <input id="cap-search" class="cap-search" placeholder="搜索 域名 / 路径 / 方法（关键字）" spellcheck="false" />
+        <span class="cap-count" id="cap-count">0 条</span>
+      </div>
+      <div class="cap-body">
+        <div class="cap-list-wrap">
+          <div class="cap-list" id="cap-list"></div>
+          <div class="cap-empty" id="cap-empty">暂无请求记录。点击「启动抓包」，在手机上设置代理后，请求会实时显示在这里</div>
+        </div>
+        <div class="cap-detail" id="cap-detail">
+          <div class="cap-detail-empty" id="cap-detail-empty">点击上方列表中的请求查看详情</div>
+          <div class="cap-detail-inner hidden" id="cap-detail-inner">
+            <div class="cap-detail-head">
+              <span class="cap-d-method" id="cap-d-method">—</span>
+              <span class="cap-d-url" id="cap-d-url"></span>
+              <span class="cap-d-code" id="cap-d-code"></span>
+            </div>
+            <div class="cap-detail-meta" id="cap-d-meta"></div>
+            <div class="cap-tabs" id="cap-tabs">
+              <button class="cap-tab" data-cap-tab="req-headers">请求头</button>
+              <button class="cap-tab" data-cap-tab="req-body">请求体</button>
+              <button class="cap-tab" data-cap-tab="res-headers">响应头</button>
+              <button class="cap-tab active" data-cap-tab="res-body">响应体</button>
+              <button class="cap-tab-copy" id="cap-tab-copy" title="复制当前标签页内容">复制</button>
+            </div>
+            <pre class="cap-tab-content" id="cap-tab-content"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -581,6 +642,7 @@
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg><span>MD5 计算</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg><span>字符串转换</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 21 3.5 4 7.5 11 11.5 4 11.5 21" /><line x1="17.5" y1="4" x2="17.5" y2="21" /><polyline points="13.5 17 17.5 21 21.5 17" /></svg><span>Markdown 预览</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="capture" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg><span>抓包</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
               </div>
             </div>
           </div>
@@ -707,6 +769,7 @@
   <script src="modules/md5.js"></script>
   <script src="modules/str.js"></script>
   <script src="modules/markdown.js"></script>
+  <script src="modules/capture.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

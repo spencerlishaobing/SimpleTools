@@ -1,5 +1,6 @@
 mod accounts;
 mod backup;
+mod capture;
 mod datadir;
 mod history;
 mod md5calc;
@@ -13,6 +14,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .manage(capture::CaptureState::default())
         .invoke_handler(tauri::generate_handler![
             accounts::accounts_load,
             accounts::accounts_save,
@@ -41,7 +43,14 @@ pub fn run() {
             titlebar::set_titlebar_color,
             titlebar::set_window_icon,
             winsec::hello_availability,
-            winsec::hello_verify
+            winsec::hello_verify,
+            capture::capture_info,
+            capture::capture_start,
+            capture::capture_stop,
+            capture::capture_list,
+            capture::capture_detail,
+            capture::capture_clear,
+            capture::capture_export_ca
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

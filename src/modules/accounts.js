@@ -195,14 +195,14 @@
     return '<li class="acc-item" data-id="' + esc(item.id) + '">' +
       '<span class="acc-item-grip" draggable="true" title="拖拽排序">' + GRIP_SVG + '</span>' +
       '<div class="acc-item-main">' +
+      '<textarea class="acc-item-note" placeholder="备注（可选）" spellcheck="false"' +
+      ' rows="1">' + esc(item.note || '') + '</textarea>' +
       '<div class="acc-item-fields">' +
       '<input class="acc-input acc-item-account" value="' + esc(item.account) + '"' +
       ' placeholder="账号" spellcheck="false" autocomplete="off" />' +
       '<input class="acc-input acc-item-password" type="' + (state.showPwd ? 'text' : 'password') + '"' +
       ' value="' + esc(item.password) + '" placeholder="密码" spellcheck="false" autocomplete="off" />' +
       '</div>' +
-      '<textarea class="acc-item-note" placeholder="备注（可选）" spellcheck="false"' +
-      ' rows="1">' + esc(item.note || '') + '</textarea>' +
       '</div>' +
       actionButtons(true) +
       '</li>';

@@ -90,6 +90,15 @@
     e.stopPropagation();
   });
 
+  // ---------- 屏蔽 WebView 默认右键菜单 ----------
+  // 桌面应用不应出现浏览器默认菜单（刷新 / 另存为 / 打印等）：页面区域统一拦截默认菜单，
+  // 输入场景（输入框 / 富文本编辑器）保留默认菜单，便于右键粘贴 / 复制
+  document.addEventListener('contextmenu', function (e) {
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea, [contenteditable]')) return;
+    e.preventDefault();
+  });
+
   // ---------- 全局文件拖放守卫（v0.33.0） ----------
   // 背景：tauri.conf.json 设 dragDropEnabled=false（wry 原生拖放会吞掉页内 dragover/drop 事件，
   // 页内拖拽排序必须用它换成 WebView2 内建拖放）。此后文件拖到窗口任意位置若无阻止，
