@@ -26,10 +26,10 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
     fs,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -453,25 +453,309 @@ fn primary_ipv4() -> Option<Ipv4Addr> {
         .min()
 }
 
-/// 尝试通过路由器 UPnP（IGD 协议）自动开放外网端口（阻塞调用，在 blocking 线程中执行）。
-/// 流程：SSDP 发现网关 → 获取路由器公网地址 → 添加 TCP 端口映射（永久租约）。
-/// 无需任何第三方软件 / 公网服务器。
+// ---------------------------------------------------------------------------
+// UPnP 穿透（v0.40.0：自实现 SSDP 发现 + SOAP 控制协议，不依赖任何第三方穿透库）
+// 流程：SSDP（UDP 组播 239.255.255.250:1900）发现网关 → 拉取设备描述 XML 解析
+//       WAN 连接服务（WANIPConnection / WANPPPConnection）控制地址 → SOAP 调用
+//       GetExternalIPAddress / AddPortMapping / DeletePortMapping
+// ---------------------------------------------------------------------------
+
+/// SSDP 搜索目标（依次尝试：IGD v1 / IGD v2 / rootdevice）
+const SSDP_TARGETS: [&str; 3] = [
+    "urn:schemas-upnp-org:device:InternetGatewayDevice:1",
+    "urn:schemas-upnp-org:device:InternetGatewayDevice:2",
+    "upnp:rootdevice",
+];
+
+/// SSDP 批量搜索：在单一套接字上依次发送多个搜索目标（避免串行超时叠加），
+/// 在统一超时窗口内收集响应中的设备描述 URL（LOCATION，去重）
+fn ssdp_search_all(targets: &[&str], timeout: Duration) -> Vec<String> {
+    use std::net::UdpSocket;
+    let Ok(socket) = UdpSocket::bind("0.0.0.0:0") else {
+        return Vec::new();
+    };
+    for target in targets {
+        let search = format!(
+            "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: {target}\r\n\r\n"
+        );
+        let _ = socket.send_to(search.as_bytes(), "239.255.255.250:1900");
+        std::thread::sleep(Duration::from_millis(60)); // 避免连续突发丢包
+    }
+    let deadline = Instant::now() + timeout;
+    let mut buf = [0u8; 4096];
+    let mut found: Vec<String> = Vec::new();
+    loop {
+        let remain = deadline.saturating_duration_since(Instant::now());
+        if remain.is_zero() {
+            break;
+        }
+        let _ = socket.set_read_timeout(Some(remain));
+        match socket.recv_from(&mut buf) {
+            Ok((n, _)) => {
+                let text = String::from_utf8_lossy(&buf[..n]);
+                if let Some(loc) = http_header_value(&text, "location") {
+                    if !loc.is_empty() && !found.contains(&loc) {
+                        found.push(loc);
+                        if found.len() >= 4 {
+                            break; // 足够尝试，无需等待更多设备响应
+                        }
+                    }
+                }
+            }
+            Err(_) => break, // 超时 / 无更多响应
+        }
+    }
+    found
+}
+
+/// 从 HTTP 报文头（含 SSDP 响应）取值：大小写不敏感，取首个匹配行
+fn http_header_value(text: &str, name: &str) -> Option<String> {
+    for line in text.lines() {
+        let line = line.trim_end_matches('\r');
+        if line.is_empty() {
+            break; // 头部结束
+        }
+        if let Some((k, v)) = line.split_once(':') {
+            if k.trim().eq_ignore_ascii_case(name) {
+                return Some(v.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+/// 在 XML 中查找标签（宽松匹配命名空间前缀：<tag> 或 <ns:tag>），
+/// 返回（匹配起点, 值起点即 '>' 之后）
+fn xml_find_tag(xml: &str, tag: &str) -> Option<(usize, usize)> {
+    let direct = format!("<{tag}>");
+    if let Some(p) = xml.find(&direct) {
+        return Some((p, p + direct.len()));
+    }
+    let with_prefix = format!(":{tag}>");
+    xml.find(&with_prefix).map(|p| (p, p + with_prefix.len()))
+}
+
+/// 提取 XML 标签值（宽松匹配命名空间前缀；取 '>' 之后到下一个 '<' 之间的内容）
+fn xml_tag_value(xml: &str, tag: &str) -> Option<String> {
+    let (_, value_start) = xml_find_tag(xml, tag)?;
+    let rest = &xml[value_start..];
+    let end = rest.find('<').unwrap_or(rest.len());
+    Some(rest[..end].trim().to_string())
+}
+
+/// 相对 controlURL 拼成绝对地址（基于设备描述 URL 的 scheme://host[:port]）
+fn abs_url(base: &str, url: &str) -> String {
+    if url.starts_with("http://") {
+        return url.to_string();
+    }
+    let host_port = base
+        .strip_prefix("http://")
+        .and_then(|r| r.split('/').next())
+        .unwrap_or(base);
+    let path = if url.starts_with('/') {
+        url.to_string()
+    } else {
+        format!("/{url}")
+    };
+    format!("http://{host_port}{path}")
+}
+
+/// 极简 chunked 解码（个别路由器返回分块编码）
+fn dechunk(body: &str) -> String {
+    let mut out = String::new();
+    let mut rest = body;
+    loop {
+        let Some(nl) = rest.find("\r\n") else { break };
+        let size_str = rest[..nl].split(';').next().unwrap_or("").trim();
+        let Ok(size) = usize::from_str_radix(size_str, 16) else {
+            break;
+        };
+        if size == 0 {
+            break;
+        }
+        let start = nl + 2;
+        if start + size > rest.len() {
+            out.push_str(&rest[start..]);
+            break;
+        }
+        out.push_str(&rest[start..start + size]);
+        let next = &rest[start + size..];
+        rest = next.strip_prefix("\r\n").unwrap_or(next);
+    }
+    out
+}
+
+/// 极简 HTTP/1.1 请求（仅用于局域网路由器交互：短报文，兼容 Content-Length / chunked / close）
+fn http_request(
+    url: &str,
+    method: &str,
+    headers: &[(&str, &str)],
+    body: &[u8],
+) -> Result<(u16, String), String> {
+    use std::io::{Read, Write};
+    use std::net::ToSocketAddrs;
+    let rest = url
+        .strip_prefix("http://")
+        .ok_or_else(|| format!("不支持的地址协议：{url}"))?;
+    let (host_port, path) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, "/"),
+    };
+    let (host, port) = match host_port.rsplit_once(':') {
+        Some((h, p)) => (h, p.parse::<u16>().unwrap_or(80)),
+        None => (host_port, 80u16),
+    };
+    let sock_addr = format!("{host}:{port}")
+        .to_socket_addrs()
+        .map_err(|e| format!("解析路由器地址失败：{e}"))?
+        .next()
+        .ok_or_else(|| "无法解析路由器地址".to_string())?;
+    let mut stream = std::net::TcpStream::connect_timeout(&sock_addr, Duration::from_secs(4))
+        .map_err(|e| format!("连接路由器失败：{e}"))?;
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+    let mut req = format!(
+        "{method} {path} HTTP/1.1\r\nHost: {host_port}\r\nUser-Agent: SimpleTools\r\nConnection: close\r\n"
+    );
+    for (k, v) in headers {
+        req.push_str(&format!("{k}: {v}\r\n"));
+    }
+    if !body.is_empty() {
+        req.push_str(&format!("Content-Length: {}\r\n", body.len()));
+    }
+    req.push_str("\r\n");
+    stream
+        .write_all(req.as_bytes())
+        .map_err(|e| format!("发送请求失败：{e}"))?;
+    if !body.is_empty() {
+        stream
+            .write_all(body)
+            .map_err(|e| format!("发送请求体失败：{e}"))?;
+    }
+    let mut raw = Vec::new();
+    let _ = stream.read_to_end(&mut raw); // Connection: close：读到 EOF
+    let text = String::from_utf8_lossy(&raw);
+    let (head, body_text) = match text.find("\r\n\r\n") {
+        Some(i) => (&text[..i], text[i + 4..].to_string()),
+        None => (&text[..], String::new()),
+    };
+    let status: u16 = head
+        .split_whitespace()
+        .nth(1)
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(0);
+    let chunked = http_header_value(head, "transfer-encoding")
+        .map(|v| v.to_ascii_lowercase().contains("chunked"))
+        .unwrap_or(false);
+    let body_out = if chunked { dechunk(&body_text) } else { body_text };
+    Ok((status, body_out))
+}
+
+/// 从设备描述 XML 解析 WAN 连接服务（WANIPConnection / WANPPPConnection）的控制地址
+fn parse_gateway_control(desc: &str, location: &str) -> Option<(String, String)> {
+    let mut pos = 0usize;
+    while let Some((_, value_start)) = xml_find_tag(&desc[pos..], "serviceType") {
+        let abs = pos + value_start;
+        let rest = &desc[abs..];
+        let end = rest.find('<').unwrap_or(rest.len());
+        let service = rest[..end].trim().to_string();
+        pos = abs + end;
+        if service.contains("WANIPConnection") || service.contains("WANPPPConnection") {
+            if let Some((_, cu_start)) = xml_find_tag(&desc[pos..], "controlURL") {
+                let cabs = pos + cu_start;
+                let crest = &desc[cabs..];
+                let cend = crest.find('<').unwrap_or(crest.len());
+                let control = crest[..cend].trim().to_string();
+                if !control.is_empty() {
+                    return Some((abs_url(location, &control), service));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// 拉取设备描述并解析网关控制信息
+fn fetch_gateway_control(location: &str) -> Result<(String, String), String> {
+    let (status, body) = http_request(location, "GET", &[], &[])?;
+    if status != 200 {
+        return Err(format!("读取路由器设备描述失败（HTTP {status}）"));
+    }
+    parse_gateway_control(&body, location).ok_or_else(|| {
+        "路由器描述中未找到 WAN 连接服务（WANIPConnection / WANPPPConnection）".to_string()
+    })
+}
+
+/// 发现网关控制信息：批量 SSDP 搜索后逐个尝试解析，首个成功即返回（控制地址, 服务类型）
+fn discover_gateway(timeout: Duration) -> Result<(String, String), String> {
+    let mut last_err =
+        String::from("未发现支持 UPnP 的路由器（SSDP 无响应）：可在路由器设置中开启 UPnP 后重试");
+    for loc in ssdp_search_all(&SSDP_TARGETS, timeout) {
+        match fetch_gateway_control(&loc) {
+            Ok(info) => return Ok(info),
+            Err(e) => last_err = e,
+        }
+    }
+    Err(last_err)
+}
+
+/// SOAP 调用（UPnP 控制协议）
+fn soap_call(control_url: &str, service: &str, action: &str, args: &str) -> Result<String, String> {
+    let body = format!(
+        "<?xml version=\"1.0\"?>\r\n<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:{action} xmlns:u=\"{service}\">{args}</u:{action}></s:Body></s:Envelope>"
+    );
+    let soap_action = format!("\"{service}#{action}\"");
+    let (status, resp) = http_request(
+        control_url,
+        "POST",
+        &[
+            ("Content-Type", "text/xml; charset=\"utf-8\""),
+            ("SOAPAction", soap_action.as_str()),
+        ],
+        body.as_bytes(),
+    )?;
+    if status != 200 {
+        let code = xml_tag_value(&resp, "errorCode").unwrap_or_default();
+        let desc = xml_tag_value(&resp, "errorDescription").unwrap_or_default();
+        return Err(format!("路由器返回错误（HTTP {status} {code} {desc}）"));
+    }
+    Ok(resp)
+}
+
+/// 查询路由器外网地址（GetExternalIPAddress）
+fn upnp_external_ip(control: &str, service: &str) -> Result<String, String> {
+    let resp = soap_call(control, service, "GetExternalIPAddress", "")?;
+    xml_tag_value(&resp, "NewExternalIPAddress").ok_or_else(|| "路由器未返回外网地址".to_string())
+}
+
+/// 添加端口映射（AddPortMapping；租约 0 = 永久）
+fn upnp_add_port(control: &str, service: &str, port: u16, local_ip: Ipv4Addr) -> Result<(), String> {
+    let args = format!(
+        "<NewRemoteHost></NewRemoteHost><NewExternalPort>{port}</NewExternalPort><NewProtocol>TCP</NewProtocol><NewInternalPort>{port}</NewInternalPort><NewInternalClient>{local_ip}</NewInternalClient><NewEnabled>1</NewEnabled><NewPortMappingDescription>SimpleTools Mock Server</NewPortMappingDescription><NewLeaseDuration>0</NewLeaseDuration>"
+    );
+    soap_call(control, service, "AddPortMapping", &args).map(|_| ())
+}
+
+/// 删除端口映射（DeletePortMapping）
+fn upnp_delete_port(control: &str, service: &str, port: u16) -> Result<(), String> {
+    let args = format!(
+        "<NewRemoteHost></NewRemoteHost><NewExternalPort>{port}</NewExternalPort><NewProtocol>TCP</NewProtocol>"
+    );
+    soap_call(control, service, "DeletePortMapping", &args).map(|_| ())
+}
+
+/// 尝试通过路由器 UPnP（自实现 SSDP + SOAP）自动开放外网端口（阻塞调用，在 blocking 线程中执行）
 fn try_upnp_map(port: u16, local_ip: Ipv4Addr) -> UpnpStatus {
-    let mut opts = igd::SearchOptions::default();
-    opts.timeout = Some(Duration::from_secs(3));
-    let gateway = match igd::search_gateway(opts) {
-        Ok(g) => g,
+    let (control, service) = match discover_gateway(Duration::from_secs(2)) {
+        Ok(v) => v,
         Err(e) => {
             return UpnpStatus {
                 state: "unsupported".into(),
                 public_url: String::new(),
-                message: format!(
-                    "未发现支持 UPnP 的路由器（{e}）：可在路由器设置中开启 UPnP / 端口映射后重试"
-                ),
+                message: e,
             };
         }
     };
-    let external_ip = match gateway.get_external_ip() {
+    let external = match upnp_external_ip(&control, &service) {
         Ok(ip) => ip,
         Err(e) => {
             return UpnpStatus {
@@ -481,8 +765,19 @@ fn try_upnp_map(port: u16, local_ip: Ipv4Addr) -> UpnpStatus {
             };
         }
     };
+    let Ok(external_ip) = external.trim().parse::<Ipv4Addr>() else {
+        return UpnpStatus {
+            state: "failed".into(),
+            public_url: String::new(),
+            message: format!("路由器返回的公网地址无法解析：{external}"),
+        };
+    };
     // 运营商共享公网（CGNAT）：路由器 WAN 侧为内网地址 → 外网无法直连
-    if external_ip.is_private() || external_ip.is_loopback() || external_ip.is_link_local() {
+    if external_ip.is_private()
+        || external_ip.is_loopback()
+        || external_ip.is_link_local()
+        || external_ip.is_unspecified()
+    {
         return UpnpStatus {
             state: "cgnat".into(),
             public_url: String::new(),
@@ -491,33 +786,24 @@ fn try_upnp_map(port: u16, local_ip: Ipv4Addr) -> UpnpStatus {
             ),
         };
     }
-    let local = SocketAddrV4::new(local_ip, port);
-    match gateway.add_port(
-        igd::PortMappingProtocol::TCP,
-        port,
-        local,
-        0, // 永久租约
-        "SimpleTools Mock Server",
-    ) {
-        Ok(_) => UpnpStatus {
-            state: "mapped".into(),
-            public_url: format!("http://{external_ip}:{port}"),
-            message: format!("已通过路由器 UPnP 自动开放外网端口（{local_ip}:{port}）"),
-        },
-        Err(e) => UpnpStatus {
+    if let Err(e) = upnp_add_port(&control, &service, port, local_ip) {
+        return UpnpStatus {
             state: "failed".into(),
             public_url: String::new(),
             message: format!("路由器端口映射失败：{e}"),
-        },
+        };
+    }
+    UpnpStatus {
+        state: "mapped".into(),
+        public_url: format!("http://{external_ip}:{port}"),
+        message: format!("已通过路由器 UPnP 自动开放外网端口（{local_ip}:{port}）"),
     }
 }
 
-/// 移除 UPnP 端口映射（尽力而为，失败忽略）
+/// 移除 UPnP 端口映射（自实现；重新发现网关后删除，尽力而为）
 fn try_upnp_unmap(port: u16) {
-    let mut opts = igd::SearchOptions::default();
-    opts.timeout = Some(Duration::from_secs(3));
-    if let Ok(gateway) = igd::search_gateway(opts) {
-        let _ = gateway.remove_port(igd::PortMappingProtocol::TCP, port);
+    if let Ok((control, service)) = discover_gateway(Duration::from_secs(2)) {
+        let _ = upnp_delete_port(&control, &service, port);
     }
 }
 
@@ -886,6 +1172,106 @@ mod tests {
         assert!(!is_global_ipv6(&"fd00::1".parse::<Ipv6Addr>().unwrap()));
         assert!(!is_global_ipv6(&"fc00::1".parse::<Ipv6Addr>().unwrap()));
         assert!(!is_global_ipv6(&"ff02::1".parse::<Ipv6Addr>().unwrap()));
+    }
+
+    /// XML 宽松解析（v0.40.0）：普通标签 / 命名空间前缀 / 缺失
+    #[test]
+    fn xml_parse_helpers() {
+        use super::{xml_find_tag, xml_tag_value};
+        assert_eq!(
+            xml_tag_value("<a><Ip>1.2.3.4</Ip></a>", "Ip"),
+            Some("1.2.3.4".into())
+        );
+        assert_eq!(
+            xml_tag_value(
+                "<u:Envelope><u:NewExternalIPAddress>5.6.7.8</u:NewExternalIPAddress></u:Envelope>",
+                "NewExternalIPAddress"
+            ),
+            Some("5.6.7.8".into())
+        );
+        assert_eq!(xml_tag_value("<a></a>", "Ip"), None);
+        assert!(xml_find_tag("<a><b>x</b>", "b").is_some());
+        assert!(xml_find_tag("<a><ns:b>x</ns:b>", "b").is_some());
+        assert!(xml_find_tag("<a><nb>x</nb>", "b").is_none());
+    }
+
+    /// HTTP 头解析（SSDP 响应 / SOAP 响应头）：大小写不敏感
+    #[test]
+    fn http_header_helpers() {
+        use super::http_header_value;
+        let resp = "HTTP/1.1 200 OK\r\nLOCATION: http://192.168.1.1:5000/rootDesc.xml\r\nServer: MiniUPnPd\r\n\r\n";
+        assert_eq!(
+            http_header_value(resp, "location").as_deref(),
+            Some("http://192.168.1.1:5000/rootDesc.xml")
+        );
+        assert_eq!(
+            http_header_value(resp, "LOCATION").as_deref(),
+            Some("http://192.168.1.1:5000/rootDesc.xml")
+        );
+        assert_eq!(http_header_value(resp, "missing"), None);
+    }
+
+    /// controlURL 相对路径拼接成绝对地址
+    #[test]
+    fn abs_url_join() {
+        use super::abs_url;
+        assert_eq!(
+            abs_url("http://192.168.1.1:5000/rootDesc.xml", "/ctl/IPConn"),
+            "http://192.168.1.1:5000/ctl/IPConn"
+        );
+        assert_eq!(
+            abs_url("http://192.168.1.1/rootDesc.xml", "upnp/control"),
+            "http://192.168.1.1/upnp/control"
+        );
+        assert_eq!(
+            abs_url("http://192.168.1.1/rootDesc.xml", "http://other/x"),
+            "http://other/x"
+        );
+    }
+
+    /// 设备描述解析：找到 WANIPConnection 的 controlURL（相对路径 + 服务类型）
+    #[test]
+    fn gateway_desc_parse() {
+        use super::parse_gateway_control;
+        let desc = r#"<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+    <deviceList>
+      <device>
+        <deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>
+        <deviceList>
+          <device>
+            <deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>
+            <serviceList>
+              <service>
+                <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+                <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
+                <controlURL>/upnp/control/WANIPConn1</controlURL>
+                <eventSubURL>/upnp/event/WANIPConn1</eventSubURL>
+                <SCPDURL>/WANIPCn.xml</SCPDURL>
+              </service>
+            </serviceList>
+          </device>
+        </deviceList>
+      </device>
+    </deviceList>
+  </device>
+</root>"#;
+        let (control, service) =
+            parse_gateway_control(desc, "http://192.168.1.1:5000/rootDesc.xml")
+                .expect("应解析出网关控制地址");
+        assert_eq!(control, "http://192.168.1.1:5000/upnp/control/WANIPConn1");
+        assert_eq!(service, "urn:schemas-upnp-org:service:WANIPConnection:1");
+        assert!(parse_gateway_control("<root></root>", "http://x/").is_none());
+    }
+
+    /// chunked 解码
+    #[test]
+    fn dechunk_basic() {
+        use super::dechunk;
+        assert_eq!(dechunk("5\r\nhello\r\n0\r\n\r\n"), "hello");
+        assert_eq!(dechunk("3\r\nabc\r\n4\r\ndefg\r\n0\r\n\r\n"), "abcdefg");
     }
 
     /// 正文文本化：超限截断且落在 UTF-8 边界（中文多字节安全）

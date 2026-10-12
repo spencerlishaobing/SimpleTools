@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.39.0"
+version = "0.40.0"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"
@@ -42,7 +42,6 @@ local-ip-address = "0.6"
 # 抓包：记录正文时解压（gzip / deflate / brotli，均为纯 Rust 实现）
 flate2 = "1"
 brotli = "8"
-igd = "0.12.1"
 
 # Windows Hello 身份校验（v0.19.0）：UserConsentVerifier + IUserConsentVerifierInterop
 # （版本与 tauri 间接依赖的 windows 0.62 / windows-future 0.3 保持一致，共享 HWND 类型）
