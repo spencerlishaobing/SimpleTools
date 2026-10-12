@@ -4,6 +4,7 @@ mod capture;
 mod datadir;
 mod history;
 mod md5calc;
+mod mock;
 mod notes;
 mod textfile;
 mod titlebar;
@@ -15,6 +16,12 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(capture::CaptureState::default())
+        .manage(mock::MockState::default())
+        .setup(|app| {
+            // 模拟服务器：启动时载入已保存的接口规则（数据目录 mock-rules.json）
+            mock::init_load(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             accounts::accounts_load,
             accounts::accounts_save,
@@ -50,7 +57,16 @@ pub fn run() {
             capture::capture_list,
             capture::capture_detail,
             capture::capture_clear,
-            capture::capture_export_ca
+            capture::capture_export_ca,
+            mock::mock_info,
+            mock::mock_start,
+            mock::mock_stop,
+            mock::mock_rules,
+            mock::mock_rule_add,
+            mock::mock_rule_delete,
+            mock::mock_requests,
+            mock::mock_request_detail,
+            mock::mock_clear_requests
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

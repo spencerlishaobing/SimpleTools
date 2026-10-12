@@ -19,7 +19,7 @@
         }
         // 尽早应用功能显隐（v0.35.2：默认仅显示「记事本」与「账号密码」），避免启动时侧边栏功能闪动
         // 生成临时引导样式，main.js 启动后移除并由 nav-hidden class 接管；默认集合需与 main.js 的 NAV_HIDDEN_DEFAULT 保持一致
-        var NH_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture'];
+        var NH_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock'];
         var nhList = NH_DEFAULT;
         var nhRaw = localStorage.getItem('simpletools-nav-hidden');
         if (nhRaw !== null) {
@@ -118,6 +118,16 @@
         </svg>
         <span class="nav-label">抓包</span>
       </button>
+      <button class="nav-item" data-panel="mock">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+          <line x1="6" y1="6" x2="6.01" y2="6" />
+          <line x1="6" y1="18" x2="6.01" y2="18" />
+        </svg>
+        <span class="nav-label">模拟服务器</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="theme-toggle" id="theme-toggle" title="切换主题（浅色 / 深色 / 深浅混搭 / 卡其色）">
@@ -160,7 +170,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.35.2 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.36.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -626,6 +636,57 @@
         </div>
       </div>
     </section>
+    <!-- ===== 模拟服务器 ===== -->
+    <section id="panel-mock" class="panel">
+      <header class="panel-header">
+        <h2>模拟服务器</h2>
+        <div class="panel-actions">
+          <span id="mock-status" class="mock-status"><i class="mock-dot"></i>已停止</span>
+          <button class="btn small" id="mock-clear" title="清空已记录的请求">清空记录</button>
+          <button class="btn primary small" id="mock-toggle">启动服务</button>
+        </div>
+      </header>
+      <div class="mock-guide">
+        <div class="mock-guide-head">
+          <span class="mock-guide-title">客户端接口地址</span>
+          <span class="mock-guide-addr">http://<b id="mock-ip">—</b>:<b id="mock-port">8899</b></span>
+        </div>
+        <div class="mock-guide-hint">把客户端（App / 浏览器 / 其他设备）的接口地址指向该地址即可；同网段直接访问，跨网段或外网可用内网穿透工具（frp / ngrok 等）转发本端口</div>
+      </div>
+      <div class="mock-rules">
+        <div class="mock-rules-head">
+          <span class="mock-rules-title">模拟接口</span>
+          <span class="mock-rules-count" id="mock-rule-count">0 个</span>
+          <button class="btn small" id="mock-rule-add-btn">添加接口</button>
+        </div>
+        <div class="mock-rule-form hidden" id="mock-rule-form">
+          <select id="mock-rule-method" class="mock-select" title="请求方法">
+            <option value="ANY">ANY</option>
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+            <option value="PATCH">PATCH</option>
+            <option value="HEAD">HEAD</option>
+          </select>
+          <input id="mock-rule-path" class="mock-input mock-input-path" placeholder="接口路径：/api/login（* 结尾前缀匹配，如 /api/*）" spellcheck="false" />
+          <input id="mock-rule-status" class="mock-input mock-input-status" type="number" min="100" max="599" value="200" title="命中后返回的状态码" />
+          <input id="mock-rule-body" class="mock-input mock-input-body" placeholder='响应体（默认 {"code":0,"message":"ok"}）' spellcheck="false" />
+          <button class="btn primary small" id="mock-rule-save">添加</button>
+          <button class="btn small" id="mock-rule-cancel">取消</button>
+        </div>
+        <div class="mock-rule-list" id="mock-rule-list"></div>
+        <div class="mock-rule-empty" id="mock-rule-empty">还没有模拟接口 —— 点「添加接口」配置（如 /api/login）；未配置路径的请求也会记录并返回 404</div>
+      </div>
+      <div class="mock-toolbar">
+        <span class="mock-count" id="mock-count">0 条请求</span>
+        <span class="mock-toolbar-hint">点击记录行展开请求头与请求参数</span>
+      </div>
+      <div class="mock-list-wrap">
+        <div class="mock-list" id="mock-list"></div>
+        <div class="mock-empty" id="mock-empty">暂无请求。启动服务后，客户端向上述地址发起的请求会实时显示在这里</div>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -663,6 +724,7 @@
                 <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg><span>字符串转换</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 21 3.5 4 7.5 11 11.5 4 11.5 21" /><line x1="17.5" y1="4" x2="17.5" y2="21" /><polyline points="13.5 17 17.5 21 21.5 17" /></svg><span>Markdown 预览</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="capture" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg><span>抓包</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="mock" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg><span>模拟服务器</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
               </div>
             </div>
           </div>
@@ -848,6 +910,7 @@
   <script src="modules/str.js"></script>
   <script src="modules/markdown.js"></script>
   <script src="modules/capture.js"></script>
+  <script src="modules/mock.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

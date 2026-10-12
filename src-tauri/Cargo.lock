@@ -3749,12 +3749,14 @@ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
 
 [[package]]
 name = "simpletools"
-version = "0.35.2"
+version = "0.36.0"
 dependencies = [
  "brotli 8.0.4",
  "flate2",
  "http-body-util",
  "hudsucker",
+ "hyper",
+ "hyper-util",
  "local-ip-address",
  "md-5",
  "serde",
