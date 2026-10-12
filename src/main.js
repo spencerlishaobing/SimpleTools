@@ -146,6 +146,9 @@
   const NAV_STYLE_KEY = 'simpletools-nav-style';
   const NAV_HIDDEN_KEY = 'simpletools-nav-hidden';
   const NAV_STYLE_ALL = ['both', 'icon', 'label'];
+  // 默认隐藏的功能（v0.35.2）：默认仅显示「记事本」与「账号密码」，其余功能可在设置中勾选恢复
+  // 注意：需与 index.html head 内联脚本的 NH_DEFAULT 保持一致
+  const NAV_HIDDEN_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture'];
   const navStyleGroup = document.getElementById('nav-style-group');
   const navFeatureGrid = document.getElementById('nav-feature-grid');
   const htmlRoot = document.documentElement;
@@ -161,17 +164,20 @@
 
   const navHidden = (function () {
     try {
-      const arr = JSON.parse(localStorage.getItem(NAV_HIDDEN_KEY) || '[]');
+      const raw = localStorage.getItem(NAV_HIDDEN_KEY);
+      // 未配置过（首次运行）：默认仅显示核心功能；已配置过：完全按用户选择（空数组 = 全部显示）
+      if (raw === null) return new Set(NAV_HIDDEN_DEFAULT);
+      const arr = JSON.parse(raw);
       return new Set(Array.isArray(arr) ? arr.filter((k) => typeof k === 'string') : []);
     } catch (e) {
-      return new Set();
+      return new Set(NAV_HIDDEN_DEFAULT);
     }
   })();
 
   function writeNavHidden() {
     try {
-      if (navHidden.size) localStorage.setItem(NAV_HIDDEN_KEY, JSON.stringify([...navHidden]));
-      else localStorage.removeItem(NAV_HIDDEN_KEY);
+      // 始终写入（含空数组）：空数组 = 全部显示，与「未配置」的默认隐藏语义区分
+      localStorage.setItem(NAV_HIDDEN_KEY, JSON.stringify([...navHidden]));
     } catch (e) { /* ignore */ }
   }
 
@@ -242,6 +248,11 @@
 
   applyNavStyle(readNavStyle());
   applyNavHidden();
+  // 引导样式（head 内联生成）已完成首帧隐藏使命，移除后由 nav-hidden class 接管
+  const navBootStyle = document.getElementById('nav-hidden-boot');
+  if (navBootStyle) navBootStyle.remove();
+  // 启动兜底：默认激活的面板被用户配置隐藏时，自动切到第一个可见功能
+  ensureActiveNav();
 
   // ---------- 主题切换（浅色 / 深色 / 深浅混搭 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
   const THEME_KEY = 'simpletools-theme';
