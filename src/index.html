@@ -141,7 +141,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.35.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.35.1 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -570,6 +570,7 @@
           <span class="cap-step">2. 手机 Wi-Fi 代理设为 <b id="cap-ip">—</b> 端口 <b id="cap-port">8888</b></span>
           <span class="cap-step">3. 安装「导出证书」的根证书（HTTPS 必需）</span>
         </div>
+        <button class="cap-help-link" id="cap-help-open">使用教程</button>
       </div>
       <div class="cap-toolbar">
         <div class="cap-filters" id="cap-filters">
@@ -743,6 +744,64 @@
       <div class="modal-message" id="auth-tip">请完成 Windows Hello 验证以继续</div>
       <div class="modal-actions">
         <button class="btn primary" id="auth-ok">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 抓包使用教程弹窗（v0.35.1）：分步说明手机代理设置与根证书安装，动态显示本机代理地址 -->
+  <div id="cap-help-modal" class="modal-mask hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="cap-help-title">
+      <div class="modal-title" id="cap-help-title">抓包使用教程</div>
+      <div class="cap-help-body">
+        <div class="cap-help-intro">本工具在电脑上运行 HTTP / HTTPS 抓包代理：手机与电脑连接同一 Wi-Fi，把手机 Wi-Fi 的代理指向电脑，即可实时查看手机上 App / 浏览器的全部请求（类似 Fiddler）。仅用于调试自己的应用或学习研究，请勿用于其他用途。</div>
+
+        <div class="cap-help-sec">
+          <div class="cap-help-sec-title">1. 电脑端启动抓包</div>
+          <ul>
+            <li>点击右上角「启动抓包」，状态显示「抓包中」即已就绪。</li>
+            <li>本机代理地址：<code><span data-cap-ip>—</span> : <span data-cap-port>8888</span></code>，手机代理填写此地址。</li>
+            <li>首次启动如弹出 Windows 防火墙提示，请勾选「专用网络」并允许访问，否则手机无法连接。</li>
+          </ul>
+        </div>
+
+        <div class="cap-help-sec">
+          <div class="cap-help-sec-title">2. 手机设置代理（与电脑连同一 Wi-Fi）</div>
+          <ul>
+            <li><b>Android</b>：设置 → WLAN → 长按当前 Wi-Fi → 修改网络 → 高级选项 → 代理：手动 → 主机名填 <code data-cap-ip>—</code>、端口填 <code data-cap-port>8888</code> → 保存（不同品牌路径略有差异）。</li>
+            <li><b>iPhone</b>：设置 → 无线局域网 → 点当前 Wi-Fi 右侧的蓝色信息按钮 → 配置代理 → 手动 → 服务器填 <code data-cap-ip>—</code>、端口填 <code data-cap-port>8888</code> → 存储。</li>
+          </ul>
+        </div>
+
+        <div class="cap-help-sec">
+          <div class="cap-help-sec-title">3. 安装根证书（查看 HTTPS 明文必需）</div>
+          <ul>
+            <li>HTTP 明文请求无需证书；HTTPS 为加密流量，安装并信任本工具根证书后才能查看明文内容。</li>
+            <li><b>Android</b>：点「导出证书」保存文件 → 通过微信 / QQ / 数据线等发送到手机 → 设置 → 安全 → 加密与凭据 → 安装证书 → CA 证书 → 选择该文件。</li>
+            <li><b>iPhone</b>：点「导出证书」保存文件 → 发送到手机后用「文件」App 打开并安装描述文件（设置 → 通用 → VPN 与设备管理 → 安装，输入锁屏密码）→ 再到 设置 → 通用 → 关于本机 → 证书信任设置 中开启该证书的「完全信任」（关键步骤，漏掉则 HTTPS 仍报错）。</li>
+            <li>Android 7.0 以上系统部分 App（自带证书校验 / SSL Pinning）即使安装证书也无法查看明文，属正常现象。</li>
+          </ul>
+        </div>
+
+        <div class="cap-help-sec">
+          <div class="cap-help-sec-title">4. 验证</div>
+          <ul>
+            <li>手机浏览器打开任意网页，列表实时出现请求即为成功；点击条目查看请求头 / 请求体 / 响应头 / 响应体详情，可一键复制。</li>
+            <li>顶部支持「全部 / 成功 / 失败」过滤与关键字搜索，快速定位目标接口。</li>
+          </ul>
+        </div>
+
+        <div class="cap-help-sec">
+          <div class="cap-help-sec-title">常见问题</div>
+          <ul>
+            <li>列表一直为空：确认「启动抓包」已开启、手机与电脑在同一 Wi-Fi、代理地址与端口填写正确。</li>
+            <li>HTTPS 网页打不开或提示证书错误：根证书未安装或未信任（iPhone 需在「证书信任设置」中开启完全信任）。</li>
+            <li>抓包结束后请在手机上关闭代理，否则手机将无法上网。</li>
+            <li>记录保存在内存中（上限 2000 条），重启应用自动清空；根证书长期有效，无需重复安装。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cap-help-close">知道了</button>
       </div>
     </div>
   </div>

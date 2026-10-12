@@ -4037,6 +4037,22 @@ textarea[readonly] {
   font-family: var(--mono);
 }
 
+/* 「使用教程」入口（v0.35.1：指引条右侧文字链接） */
+.cap-help-link {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.cap-help-link:hover {
+  text-decoration: underline;
+}
+
 /* 过滤 / 搜索工具条 */
 .cap-toolbar {
   display: flex;
@@ -4386,4 +4402,64 @@ textarea[readonly] {
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text);
+}
+
+/* ===== 抓包使用教程弹窗（v0.35.1：分步教程＋常见问题，内容区可滚动） ===== */
+#cap-help-modal .modal-card {
+  width: 520px;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cap-help-body {
+  overflow-y: auto;
+  margin: 2px 0 14px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.cap-help-intro {
+  margin-bottom: 12px;
+}
+
+.cap-help-sec {
+  margin-bottom: 12px;
+}
+
+.cap-help-sec:last-child {
+  margin-bottom: 0;
+}
+
+.cap-help-sec-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.cap-help-sec ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cap-help-sec li {
+  word-break: break-word;
+}
+
+.cap-help-sec b {
+  color: var(--text);
+}
+
+.cap-help-sec code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--primary);
+  background: var(--panel-bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 0 4px;
 }

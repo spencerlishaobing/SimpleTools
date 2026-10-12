@@ -30,6 +30,9 @@
   const tabsEl = document.getElementById('cap-tabs');
   const tabContentEl = document.getElementById('cap-tab-content');
   const tabCopyBtn = document.getElementById('cap-tab-copy');
+  const helpOpenBtn = document.getElementById('cap-help-open');
+  const helpMask = document.getElementById('cap-help-modal');
+  const helpCloseBtn = document.getElementById('cap-help-close');
 
   /** 列表最多渲染的行数（内存记录本身由后端控制上限） */
   const MAX_ROWS = 1000;
@@ -302,6 +305,14 @@
     ipEl.textContent = addrs.length ? addrs[0] : '本机 IP';
     ipEl.title = addrs.length ? ('本机局域网 IP：' + addrs.join(' / ')) : '未检测到局域网 IP（请确认已连接网络）';
     portEl.textContent = info.port;
+    // 教程弹窗内的动态代理地址同步（多处引用：总览 / Android / iPhone 步骤）
+    const ipText = addrs.length ? addrs[0] : '本机 IP';
+    document.querySelectorAll('#cap-help-modal [data-cap-ip]').forEach(function (el) {
+      el.textContent = ipText;
+    });
+    document.querySelectorAll('#cap-help-modal [data-cap-port]').forEach(function (el) {
+      el.textContent = String(info.port);
+    });
   }
 
   async function refreshInfo() {
@@ -435,6 +446,20 @@
     const text = tabText(state.detail, state.tab);
     if (!text) return;
     window.copyText(text);
+  });
+
+  // 使用教程弹窗：打开 / 关闭（点击遮罩或「知道了」关闭）
+  helpOpenBtn.addEventListener('click', function () {
+    helpMask.classList.remove('hidden');
+    helpCloseBtn.focus();
+  });
+
+  helpCloseBtn.addEventListener('click', function () {
+    helpMask.classList.add('hidden');
+  });
+
+  helpMask.addEventListener('click', function (e) {
+    if (e.target === helpMask) helpMask.classList.add('hidden');
   });
 
   // 面板由隐藏变为可见：刷新运行状态；首次打开时回填已捕获记录
