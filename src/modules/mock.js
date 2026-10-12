@@ -15,6 +15,15 @@
   const clearBtn = document.getElementById('mock-clear');
   const ipEl = document.getElementById('mock-ip');
   const portEl = document.getElementById('mock-port');
+  const copyLanBtn = document.getElementById('mock-copy-lan');
+  const upnpBadgeEl = document.getElementById('mock-upnp-badge');
+  const publicUrlEl = document.getElementById('mock-public-url');
+  const copyPublicBtn = document.getElementById('mock-copy-public');
+  const retryBtn = document.getElementById('mock-upnp-retry');
+  const upnpMsgEl = document.getElementById('mock-upnp-msg');
+  const v6LineEl = document.getElementById('mock-v6-line');
+  const v6UrlEl = document.getElementById('mock-v6-url');
+  const copyV6Btn = document.getElementById('mock-copy-v6');
   const ruleCountEl = document.getElementById('mock-rule-count');
   const ruleAddBtn = document.getElementById('mock-rule-add-btn');
   const ruleFormEl = document.getElementById('mock-rule-form');
@@ -42,6 +51,8 @@
     rules: [],        // MockRule 列表
     requests: [],     // MockRequestBrief 列表
     lastIp: '',       // 当前展示的本机 IP（复制接口地址用）
+    upnp: null,       // 最近一次 UPnP 穿透状态
+    v6Url: '',        // 公网 IPv6 访问地址（无则空）
   };
 
   let pendingBuf = [];
@@ -224,6 +235,37 @@
 
   // ---------- 运行状态 ----------
 
+  /** UPnP 穿透状态标签（中文） */
+  const UPnP_LABEL = {
+    idle: '未检测',
+    pending: '检测中',
+    mapped: '已开放',
+    unsupported: '路由器不支持',
+    failed: '失败',
+    cgnat: '共享公网',
+  };
+
+  /** 重试按钮可见性：服务运行中且处于可重试的失败类状态（v0.39.0） */
+  function updateRetryVisible() {
+    const stState = (state.upnp && state.upnp.state) || 'idle';
+    const canRetry = state.running && ['unsupported', 'failed', 'cgnat'].indexOf(stState) >= 0;
+    retryBtn.classList.toggle('hidden', !canRetry);
+  }
+
+  /** 渲染 UPnP 穿透状态（事件 mock-upnp / 面板刷新时调用） */
+  function renderUpnp(st) {
+    if (!st) return;
+    state.upnp = st;
+    upnpBadgeEl.textContent = UPnP_LABEL[st.state] || st.state || '未检测';
+    upnpBadgeEl.className = 'mock-upnp-badge s-' + (st.state || 'idle');
+    publicUrlEl.textContent = st.public_url || '—';
+    publicUrlEl.classList.toggle('is-dim', !st.public_url);
+    copyPublicBtn.classList.toggle('hidden', !st.public_url);
+    upnpMsgEl.textContent = st.message ||
+      '启动服务后会自动通过路由器 UPnP 开放外网端口（无需第三方软件）；运营商支持 IPv6 时外网设备可直接访问';
+    updateRetryVisible();
+  }
+
   function applyInfo(info) {
     if (!info) return;
     state.running = !!info.running;
@@ -237,6 +279,20 @@
     ipEl.textContent = addrs.length ? addrs[0] : '本机 IP';
     ipEl.title = addrs.length ? ('本机局域网 IP：' + addrs.join(' / ')) : '未检测到局域网 IP（请确认已连接网络）';
     portEl.textContent = info.port;
+    copyLanBtn.classList.toggle('hidden', !state.lastIp);
+    // UPnP 穿透状态（v0.39.0）：内网地址之外自动尝试开放外网端口
+    renderUpnp(info.upnp || { state: 'idle', public_url: '', message: '' });
+    // 公网 IPv6（v0.39.0）：运营商支持时外网（IPv6）设备可直接访问
+    const v6 = info.ipv6 || [];
+    if (v6.length) {
+      v6LineEl.classList.remove('hidden');
+      v6UrlEl.textContent = 'http://[' + v6[0] + ']:' + info.port;
+      v6UrlEl.title = v6.length > 1 ? ('本机公网 IPv6：\n' + v6.join('\n')) : '支持 IPv6 的外网设备可直接访问';
+      state.v6Url = 'http://[' + v6[0] + ']:' + info.port;
+    } else {
+      v6LineEl.classList.add('hidden');
+      state.v6Url = '';
+    }
   }
 
   async function refreshInfo() {
@@ -329,6 +385,30 @@
     if (e.key === 'Enter') saveRule();
   });
 
+  // 地址复制与 UPnP 重试（v0.39.0）
+  copyLanBtn.addEventListener('click', function () {
+    if (state.lastIp) window.copyText('http://' + state.lastIp + ':' + portEl.textContent);
+  });
+  copyPublicBtn.addEventListener('click', function () {
+    if (state.upnp && state.upnp.public_url) window.copyText(state.upnp.public_url);
+  });
+  copyV6Btn.addEventListener('click', function () {
+    if (state.v6Url) window.copyText(state.v6Url);
+  });
+  retryBtn.addEventListener('click', async function () {
+    if (!invoke || retryBtn.disabled) return;
+    retryBtn.disabled = true;
+    renderUpnp({ state: 'pending', public_url: '', message: '正在重新检测路由器…' });
+    try {
+      const st = await invoke('mock_public_retry');
+      renderUpnp(st);
+    } catch (e) {
+      window.toast('重试失败：' + (e && e.message ? e.message : e));
+      await refreshInfo();
+    }
+    retryBtn.disabled = false;
+  });
+
   // 规则行：复制完整接口地址 / 删除（确认弹窗）
   ruleListEl.addEventListener('click', async function (e) {
     const copyBtn = e.target.closest('.mock-rule-copy');
@@ -419,6 +499,9 @@
   if (listenFn) {
     listenFn('mock-request', function (ev) {
       onRequest(ev.payload);
+    });
+    listenFn('mock-upnp', function (ev) {
+      renderUpnp(ev.payload);
     });
   }
   refreshInfo();

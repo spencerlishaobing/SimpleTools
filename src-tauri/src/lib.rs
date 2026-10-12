@@ -68,6 +68,7 @@ pub fn run() {
             mock::mock_requests,
             mock::mock_request_detail,
             mock::mock_clear_requests,
+            mock::mock_public_retry,
             db::db_open,
             db::db_query
         ])

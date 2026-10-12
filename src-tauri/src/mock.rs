@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
     fs,
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4},
     path::PathBuf,
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -104,6 +104,17 @@ pub struct MockRequestFull {
     pub body_truncated: bool,
 }
 
+/// UPnP 自动穿透状态（v0.39.0：通过路由器 IGD 协议自动开放外网端口，无需第三方软件）
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct UpnpStatus {
+    /// idle（未检测）/ pending（检测中）/ mapped（已映射）/ cgnat（运营商共享公网，无法直连）/ unsupported（路由器不支持）/ failed（映射失败）
+    pub state: String,
+    /// 公网访问地址（mapped 时：http://公网IP:端口）
+    pub public_url: String,
+    /// 状态说明 / 失败原因
+    pub message: String,
+}
+
 /// 运行信息（面板展示）
 #[derive(Debug, Clone, Serialize)]
 pub struct MockInfo {
@@ -112,6 +123,10 @@ pub struct MockInfo {
     /// 本机局域网 IPv4 列表（客户端接口地址填其一）
     pub addrs: Vec<String>,
     pub rule_count: usize,
+    /// 本机公网 IPv6 地址列表（运营商支持时外网（IPv6）可直接访问，无需穿透）
+    pub ipv6: Vec<String>,
+    /// UPnP 自动穿透状态
+    pub upnp: UpnpStatus,
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +154,8 @@ pub struct MockState {
     /// 规则列表（Arc 共享：服务运行中新增 / 删除的规则即时生效）
     rules: Arc<Mutex<Vec<MockRule>>>,
     runtime: Mutex<Runtime>,
+    /// UPnP 自动穿透状态（服务启动后异步更新，事件 mock-upnp 推送前端）
+    upnp: Arc<Mutex<UpnpStatus>>,
 }
 
 /// 应用启动时载入已保存的规则（lib.rs setup 调用）
@@ -402,6 +419,108 @@ fn local_ipv4s() -> Vec<String> {
     ips
 }
 
+/// 是否为公网 IPv6 地址（2000::/3 全球单播，过滤回环 / 链路本地 / ULA）
+fn is_global_ipv6(v6: &Ipv6Addr) -> bool {
+    let seg = v6.segments()[0];
+    !v6.is_loopback() && !v6.is_unicast_link_local() && (seg & 0xe000) == 0x2000
+}
+
+/// 本机公网 IPv6 地址列表（运营商支持时，外网（IPv6）设备可直接访问，无需穿透）
+fn public_ipv6s() -> Vec<String> {
+    let mut ips: Vec<String> = local_ip_address::list_afinet_netifas()
+        .map(|list| {
+            list.into_iter()
+                .filter_map(|(_, ip)| match ip {
+                    IpAddr::V6(v6) if is_global_ipv6(&v6) => Some(v6.to_string()),
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    ips.sort();
+    ips
+}
+
+/// 主局域网 IPv4（与 local_ipv4s 排序后第一个一致；UPnP 映射的目标地址）
+fn primary_ipv4() -> Option<Ipv4Addr> {
+    local_ip_address::list_afinet_netifas()
+        .ok()?
+        .into_iter()
+        .filter_map(|(_, ip)| match ip {
+            IpAddr::V4(v4) if !v4.is_loopback() && !v4.is_link_local() => Some(v4),
+            _ => None,
+        })
+        .min()
+}
+
+/// 尝试通过路由器 UPnP（IGD 协议）自动开放外网端口（阻塞调用，在 blocking 线程中执行）。
+/// 流程：SSDP 发现网关 → 获取路由器公网地址 → 添加 TCP 端口映射（永久租约）。
+/// 无需任何第三方软件 / 公网服务器。
+fn try_upnp_map(port: u16, local_ip: Ipv4Addr) -> UpnpStatus {
+    let mut opts = igd::SearchOptions::default();
+    opts.timeout = Some(Duration::from_secs(3));
+    let gateway = match igd::search_gateway(opts) {
+        Ok(g) => g,
+        Err(e) => {
+            return UpnpStatus {
+                state: "unsupported".into(),
+                public_url: String::new(),
+                message: format!(
+                    "未发现支持 UPnP 的路由器（{e}）：可在路由器设置中开启 UPnP / 端口映射后重试"
+                ),
+            };
+        }
+    };
+    let external_ip = match gateway.get_external_ip() {
+        Ok(ip) => ip,
+        Err(e) => {
+            return UpnpStatus {
+                state: "failed".into(),
+                public_url: String::new(),
+                message: format!("获取路由器公网地址失败：{e}"),
+            };
+        }
+    };
+    // 运营商共享公网（CGNAT）：路由器 WAN 侧为内网地址 → 外网无法直连
+    if external_ip.is_private() || external_ip.is_loopback() || external_ip.is_link_local() {
+        return UpnpStatus {
+            state: "cgnat".into(),
+            public_url: String::new(),
+            message: format!(
+                "路由器出口地址 {external_ip} 为内网地址（运营商共享公网 / CGNAT），外网无法直连"
+            ),
+        };
+    }
+    let local = SocketAddrV4::new(local_ip, port);
+    match gateway.add_port(
+        igd::PortMappingProtocol::TCP,
+        port,
+        local,
+        0, // 永久租约
+        "SimpleTools Mock Server",
+    ) {
+        Ok(_) => UpnpStatus {
+            state: "mapped".into(),
+            public_url: format!("http://{external_ip}:{port}"),
+            message: format!("已通过路由器 UPnP 自动开放外网端口（{local_ip}:{port}）"),
+        },
+        Err(e) => UpnpStatus {
+            state: "failed".into(),
+            public_url: String::new(),
+            message: format!("路由器端口映射失败：{e}"),
+        },
+    }
+}
+
+/// 移除 UPnP 端口映射（尽力而为，失败忽略）
+fn try_upnp_unmap(port: u16) {
+    let mut opts = igd::SearchOptions::default();
+    opts.timeout = Some(Duration::from_secs(3));
+    if let Ok(gateway) = igd::search_gateway(opts) {
+        let _ = gateway.remove_port(igd::PortMappingProtocol::TCP, port);
+    }
+}
+
 fn build_info(app: &AppHandle, state: &MockState) -> MockInfo {
     let running = state.runtime.lock().unwrap().stop_tx.is_some();
     let rule_count = state.rules.lock().unwrap().len();
@@ -411,6 +530,8 @@ fn build_info(app: &AppHandle, state: &MockState) -> MockInfo {
         port: MOCK_PORT,
         addrs: local_ipv4s(),
         rule_count,
+        ipv6: public_ipv6s(),
+        upnp: state.upnp.lock().unwrap().clone(),
     }
 }
 
@@ -457,6 +578,7 @@ pub async fn mock_start(
     // 与命令共享同一份规则（Arc）：服务运行中增删规则即时生效
     let rules = state.rules.clone();
     let app_for_task = app.clone();
+    let app_for_upnp = app.clone();
 
     let task = tauri::async_runtime::spawn(async move {
         loop {
@@ -492,6 +614,32 @@ pub async fn mock_start(
         rt.stop_tx = Some(stop_tx);
         rt.task = Some(task);
     }
+
+    // UPnP 自动穿透（v0.39.0）：后台检测路由器并自动开放外网端口，完成后事件推送前端（不阻塞启动）
+    {
+        let mut st = state.upnp.lock().unwrap();
+        *st = UpnpStatus {
+            state: "pending".into(),
+            public_url: String::new(),
+            message: "正在检测路由器并尝试自动开放外网端口（UPnP）…".into(),
+        };
+    }
+    let upnp_arc = state.upnp.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let status = match primary_ipv4() {
+            Some(ip) => try_upnp_map(MOCK_PORT, ip),
+            None => UpnpStatus {
+                state: "failed".into(),
+                public_url: String::new(),
+                message: "未找到局域网 IPv4 地址，无法自动穿透".into(),
+            },
+        };
+        {
+            let mut st = upnp_arc.lock().unwrap();
+            *st = status.clone();
+        }
+        let _ = app_for_upnp.emit("mock-upnp", &status);
+    });
     Ok(build_info(&app, &state))
 }
 
@@ -511,7 +659,65 @@ pub async fn mock_stop(state: State<'_, MockState>) -> Result<(), String> {
         })
         .await;
     }
+    // UPnP 端口映射随服务停止一并移除（尽力而为，后台执行）；状态重置为未检测
+    let was_mapped = {
+        let mut st = state.upnp.lock().unwrap();
+        let mapped = st.state == "mapped";
+        *st = UpnpStatus::default();
+        mapped
+    };
+    if was_mapped {
+        tauri::async_runtime::spawn_blocking(move || try_upnp_unmap(MOCK_PORT));
+    }
     Ok(())
+}
+
+/// 重新尝试 UPnP 自动穿透（路由器开启 UPnP 后手动重试；同步等待结果）
+#[tauri::command]
+pub async fn mock_public_retry(
+    app: AppHandle,
+    state: State<'_, MockState>,
+) -> Result<UpnpStatus, String> {
+    let running = {
+        let rt = state.runtime.lock().unwrap();
+        rt.stop_tx.is_some()
+    };
+    if !running {
+        return Err("请先启动模拟服务".into());
+    }
+    // 立即进入检测中（面板同步展示），再后台阻塞检测
+    {
+        let mut st = state.upnp.lock().unwrap();
+        *st = UpnpStatus {
+            state: "pending".into(),
+            public_url: String::new(),
+            message: "正在重新检测路由器并尝试自动开放外网端口（UPnP）…".into(),
+        };
+    }
+    let ip = primary_ipv4().ok_or("未找到局域网 IPv4 地址")?;
+    let join = tauri::async_runtime::spawn_blocking(move || try_upnp_map(MOCK_PORT, ip));
+    let status = match join.await {
+        Ok(s) => s,
+        Err(e) => {
+            let s = UpnpStatus {
+                state: "failed".into(),
+                public_url: String::new(),
+                message: format!("检测任务异常：{e}"),
+            };
+            {
+                let mut st = state.upnp.lock().unwrap();
+                *st = s.clone();
+            }
+            let _ = app.emit("mock-upnp", &s);
+            return Ok(s);
+        }
+    };
+    {
+        let mut st = state.upnp.lock().unwrap();
+        *st = status.clone();
+    }
+    let _ = app.emit("mock-upnp", &status);
+    Ok(status)
 }
 
 /// 全部规则（面板打开 / 增删后刷新）
@@ -666,6 +872,20 @@ mod tests {
             body: String::new()
         })
         .is_err());
+    }
+
+    /// 公网 IPv6 判定：2000::/3 全球单播通过，回环 / 链路本地 / ULA 拒绝
+    #[test]
+    fn ipv6_global_filter() {
+        use super::is_global_ipv6;
+        use std::net::Ipv6Addr;
+        assert!(is_global_ipv6(&"2409:8a00:1234::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(is_global_ipv6(&"2001:db8::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(!is_global_ipv6(&"::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(!is_global_ipv6(&"fe80::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(!is_global_ipv6(&"fd00::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(!is_global_ipv6(&"fc00::1".parse::<Ipv6Addr>().unwrap()));
+        assert!(!is_global_ipv6(&"ff02::1".parse::<Ipv6Addr>().unwrap()));
     }
 
     /// 正文文本化：超限截断且落在 UTF-8 边界（中文多字节安全）

@@ -179,7 +179,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.38.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.39.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -656,11 +656,24 @@
         </div>
       </header>
       <div class="mock-guide">
-        <div class="mock-guide-head">
-          <span class="mock-guide-title">客户端接口地址</span>
+        <div class="mock-guide-line">
+          <span class="mock-guide-label">内网</span>
           <span class="mock-guide-addr">http://<b id="mock-ip">—</b>:<b id="mock-port">8899</b></span>
+          <button class="mock-copy-btn hidden" id="mock-copy-lan" title="复制内网地址">复制</button>
         </div>
-        <div class="mock-guide-hint">把客户端（App / 浏览器 / 其他设备）的接口地址指向该地址即可；同网段直接访问，跨网段或外网可用内网穿透工具（frp / ngrok 等）转发本端口</div>
+        <div class="mock-guide-line">
+          <span class="mock-guide-label">外网穿透</span>
+          <span class="mock-upnp-badge" id="mock-upnp-badge">未检测</span>
+          <span class="mock-guide-addr" id="mock-public-url">—</span>
+          <button class="mock-copy-btn hidden" id="mock-copy-public" title="复制外网地址">复制</button>
+          <button class="mock-copy-btn hidden" id="mock-upnp-retry" title="重新检测路由器并尝试自动开放外网端口">重试</button>
+        </div>
+        <div class="mock-guide-line hidden" id="mock-v6-line">
+          <span class="mock-guide-label">IPv6</span>
+          <span class="mock-guide-addr" id="mock-v6-url">—</span>
+          <button class="mock-copy-btn" id="mock-copy-v6" title="复制 IPv6 地址">复制</button>
+        </div>
+        <div class="mock-guide-hint" id="mock-upnp-msg">启动服务后会自动通过路由器 UPnP 开放外网端口（无需第三方软件）；运营商支持 IPv6 时外网设备可直接访问</div>
       </div>
       <div class="mock-rules">
         <div class="mock-rules-head">

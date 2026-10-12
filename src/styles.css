@@ -4557,6 +4557,86 @@ textarea[readonly] {
   line-height: 1.5;
 }
 
+/* 客户端地址行（v0.39.0：内网 / 外网穿透 / IPv6） */
+.mock-guide-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 22px;
+}
+
+.mock-guide-line.hidden {
+  display: none;
+}
+
+.mock-guide-label {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  min-width: 56px;
+  flex: none;
+}
+
+/* UPnP 穿透状态徽标 */
+.mock-upnp-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  color: var(--text-dim);
+  font-size: 11px;
+  flex: none;
+  white-space: nowrap;
+}
+
+.mock-upnp-badge.s-pending {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.mock-upnp-badge.s-mapped {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.mock-upnp-badge.s-unsupported,
+.mock-upnp-badge.s-failed,
+.mock-upnp-badge.s-cgnat {
+  border-color: var(--saving);
+  color: var(--saving);
+}
+
+#mock-public-url {
+  color: var(--text);
+  word-break: break-all;
+}
+
+#mock-public-url.is-dim {
+  color: var(--text-dim);
+}
+
+/* 地址复制 / 重试按钮 */
+.mock-copy-btn {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--sans);
+  cursor: pointer;
+  flex: none;
+}
+
+.mock-copy-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.mock-copy-btn.hidden {
+  display: none;
+}
+
 /* 模拟接口配置区 */
 .mock-rules {
   display: flex;
