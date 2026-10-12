@@ -266,6 +266,7 @@ body {
 }
 
 .nav-item {
+  position: relative; /* 「新」角标定位基准（v0.38.0） */
   display: flex;
   align-items: center;
   gap: 9px;
@@ -283,6 +284,24 @@ body {
 .nav-item:hover {
   background: var(--sidebar-hover);
   color: var(--sidebar-text-strong);
+}
+
+/* 新功能提示角标（v0.38.0）：红色「新」，点击对应功能后移除（跨主题统一醒目红色） */
+.nav-new-badge {
+  position: absolute;
+  top: 3px;
+  right: 8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
 }
 
 .nav-item.active {

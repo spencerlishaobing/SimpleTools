@@ -19,7 +19,7 @@
         }
         // 尽早应用功能显隐（v0.35.2：默认仅显示「记事本」与「账号密码」），避免启动时侧边栏功能闪动
         // 生成临时引导样式，main.js 启动后移除并由 nav-hidden class 接管；默认集合需与 main.js 的 NAV_HIDDEN_DEFAULT 保持一致
-        var NH_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock', 'db'];
+        var NH_DEFAULT = []; // v0.38.0：功能默认全部显示（此机制保留，供后续如需改默认时使用）
         var nhList = NH_DEFAULT;
         var nhRaw = localStorage.getItem('simpletools-nav-hidden');
         if (nhRaw !== null) {
@@ -48,6 +48,21 @@
       <div class="brand-name">SimpleTools</div>
     </div>
     <nav class="nav">
+      <button class="nav-item active" data-panel="notes">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+        <span class="nav-label">记事本</span>
+      </button>
+      <button class="nav-item" data-panel="accounts">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+        </svg>
+        <span class="nav-label">账号密码</span>
+      </button>
       <button class="nav-item" data-panel="json">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -67,21 +82,6 @@
           <line x1="15" y1="16" x2="20" y2="16" />
         </svg>
         <span class="nav-label">文本对比</span>
-      </button>
-      <button class="nav-item active" data-panel="notes">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-        <span class="nav-label">记事本</span>
-      </button>
-      <button class="nav-item" data-panel="accounts">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-        </svg>
-        <span class="nav-label">账号密码</span>
       </button>
       <button class="nav-item" data-panel="md5">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -179,7 +179,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.37.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.38.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -757,10 +757,10 @@
               <div class="settings-row-desc">取消勾选后该功能从侧边栏隐藏（数据不受影响），至少保留一个功能</div>
               <!-- 功能开关卡片（v0.33.0：两列网格 = 功能图标 + 名称 + 右侧选中圆标；末项通栏避免奇数落单） -->
               <div class="nav-feature-grid" id="nav-feature-grid">
-                <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" /><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1 2 2 2 2 0 0 1-2 2v5a2 2 0 0 1-2 2h-1" /></svg><span>JSON 格式化</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
-                <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="4" x2="12" y2="20" /><line x1="4" y1="8" x2="9" y2="8" /><line x1="4" y1="12" x2="9" y2="12" /><line x1="4" y1="16" x2="9" y2="16" /><line x1="15" y1="8" x2="20" y2="8" /><line x1="15" y1="16" x2="20" y2="16" /></svg><span>文本对比</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="notes" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg><span>记事本</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="accounts" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg><span>账号密码</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="json" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" /><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1 2 2 2 2 0 0 1-2 2v5a2 2 0 0 1-2 2h-1" /></svg><span>JSON 格式化</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
+                <label class="nav-feature-item"><input type="checkbox" data-feature="diff" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="4" x2="12" y2="20" /><line x1="4" y1="8" x2="9" y2="8" /><line x1="4" y1="12" x2="9" y2="12" /><line x1="4" y1="16" x2="9" y2="16" /><line x1="15" y1="8" x2="20" y2="8" /><line x1="15" y1="16" x2="20" y2="16" /></svg><span>文本对比</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md5" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg><span>MD5 计算</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="str" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg><span>字符串转换</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>
                 <label class="nav-feature-item"><input type="checkbox" data-feature="md" /><svg class="nav-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5 21 3.5 4 7.5 11 11.5 4 11.5 21" /><line x1="17.5" y1="4" x2="17.5" y2="21" /><polyline points="13.5 17 17.5 21 21.5 17" /></svg><span>Markdown 预览</span><svg class="nav-feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></label>

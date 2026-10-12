@@ -130,6 +130,7 @@
   navItems.forEach((btn) => {
     btn.addEventListener('click', async () => {
       const target = btn.dataset.panel;
+      markNavSeen(target); // 点击新功能后移除「新」角标（v0.38.0）
       // 「账号密码」安全锁：开启后需先通过 Windows Hello 验证
       if (target === 'accounts' && accLockEnabled()) {
         const ok = await requireHelloVerify('验证以查看「账号密码」');
@@ -146,9 +147,9 @@
   const NAV_STYLE_KEY = 'simpletools-nav-style';
   const NAV_HIDDEN_KEY = 'simpletools-nav-hidden';
   const NAV_STYLE_ALL = ['both', 'icon', 'label'];
-  // 默认隐藏的功能（v0.35.2）：默认仅显示「记事本」与「账号密码」，其余功能可在设置中勾选恢复
+  // 默认隐藏的功能（v0.38.0：功能默认全部显示；此机制保留，供后续如需改默认时使用）
   // 注意：需与 index.html head 内联脚本的 NH_DEFAULT 保持一致
-  const NAV_HIDDEN_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock', 'db'];
+  const NAV_HIDDEN_DEFAULT = [];
   const navStyleGroup = document.getElementById('nav-style-group');
   const navFeatureGrid = document.getElementById('nav-feature-grid');
   const htmlRoot = document.documentElement;
@@ -253,6 +254,41 @@
   if (navBootStyle) navBootStyle.remove();
   // 启动兜底：默认激活的面板被用户配置隐藏时，自动切到第一个可见功能
   ensureActiveNav();
+
+  // ---------- 新功能提示（v0.38.0）：红色「新」角标，点击对应功能后消失（持久记忆） ----------
+  const NAV_SEEN_KEY = 'simpletools-nav-seen';
+  // 需要提示的新功能（后续版本发布新功能时加入；用户点击后消失，已点击记录持久保存）
+  const NEW_FEATURES = ['capture', 'mock', 'db'];
+  const navSeen = (function () {
+    try {
+      const arr = JSON.parse(localStorage.getItem(NAV_SEEN_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr.filter((k) => typeof k === 'string') : []);
+    } catch (e) {
+      return new Set();
+    }
+  })();
+
+  function markNavSeen(key) {
+    if (NEW_FEATURES.indexOf(key) < 0 || navSeen.has(key)) return;
+    navSeen.add(key);
+    try { localStorage.setItem(NAV_SEEN_KEY, JSON.stringify([...navSeen])); } catch (e) { /* ignore */ }
+    navItems.forEach((btn) => {
+      if (btn.dataset.panel === key) {
+        const badge = btn.querySelector('.nav-new-badge');
+        if (badge) badge.remove();
+      }
+    });
+  }
+
+  // 初始化：未点击过的新功能在侧边栏显示红色「新」角标
+  navItems.forEach((btn) => {
+    if (NEW_FEATURES.indexOf(btn.dataset.panel) >= 0 && !navSeen.has(btn.dataset.panel)) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-new-badge';
+      badge.textContent = '新';
+      btn.appendChild(badge);
+    }
+  });
 
   // ---------- 主题切换（浅色 / 深色 / 深浅混搭 / 卡其色：点按钮弹出菜单直接选择，持久化） ----------
   const THEME_KEY = 'simpletools-theme';
