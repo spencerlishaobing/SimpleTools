@@ -2941,15 +2941,22 @@ textarea[readonly] {
 
 /* ===== 应用设置弹窗：横版左右布局（v0.31.0） ===== */
 /* 左侧分类导航（功能显示 / 安全 / 存储）+ 右侧内容区，弹窗整体加宽为横版 */
+/* 应用设置弹窗（v0.46.0：固定高度——不随分类内容自适应，内容超出时内部滚动） */
 #settings-modal .modal-card {
   width: 700px;
   max-width: 92vw;
+  height: 600px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-layout {
   display: flex;
   gap: 20px;
   margin-top: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 .settings-nav {
@@ -2988,7 +2995,7 @@ textarea[readonly] {
 .settings-main {
   flex: 1;
   min-width: 0;
-  min-height: 336px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -3000,6 +3007,8 @@ textarea[readonly] {
 .settings-pane.is-active {
   display: block;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* 分类面板内最后一行不再需要分隔线与其下边距 */
