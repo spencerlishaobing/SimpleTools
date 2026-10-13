@@ -179,7 +179,7 @@
         </svg>
         <span>设置</span>
       </button>
-      <div class="version">v0.40.0 <span class="version-stack">· Tauri + Rust</span></div>
+      <div class="version">v0.41.0 <span class="version-stack">· Tauri + Rust</span></div>
       <div class="credit">Developed by Spencer</div>
     </div>
   </aside>
@@ -737,6 +737,18 @@
           <div class="db-result-wrap">
             <div class="db-result" id="db-result"></div>
             <div class="db-result-empty" id="db-result-empty">查询结果将显示在这里</div>
+          </div>
+          <div class="db-pager hidden" id="db-pager">
+            <span class="db-pager-info" id="db-pager-info">共 0 条</span>
+            <span class="db-pager-size">每页 <input id="db-page-size" class="db-page-size" type="number" min="1" max="2000" value="100" title="每页显示行数（1 - 2000，回车生效）" /> 条</span>
+            <span class="db-pager-btns">
+              <button class="db-page-btn" id="db-page-first" title="第一页">«</button>
+              <button class="db-page-btn" id="db-page-prev" title="上一页">‹</button>
+              <span class="db-pager-jump">第 <input id="db-page-input" class="db-page-input" type="number" min="1" value="1" title="输入页码后回车跳转" /> / <span id="db-page-total">1</span> 页</span>
+              <button class="db-page-btn" id="db-page-next" title="下一页">›</button>
+              <button class="db-page-btn" id="db-page-last" title="最后一页">»</button>
+            </span>
+            <button class="db-rownum-toggle" id="db-rownum-toggle" title="点击切换行号口径（总计 / 每页）">行号：总计</button>
           </div>
         </div>
       </div>

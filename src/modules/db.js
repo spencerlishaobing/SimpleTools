@@ -21,6 +21,16 @@
   const statusEl = document.getElementById('db-status');
   const resultEl = document.getElementById('db-result');
   const resultEmptyEl = document.getElementById('db-result-empty');
+  const pagerEl = document.getElementById('db-pager');
+  const pagerInfoEl = document.getElementById('db-pager-info');
+  const pageSizeEl = document.getElementById('db-page-size');
+  const pageFirstBtn = document.getElementById('db-page-first');
+  const pagePrevBtn = document.getElementById('db-page-prev');
+  const pageNextBtn = document.getElementById('db-page-next');
+  const pageLastBtn = document.getElementById('db-page-last');
+  const pageInputEl = document.getElementById('db-page-input');
+  const pageTotalEl = document.getElementById('db-page-total');
+  const rownumToggleBtn = document.getElementById('db-rownum-toggle');
 
   /** SQL 关键字（输入补全用；执行时大小写不敏感） */
   const SQL_KEYWORDS = [
@@ -44,6 +54,14 @@
     candidates: [],      // 全部补全候选：{ label, kind: kw|table|col, table? }
     suggestItems: [],    // 当前下拉项
     suggestIndex: 0,
+    // 分页（v0.41.0）
+    page: 1,
+    pageSize: 100,
+    total: 0,
+    paged: false,        // 后端是否为分页模式（PRAGMA 等回退语句为 false）
+    lastSql: '',         // 最近一次执行的 SQL（翻页 / 跳页 / 改每页数量均基于它）
+    lastResult: null,    // 最近一次结果（切换行号口径时本地重渲染）
+    rownumMode: 'total', // total（按数据总数编号）| page（按每页编号）
   };
 
   // ---------- 小工具 ----------
@@ -88,6 +106,13 @@
     filePillEl.textContent = info.name + ' · ' + ((info.tables || []).length) + ' 张表';
     filePillEl.title = info.path + '（' + fmtSize(info.size) + ' · 只读打开）';
     renderTables();
+    // 重置查询与分页状态
+    state.page = 1;
+    state.total = 0;
+    state.paged = false;
+    state.lastSql = '';
+    state.lastResult = null;
+    pagerEl.classList.add('hidden');
     resultEl.innerHTML = '';
     resultEmptyEl.classList.remove('hidden');
     statusEl.textContent = '已打开 ' + info.name + '，输入 SQL 后点击「执行查询」';
@@ -133,7 +158,7 @@
       }).join('');
       return '<div class="db-table-item">' +
         '<div class="db-table-row" title="点击展开 / 收起列">' +
-        '<span class="db-table-arrow">›</span>' +
+        '<span class="db-table-arrow">▸</span>' +
         '<span class="db-table-name">' + esc(t.name) + '</span>' +
         '<span class="db-table-kind">' + (t.kind === 'view' ? '视图' : '') + '</span>' +
         '<span class="db-table-colcount">' + (t.columns || []).length + '</span>' +
@@ -158,6 +183,30 @@
     const open = !list.classList.contains('hidden');
     list.classList.toggle('hidden', open);
     row.querySelector('.db-table-arrow').classList.toggle('open', !open);
+  });
+
+  /** 整体设置编辑器内容（光标置于末尾） */
+  function setEditorValue(v) {
+    editorEl.value = v;
+    editorEl.selectionStart = editorEl.selectionEnd = v.length;
+    closeSuggest();
+  }
+
+  /** 标识符加双引号（防表名含特殊字符破坏 SQL） */
+  function quoteIdent(name) {
+    return '"' + String(name).replace(/"/g, '""') + '"';
+  }
+
+  // 双击表名行：查询该表数据（SELECT * FROM "表名"，v0.41.0）
+  // 单击仍为展开 / 收起：双击的两次 click 会抵消展开状态，最终仅触发查询
+  tablesEl.addEventListener('dblclick', function (e) {
+    const row = e.target.closest('.db-table-row');
+    if (!row || !invoke || !state.info) return;
+    const nameEl = row.querySelector('.db-table-name');
+    if (!nameEl) return;
+    const sql = 'SELECT * FROM ' + quoteIdent(nameEl.textContent);
+    setEditorValue(sql);
+    runQuery(1);
   });
 
   // ---------- 编辑器插入与补全 ----------
@@ -292,13 +341,15 @@
   function renderResult(res) {
     const rows = res.rows || [];
     const cols = res.columns || [];
+    // 行号口径：total = 按数据总数（跨页连续编号）；page = 按每页（当前页内 1 起）
+    const base = state.rownumMode === 'total' && res.paged ? (res.page - 1) * res.page_size : 0;
     let h = '<table class="db-table"><thead><tr><th class="db-idx">#</th>';
     cols.forEach(function (c) {
       h += '<th>' + esc(c) + '</th>';
     });
     h += '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
-      h += '<tr><td class="db-idx">' + (i + 1) + '</td>';
+      h += '<tr><td class="db-idx">' + (base + i + 1) + '</td>';
       r.forEach(function (v) {
         if (v === null) h += '<td class="db-null">NULL</td>';
         else if (typeof v === 'number') h += '<td class="db-num">' + esc(v) + '</td>';
@@ -309,7 +360,7 @@
     h += '</tbody></table>';
     resultEl.innerHTML = h;
     resultEmptyEl.classList.add('hidden');
-    const parts = [rows.length + ' 行', res.elapsed_ms + ' ms'];
+    const parts = [(res.paged ? '本页 ' : '') + rows.length + ' 行', res.elapsed_ms + ' ms'];
     if (res.truncated) parts.push('已截断（仅显示前 5000 行）');
     statusEl.textContent = '查询完成：' + parts.join(' · ');
     statusEl.classList.remove('is-error');
@@ -322,7 +373,69 @@
     statusEl.classList.add('is-error');
   }
 
-  async function runQuery() {
+  // ---------- 分页（v0.41.0） ----------
+
+  function totalPages() {
+    return Math.max(1, Math.ceil(state.total / (state.pageSize || 1)));
+  }
+
+  function updateRownumToggle() {
+    rownumToggleBtn.textContent = state.rownumMode === 'total' ? '行号：总计' : '行号：每页';
+  }
+
+  function renderPager(res) {
+    if (!res.paged) {
+      pagerEl.classList.add('hidden');
+      return;
+    }
+    pagerEl.classList.remove('hidden');
+    const tp = totalPages();
+    if (res.total === 0) {
+      pagerInfoEl.textContent = '共 0 条';
+    } else {
+      const startN = (res.page - 1) * res.page_size + 1;
+      const endN = Math.min(res.page * res.page_size, res.total);
+      pagerInfoEl.textContent = '第 ' + startN + '-' + endN + ' 条 · 共 ' + res.total + ' 条';
+    }
+    pageSizeEl.value = state.pageSize;
+    pageInputEl.value = res.page;
+    pageInputEl.max = tp;
+    pageTotalEl.textContent = tp;
+    pageFirstBtn.disabled = pagePrevBtn.disabled = res.page <= 1;
+    pageNextBtn.disabled = pageLastBtn.disabled = res.page >= tp;
+    updateRownumToggle();
+  }
+
+  /** 执行指定 SQL（翻页 / 跳页 / 改每页数量共用；记录 lastSql 供后续翻页） */
+  async function execSql(sql, page) {
+    runBtn.disabled = true;
+    statusEl.textContent = '查询中…';
+    statusEl.classList.remove('is-error');
+    try {
+      const res = await invoke('db_query', {
+        path: state.info.path,
+        sql: sql,
+        page: page || 1,
+        size: state.pageSize,
+      });
+      state.lastSql = sql;
+      state.lastResult = res;
+      state.page = res.page || 1;
+      state.total = res.total || 0;
+      state.paged = !!res.paged;
+      if (res.paged && res.page_size) state.pageSize = res.page_size;
+      renderResult(res);
+      renderPager(res);
+    } catch (e) {
+      renderError(e && e.message ? e.message : String(e));
+      state.paged = false;
+      state.lastResult = null;
+      pagerEl.classList.add('hidden');
+    }
+    runBtn.disabled = false;
+  }
+
+  async function runQuery(page) {
     if (!invoke || !state.info) return;
     const sql = editorEl.value.trim();
     if (!sql) {
@@ -330,17 +443,39 @@
       editorEl.focus();
       return;
     }
-    runBtn.disabled = true;
-    statusEl.textContent = '查询中…';
-    statusEl.classList.remove('is-error');
-    try {
-      const res = await invoke('db_query', { path: state.info.path, sql: sql });
-      renderResult(res);
-    } catch (e) {
-      renderError(e && e.message ? e.message : String(e));
-    }
-    runBtn.disabled = false;
+    await execSql(sql, page || 1);
   }
 
-  runBtn.addEventListener('click', runQuery);
+  /** 翻页 / 跳页：基于最近一次执行的 SQL 重新查询 */
+  function gotoPage(p) {
+    if (!state.lastSql || !state.paged) return;
+    const target = Math.min(Math.max(1, p), totalPages());
+    execSql(state.lastSql, target);
+  }
+
+  runBtn.addEventListener('click', function () { runQuery(1); });
+  pageFirstBtn.addEventListener('click', function () { gotoPage(1); });
+  pagePrevBtn.addEventListener('click', function () { gotoPage(state.page - 1); });
+  pageNextBtn.addEventListener('click', function () { gotoPage(state.page + 1); });
+  pageLastBtn.addEventListener('click', function () { gotoPage(totalPages()); });
+  pageInputEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    gotoPage(Number(pageInputEl.value) || 1);
+  });
+  // 每页数量：回车生效（回到第一页重新查询）
+  pageSizeEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const v = Math.min(Math.max(Number(pageSizeEl.value) || 100, 1), 2000);
+    state.pageSize = v;
+    pageSizeEl.value = v;
+    if (state.lastSql && state.paged) execSql(state.lastSql, 1);
+  });
+  // 行号口径切换（总计 / 每页）：本地重渲染
+  rownumToggleBtn.addEventListener('click', function () {
+    state.rownumMode = state.rownumMode === 'total' ? 'page' : 'total';
+    updateRownumToggle();
+    if (state.lastResult) renderResult(state.lastResult);
+  });
 })();

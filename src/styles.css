@@ -5105,11 +5105,14 @@ textarea[readonly] {
   background: var(--panel-bg-subtle);
 }
 
+/* 展开 / 收起箭头（v0.41.0：▸ 收起，展开时旋转向下） */
 .db-table-arrow {
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 11px;
   transition: transform 0.15s ease;
   flex: none;
+  width: 12px;
+  text-align: center;
 }
 
 .db-table-arrow.open {
@@ -5139,8 +5142,11 @@ textarea[readonly] {
   font-family: var(--mono);
 }
 
+/* 列列表：缩进引导线（v0.41.0 层级更清晰） */
 .db-col-list {
-  padding: 2px 0 4px 18px;
+  margin: 2px 0 4px 21px;
+  padding: 2px 0 2px 10px;
+  border-left: 1px dashed var(--border);
 }
 
 .db-col-list.hidden {
@@ -5217,12 +5223,13 @@ textarea[readonly] {
   border-color: var(--primary);
 }
 
-/* 输入补全下拉（浮于编辑器内底部） */
+/* 输入补全下拉（向下展开，v0.41.0 修复向上展开被上部元素遮挡） */
 .db-suggest {
   position: absolute;
   left: 10px;
-  bottom: 8px;
-  z-index: 30;
+  top: calc(100% + 4px);
+  bottom: auto;
+  z-index: 40;
   min-width: 210px;
   max-height: 236px;
   overflow-y: auto;
@@ -5399,4 +5406,112 @@ textarea[readonly] {
 .db-table .db-null {
   color: var(--text-dim);
   font-style: italic;
+}
+
+/* ===== 分页条（v0.41.0：每页数量 / 翻页 / 跳页 / 行号口径切换） ===== */
+.db-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg-subtle);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.db-pager.hidden {
+  display: none;
+}
+
+.db-pager-info {
+  white-space: nowrap;
+}
+
+.db-pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.db-page-size,
+.db-page-input {
+  width: 58px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+  text-align: center;
+  outline: none;
+}
+
+.db-page-size:focus,
+.db-page-input:focus {
+  border-color: var(--primary);
+}
+
+.db-page-input {
+  width: 48px;
+}
+
+.db-pager-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.db-pager-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  margin: 0 2px;
+}
+
+.db-page-btn {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.db-page-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.db-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.db-rownum-toggle {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.db-rownum-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }

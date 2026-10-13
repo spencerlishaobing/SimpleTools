@@ -56,12 +56,20 @@ pub struct DbInfo {
     pub tables: Vec<DbTable>,
 }
 
-/// 查询结果（单元格为 JSON 值：NULL / 数字 / 字符串；BLOB 以占位字符串展示）
+/// 查询结果（v0.41.0 分页：每页行数 / 页码 / 总行数；paged=false 时返回全部行）
 #[derive(Debug, Clone, Serialize)]
 pub struct DbQueryResult {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<JsonValue>>,
-    /// 行数超过上限被截断
+    /// 当前页码（1 起；paged=false 时为 1）
+    pub page: u32,
+    /// 每页行数（paged=false 时为 0）
+    pub page_size: u32,
+    /// 符合查询条件的总行数（分页模式）
+    pub total: u64,
+    /// 是否分页模式（false = 原样执行回退：PRAGMA 等无法包装子查询的语句）
+    pub paged: bool,
+    /// 非分页模式下超上限截断
     pub truncated: bool,
     pub elapsed_ms: u64,
 }
@@ -177,6 +185,67 @@ fn friendly_sql_error(e: &rusqlite::Error) -> String {
     }
 }
 
+/// 分页执行：包装子查询取总数与当前页（返回 Err 表示不支持分页包装，由调用方回退原样执行）
+fn run_paged(
+    conn: &Connection,
+    body: &str,
+    page: u32,
+    page_size: u32,
+) -> Result<(u64, Vec<String>, Vec<Vec<JsonValue>>), String> {
+    let total: u64 = conn
+        .query_row(&format!("SELECT COUNT(*) FROM ({body})"), [], |r| {
+            r.get::<_, i64>(0)
+        })
+        .map(|n| n.max(0) as u64)
+        .map_err(|e| friendly_sql_error(&e))?;
+    let offset = (page.saturating_sub(1) as u64) * page_size as u64;
+    let page_sql = format!("SELECT * FROM ({body}) LIMIT {page_size} OFFSET {offset}");
+    let mut stmt = conn.prepare(&page_sql).map_err(|e| friendly_sql_error(&e))?;
+    let columns: Vec<String> = stmt.column_names().iter().map(|s| s.to_string()).collect();
+    let col_count = stmt.column_count();
+    let mut rows_out: Vec<Vec<JsonValue>> = Vec::new();
+    {
+        let mut rows = stmt.query([]).map_err(|e| friendly_sql_error(&e))?;
+        while let Some(row) = rows.next().map_err(|e| friendly_sql_error(&e))? {
+            let mut rec = Vec::with_capacity(col_count);
+            for i in 0..col_count {
+                let v = row.get_ref(i).map_err(|e| friendly_sql_error(&e))?;
+                rec.push(value_to_json(v));
+            }
+            rows_out.push(rec);
+        }
+    }
+    Ok((total, columns, rows_out))
+}
+
+/// 原样执行（无分页；超 MAX_ROWS 截断）——供 PRAGMA 等无法包装子查询的语句回退使用
+fn run_plain(
+    conn: &Connection,
+    sql: &str,
+) -> Result<(Vec<String>, Vec<Vec<JsonValue>>, bool), String> {
+    let mut stmt = conn.prepare(sql).map_err(|e| friendly_sql_error(&e))?;
+    let columns: Vec<String> = stmt.column_names().iter().map(|s| s.to_string()).collect();
+    let col_count = stmt.column_count();
+    let mut rows_out: Vec<Vec<JsonValue>> = Vec::new();
+    let mut truncated = false;
+    {
+        let mut rows = stmt.query([]).map_err(|e| friendly_sql_error(&e))?;
+        while let Some(row) = rows.next().map_err(|e| friendly_sql_error(&e))? {
+            if rows_out.len() >= MAX_ROWS {
+                truncated = true;
+                break;
+            }
+            let mut rec = Vec::with_capacity(col_count);
+            for i in 0..col_count {
+                let v = row.get_ref(i).map_err(|e| friendly_sql_error(&e))?;
+                rec.push(value_to_json(v));
+            }
+            rows_out.push(rec);
+        }
+    }
+    Ok((columns, rows_out, truncated))
+}
+
 // ---------------------------------------------------------------------------
 // Tauri 命令
 // ---------------------------------------------------------------------------
@@ -199,43 +268,49 @@ pub fn db_open(path: String) -> Result<DbInfo, String> {
     })
 }
 
-/// 执行 SQL 查询（只读连接；返回结果集，最多 5000 行）
+/// 执行 SQL 查询（只读连接；分页模式返回当前页与总数，每页 1-2000 行）
 #[tauri::command]
-pub fn db_query(path: String, sql: String) -> Result<DbQueryResult, String> {
+pub fn db_query(
+    path: String,
+    sql: String,
+    page: u32,
+    size: u32,
+) -> Result<DbQueryResult, String> {
     let sql = sql.trim().to_string();
     if sql.is_empty() {
         return Err("请输入 SQL 语句".into());
     }
+    let page = page.max(1);
+    let size = size.clamp(1, 2000);
     let p = PathBuf::from(path.trim());
     let conn = open_ro(&p)?;
     let start = Instant::now();
-    let mut stmt = conn.prepare(&sql).map_err(|e| friendly_sql_error(&e))?;
-    let columns: Vec<String> = stmt
-        .column_names()
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
-    let col_count = stmt.column_count();
-    let mut rows_out: Vec<Vec<JsonValue>> = Vec::new();
-    let mut truncated = false;
-    {
-        let mut rows = stmt.query([]).map_err(|e| friendly_sql_error(&e))?;
-        while let Some(row) = rows.next().map_err(|e| friendly_sql_error(&e))? {
-            if rows_out.len() >= MAX_ROWS {
-                truncated = true;
-                break;
-            }
-            let mut rec = Vec::with_capacity(col_count);
-            for i in 0..col_count {
-                let v = row.get_ref(i).map_err(|e| friendly_sql_error(&e))?;
-                rec.push(value_to_json(v));
-            }
-            rows_out.push(rec);
-        }
+    // 包装子查询用的语句体（去尾分号）
+    let body = sql.trim_end_matches(';').trim().to_string();
+
+    // 分页模式：包装子查询取总数与当前页；包装失败（PRAGMA 等）回退为原样执行
+    if let Ok((total, columns, rows)) = run_paged(&conn, &body, page, size) {
+        return Ok(DbQueryResult {
+            columns,
+            rows,
+            page,
+            page_size: size,
+            total,
+            paged: true,
+            truncated: false,
+            elapsed_ms: start.elapsed().as_millis() as u64,
+        });
     }
+
+    // 回退：原样执行（无分页，上限 5000 行）
+    let (columns, rows, truncated) = run_plain(&conn, &sql)?;
     Ok(DbQueryResult {
         columns,
-        rows: rows_out,
+        rows,
+        page: 1,
+        page_size: 0,
+        total: 0,
+        paged: false,
         truncated,
         elapsed_ms: start.elapsed().as_millis() as u64,
     })
@@ -284,20 +359,61 @@ mod tests {
         let _ = fs::remove_file(&p);
     }
 
-    /// 查询：返回列名与行数据（NULL / 数字 / 文本类型正确）
+    /// 查询：返回列名与行数据（NULL / 数字 / 文本类型正确；默认分页模式）
     #[test]
     fn query_returns_rows() {
         let p = make_test_db("query");
         let path = p.to_string_lossy().to_string();
-        let res = db_query(path.clone(), "SELECT id, name, age FROM users ORDER BY id".into())
-            .expect("查询应成功");
+        let res = db_query(
+            path.clone(),
+            "SELECT id, name, age FROM users ORDER BY id".into(),
+            1,
+            100,
+        )
+        .expect("查询应成功");
         assert_eq!(res.columns, vec!["id", "name", "age"]);
+        assert!(res.paged, "SELECT 应为分页模式");
+        assert_eq!(res.total, 2);
+        assert_eq!(res.page, 1);
         assert_eq!(res.rows.len(), 2);
         assert_eq!(res.rows[0][0], serde_json::json!(1));
         assert_eq!(res.rows[0][1], serde_json::json!("张三"));
         // NULL 值（orders.note 未插入）
-        let res2 = db_query(path, "SELECT note FROM orders".into()).expect("查询应成功");
+        let res2 = db_query(path, "SELECT note FROM orders".into(), 1, 100).expect("查询应成功");
         assert_eq!(res2.rows[0][0], serde_json::Value::Null);
+        let _ = fs::remove_file(&p);
+    }
+
+    /// 分页：总数 / 页切分 / 越界页返回空 / PRAGMA 回退为非分页
+    #[test]
+    fn query_pagination() {
+        let p = make_test_db("paging");
+        let path = p.to_string_lossy().to_string();
+        {
+            let conn = Connection::open(&p).unwrap();
+            conn.execute_batch("CREATE TABLE nums (n INTEGER);").unwrap();
+            for i in 1..=250 {
+                conn.execute("INSERT INTO nums (n) VALUES (?1)", [i]).unwrap();
+            }
+        }
+        // 第一页
+        let p1 = db_query(path.clone(), "SELECT n FROM nums ORDER BY n".into(), 1, 100).unwrap();
+        assert!(p1.paged);
+        assert_eq!(p1.total, 250);
+        assert_eq!(p1.rows.len(), 100);
+        assert_eq!(p1.rows[0][0], serde_json::json!(1));
+        // 第三页（尾页 50 行）
+        let p3 = db_query(path.clone(), "SELECT n FROM nums ORDER BY n".into(), 3, 100).unwrap();
+        assert_eq!(p3.rows.len(), 50);
+        assert_eq!(p3.rows[0][0], serde_json::json!(201));
+        // 越界页：空行但总数正确
+        let p9 = db_query(path.clone(), "SELECT n FROM nums ORDER BY n".into(), 9, 100).unwrap();
+        assert_eq!(p9.rows.len(), 0);
+        assert_eq!(p9.total, 250);
+        // PRAGMA：无法包装子查询 → 回退为非分页原样执行
+        let pr = db_query(path.clone(), "PRAGMA table_info(\"nums\")".into(), 1, 100).unwrap();
+        assert!(!pr.paged);
+        assert_eq!(pr.rows.len(), 1);
         let _ = fs::remove_file(&p);
     }
 
@@ -306,10 +422,10 @@ mod tests {
     fn write_rejected_readonly() {
         let p = make_test_db("readonly");
         let path = p.to_string_lossy().to_string();
-        let err = db_query(path.clone(), "UPDATE users SET age = 1".into()).unwrap_err();
+        let err = db_query(path.clone(), "UPDATE users SET age = 1".into(), 1, 100).unwrap_err();
         assert!(err.contains("只读") || err.contains("readonly"), "错误应提示只读：{err}");
         // 原始数据未被修改
-        let res = db_query(path, "SELECT age FROM users WHERE id = 1".into()).unwrap();
+        let res = db_query(path, "SELECT age FROM users WHERE id = 1".into(), 1, 100).unwrap();
         assert_eq!(res.rows[0][0], serde_json::json!(25));
         let _ = fs::remove_file(&p);
     }
