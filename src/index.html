@@ -12,6 +12,9 @@
         if (t === 'dark' || t === 'khaki' || t === 'mix') {
           document.documentElement.setAttribute('data-theme', t);
         }
+        // 尽快铺垫窗口底色（v0.47.0 防首帧白闪）：与所选主题的页面背景一致，随后由样式表接管
+        var THEME_BG = { light: '#f6f7f9', mix: '#f6f7f9', dark: '#0f172a', khaki: '#0f0e0c' };
+        document.documentElement.style.background = THEME_BG[t] || THEME_BG.light;
         // 尽早应用已保存的侧边栏导航样式（功能显示配置，v0.26.0），避免启动时侧边栏宽度闪动
         var ns = localStorage.getItem('simpletools-nav-style');
         if (ns === 'icon' || ns === 'label') {
@@ -42,6 +45,18 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- 启动初始化动画（v0.47.0）：主题协调的数据初始化动效，完成后淡出显示界面 -->
+  <div id="boot-splash" aria-hidden="true">
+    <div class="boot-core">
+      <div class="boot-mark">
+        <div class="boot-ring"></div>
+        <div class="boot-logo">ST</div>
+      </div>
+      <div class="data-bars boot-bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="boot-text" id="boot-text">正在初始化界面…</div>
+      <div class="boot-track"><i class="boot-shine"></i></div>
+    </div>
+  </div>
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">ST</div>
@@ -180,7 +195,7 @@
         <span>设置</span>
       </button>
       <button class="version" id="version-btn" title="点击检查更新">
-        <span id="version-text">v0.46.0</span> <span class="version-stack">· Tauri + Rust</span>
+        <span id="version-text">v0.47.0</span> <span class="version-stack">· Tauri + Rust</span>
         <span class="version-update-dot hidden" id="version-update-dot"></span>
       </button>
       <div class="credit">Developed by Spencer</div>
@@ -759,6 +774,14 @@
   </main>
 
   <div id="toast" class="toast"></div>
+
+  <!-- 全局加载遮罩（v0.47.0：耗时操作显示，数据脉冲动画） -->
+  <div id="app-loading" class="hidden" aria-hidden="true">
+    <div class="loading-box">
+      <div class="data-bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="loading-text" id="loading-text">处理中…</div>
+    </div>
+  </div>
 
   <!-- 应用设置弹窗（v0.31.0：横版左右布局 — 左侧分类导航 + 右侧内容区） -->
   <div id="settings-modal" class="modal-mask hidden">

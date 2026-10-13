@@ -134,12 +134,15 @@
     }
     if (!path) return; // 用户取消
     const p = typeof path === 'string' ? path : path[0];
+    window.showLoading('正在打开数据库…');
     try {
       const info = await invoke('db_open', { path: p });
       applyDb(info);
       window.toast('已打开 ' + info.name + '（只读）');
     } catch (e) {
       window.toast('打开失败：' + (e && e.message ? e.message : e));
+    } finally {
+      window.hideLoading();
     }
   });
 
@@ -489,6 +492,7 @@
     runBtn.disabled = true;
     statusEl.textContent = '查询中…';
     statusEl.classList.remove('is-error');
+    window.showLoading('正在查询…');
     try {
       const res = await invoke('db_query', {
         path: state.info.path,
@@ -509,6 +513,8 @@
       state.paged = false;
       state.lastResult = null;
       pagerEl.classList.add('hidden');
+    } finally {
+      window.hideLoading();
     }
     runBtn.disabled = false;
   }

@@ -50,6 +50,34 @@
     return false;
   };
 
+  // ---------- 全局加载遮罩（v0.47.0：耗时操作显示特色数据脉冲加载框） ----------
+  // 不足 250ms 的操作不显示（避免一闪而过的干扰）；已显示时再次调用仅更新文案
+  const appLoadingEl = document.getElementById('app-loading');
+  const loadingTextEl = document.getElementById('loading-text');
+  let loadingShowTimer = null;
+  let loadingVisible = false;
+
+  window.showLoading = function (text) {
+    if (!appLoadingEl) return;
+    if (loadingTextEl) loadingTextEl.textContent = text || '处理中…';
+    if (loadingVisible || loadingShowTimer) return;
+    loadingShowTimer = setTimeout(function () {
+      loadingShowTimer = null;
+      loadingVisible = true;
+      appLoadingEl.classList.remove('hidden');
+    }, 250);
+  };
+
+  window.hideLoading = function () {
+    if (loadingShowTimer) {
+      clearTimeout(loadingShowTimer);
+      loadingShowTimer = null;
+    }
+    if (!loadingVisible) return;
+    loadingVisible = false;
+    appLoadingEl.classList.add('hidden');
+  };
+
   // ---------- 通用确认弹窗（替代原生 confirm，两者均安全可靠） ----------
   window.showConfirm = function (message, opts) {
     opts = opts || {};
@@ -590,11 +618,14 @@
     if (!ok) return;
     dataDirChangeBtn.disabled = true;
     dataDirResetBtn.disabled = true;
+    window.showLoading('正在迁移数据…');
     try {
       await invokeApi('data_dir_set', { dir: newDir });
-      window.toast('数据已迁移，正在重新加载…');
+      // 成功：保持遮罩到重载（切换文案，避免中间空档闪动）
+      window.showLoading('迁移完成，正在重新加载…');
       setTimeout(function () { location.reload(); }, 900);
     } catch (e) {
+      window.hideLoading();
       window.toast('迁移失败：' + ((e && e.message) || e));
       dataDirChangeBtn.disabled = false;
       dataDirResetBtn.disabled = false;
@@ -992,6 +1023,7 @@
       return;
     }
     if (!dest) return;
+    window.showLoading('正在导出数据…');
     try {
       const res = await invokeApi('data_export', { dest, format: kind });
       const n = (res && res.files && res.files.length) || 0;
@@ -999,6 +1031,8 @@
       window.toast('已导出 ' + n + ' 个数据文件' + (ic ? '、' + ic + ' 张图片' : ''));
     } catch (e) {
       window.toast('导出失败：' + ((e && e.message) || e));
+    } finally {
+      window.hideLoading();
     }
   }
 
@@ -1073,15 +1107,18 @@
     if (!ok) return;
     dataImportBtn.disabled = true;
     dataExportBtn.disabled = true;
+    window.showLoading('正在导入数据…');
     try {
       const res = await invokeApi('data_import', { source, backupName });
       let msg = '已导入 ' + ((res && res.imported && res.imported.length) || 0) + ' 个文件';
       const ic = (res && res.image_count) || 0;
       if (ic) msg += '、' + ic + ' 张图片';
       if (res && res.fallback) msg += '（存储位置不可用，已回退默认目录）';
+      window.showLoading('导入完成，正在重新加载…');
       window.toast(msg + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
     } catch (e) {
+      window.hideLoading();
       window.toast('导入失败：' + ((e && e.message) || e));
       dataImportBtn.disabled = false;
       dataExportBtn.disabled = false;
@@ -1091,11 +1128,14 @@
   // 合并导入：读取备份明文 + 当前数据 → 内存合并（含统计）→ 确认后由后端备份并整体落盘
   async function runMergeImport(source) {
     let prep;
+    window.showLoading('正在读取备份…');
     try {
       prep = await invokeApi('data_import_prepare', { source });
     } catch (e) {
       window.toast('读取备份失败：' + ((e && e.message) || e));
       return;
+    } finally {
+      window.hideLoading();
     }
     const loadSafe = async (cmd) => {
       try {
@@ -1165,6 +1205,7 @@
     if (!ok) return;
     dataImportBtn.disabled = true;
     dataExportBtn.disabled = true;
+    window.showLoading('正在合并数据…');
     try {
       const res = await invokeApi('data_merge_write', {
         notes: merged.notes,
@@ -1174,9 +1215,11 @@
       });
       let out = '已合并 ' + ((res && res.written && res.written.length) || 0) + ' 个数据文件';
       if (warnings.length) out += '（' + warnings.join('；') + '）';
+      window.showLoading('合并完成，正在重新加载…');
       window.toast(out + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
     } catch (e) {
+      window.hideLoading();
       window.toast('合并失败：' + ((e && e.message) || e));
       dataImportBtn.disabled = false;
       dataExportBtn.disabled = false;
@@ -1273,13 +1316,16 @@
     dataRestoreBtn.disabled = true;
     dataImportBtn.disabled = true;
     dataExportBtn.disabled = true;
+    window.showLoading('正在恢复数据…');
     try {
       const res = await invokeApi('data_restore', { name });
       const n = (res && res.restored && res.restored.length) || 0;
       const ic = (res && res.image_count) || 0;
+      window.showLoading('恢复完成，正在重新加载…');
       window.toast('已恢复 ' + n + ' 个数据文件' + (ic ? '、' + ic + ' 张图片' : '') + '，正在重新加载…');
       setTimeout(function () { location.reload(); }, 1000);
     } catch (e) {
+      window.hideLoading();
       window.toast('恢复失败：' + ((e && e.message) || e));
       dataRestoreBtn.disabled = false;
       dataImportBtn.disabled = false;
@@ -1330,4 +1376,29 @@
   });
 
   accLockSwitch.checked = accLockEnabled();
+
+  // ---------- 启动初始化动画收尾（v0.47.0）----------
+  // 主界面已在遮罩下完成渲染（全程无闪动）；最短展示 800ms 保证动画完整，随后淡出移除
+  (function finishBootSplash() {
+    const splash = document.getElementById('boot-splash');
+    if (!splash) return;
+    const started = performance.now();
+    const textEl = document.getElementById('boot-text');
+    const steps = ['正在初始化界面…', '加载本地数据…', '准备就绪'];
+    let si = 0;
+    const textTimer = setInterval(function () {
+      si = Math.min(si + 1, steps.length - 1);
+      if (textEl) textEl.textContent = steps[si];
+    }, 260);
+    const finish = function () {
+      clearInterval(textTimer);
+      const wait = Math.max(0, 800 - (performance.now() - started));
+      setTimeout(function () {
+        splash.classList.add('is-done');
+        setTimeout(function () { splash.remove(); }, 400);
+      }, wait);
+    };
+    if (document.readyState === 'complete') finish();
+    else window.addEventListener('load', finish);
+  })();
 })();
