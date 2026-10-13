@@ -5310,12 +5310,11 @@ textarea[readonly] {
   border-color: var(--primary);
 }
 
-/* 输入补全下拉（向下展开，v0.41.0 修复向上展开被上部元素遮挡） */
+/* 输入补全下拉（v0.45.0：跟随光标文字下方——位置由 JS 镜像测量动态设置，此处为默认值） */
 .db-suggest {
   position: absolute;
   left: 10px;
-  top: calc(100% + 4px);
-  bottom: auto;
+  top: 100%;
   z-index: 40;
   min-width: 210px;
   max-height: 236px;

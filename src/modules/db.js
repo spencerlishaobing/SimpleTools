@@ -251,6 +251,55 @@
     if (active) active.scrollIntoView({ block: 'nearest' });
   }
 
+  /**
+   * 测量编辑器光标相对元素左上角的坐标（v0.45.0：镜像测量法）。
+   * 原理：创建与编辑器排版一致的隐藏镜像元素，在光标前文本末尾插入零宽标记，
+   * 读取标记的 offsetTop / offsetLeft（兼容换行 / 中英文混合 / 自动换行）。
+   */
+  function caretPosition() {
+    const cs = getComputedStyle(editorEl);
+    let mirror = document.getElementById('db-caret-mirror');
+    if (!mirror) {
+      mirror = document.createElement('div');
+      mirror.id = 'db-caret-mirror';
+      document.body.appendChild(mirror);
+    }
+    ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'lineHeight',
+      'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+      'borderTopWidth', 'borderLeftWidth', 'boxSizing', 'tabSize'].forEach(function (k) {
+      mirror.style[k] = cs[k];
+    });
+    mirror.style.position = 'absolute';
+    mirror.style.left = '-9999px';
+    mirror.style.top = '0';
+    mirror.style.visibility = 'hidden';
+    mirror.style.pointerEvents = 'none';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    mirror.style.overflowWrap = 'break-word';
+    mirror.style.width = editorEl.clientWidth + 'px';
+    mirror.style.height = 'auto';
+    mirror.textContent = editorEl.value.slice(0, editorEl.selectionStart);
+    const marker = document.createElement('span');
+    marker.textContent = '\u200b';
+    mirror.appendChild(marker);
+    const lineHeight = parseFloat(cs.lineHeight) || 20;
+    const pos = { left: marker.offsetLeft, top: marker.offsetTop, lineHeight: lineHeight };
+    mirror.textContent = '';
+    return pos;
+  }
+
+  /** 把提示下拉定位到光标（输入文字）下方（v0.45.0）；右侧边界超出时向左收敛 */
+  function positionSuggest() {
+    const caret = caretPosition();
+    let left = editorEl.offsetLeft + caret.left;
+    const top = editorEl.offsetTop + caret.top - editorEl.scrollTop + caret.lineHeight + 4;
+    const maxLeft = editorEl.offsetLeft + editorEl.clientWidth - 230;
+    if (left > maxLeft) left = Math.max(editorEl.offsetLeft, maxLeft);
+    suggestEl.style.left = left + 'px';
+    suggestEl.style.top = top + 'px';
+  }
+
   /** 输入变化：按光标 token 生成候选（前缀匹配优先，按 关键字 → 表 → 字段 排序） */
   function updateSuggest() {
     const tok = currentToken();
@@ -281,6 +330,7 @@
     state.suggestItems = items;
     state.suggestIndex = 0;
     renderSuggest();
+    positionSuggest();
     suggestEl.classList.remove('hidden');
   }
 
