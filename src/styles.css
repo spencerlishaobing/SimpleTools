@@ -5084,6 +5084,120 @@ textarea[readonly] {
   white-space: pre-wrap;
 }
 
+/* ---------- 详情左右两栏 + 参数表格（v0.49.0：左请求头 / 右请求参数，参数表格化 + 逐行复制） ---------- */
+.mock-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.mock-detail-col {
+  min-width: 0;
+}
+
+.mock-detail-acts {
+  float: right;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.mock-detail-act {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 400;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.mock-detail-act:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.mock-param-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.mock-param-table th {
+  text-align: left;
+  font-weight: 600;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 8px 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mock-param-table td {
+  padding: 3px 8px 3px 0;
+  border-bottom: 1px dashed var(--border-light);
+  vertical-align: top;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.mock-param-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mock-param-k {
+  color: var(--text);
+  font-weight: 600;
+  width: 36%;
+}
+
+.mock-param-v {
+  color: var(--text-dim);
+  white-space: pre-wrap;
+}
+
+.mock-param-empty {
+  color: var(--text-dim);
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.mock-param-op {
+  width: 22px;
+  padding-right: 0 !important;
+  text-align: center;
+}
+
+.mock-param-copy {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  opacity: 0.35;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.mock-param-copy svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  margin: 0 auto;
+}
+
+.mock-param-table tr:hover .mock-param-copy {
+  opacity: 1;
+}
+
+.mock-param-copy:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
 .mock-detail-body {
   margin: 0;
   padding: 8px 10px;

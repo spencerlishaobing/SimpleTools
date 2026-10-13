@@ -109,6 +109,27 @@
     }).join('') + '</div>';
   }
 
+  /** 行复制图标（v0.49.0：参数表格逐行复制用） */
+  const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>';
+
+  /**
+   * 参数表格（v0.49.0：两列表格「参数名 / 参数值」+ 行尾单独复制按钮）
+   * data-k / data-v 存解码后原文（esc 实体在 dataset 读取时自动还原）
+   */
+  function paramTableHtml(pairs) {
+    if (!pairs.length) return '';
+    let h = '<table class="mock-param-table"><thead><tr><th>参数名</th><th>参数值</th><th class="mock-param-op"></th></tr></thead><tbody>';
+    pairs.forEach(function (kv) {
+      h += '<tr>' +
+        '<td class="mock-param-k" title="' + esc(kv[0]) + '">' + esc(kv[0]) + '</td>' +
+        '<td class="mock-param-v" title="' + esc(kv[1]) + '">' + (kv[1] === '' ? '<span class="mock-param-empty">(空)</span>' : esc(kv[1])) + '</td>' +
+        '<td class="mock-param-op"><button class="mock-param-copy" data-k="' + esc(kv[0]) + '" data-v="' + esc(kv[1]) + '" title="复制该参数（k=v）">' + COPY_ICON + '</button></td>' +
+        '</tr>';
+    });
+    h += '</tbody></table>';
+    return h;
+  }
+
   // ---------- 规则渲染 ----------
 
   function ruleRowHtml(r) {
@@ -204,24 +225,35 @@
 
   // ---------- 详情展开 ----------
 
+  /**
+   * 详情渲染（v0.49.0）：左右两栏——左「请求头」右「请求参数」；
+   * 参数表格化（参数名 / 参数值两列 + 逐行复制）；
+   * 工具按钮：「复制完整 URL」（所有请求）/「复制参数」（有正文时，复制正文原文串）
+   */
   function detailHtml(d) {
-    let h = '';
-    // 请求头
-    h += '<div class="mock-detail-sec">请求头</div>';
-    if (d.headers && d.headers.length) {
-      h += kvRows(d.headers);
-    } else {
-      h += '<div class="mock-detail-none">无</div>';
-    }
-    // 请求参数
-    h += '<div class="mock-detail-sec">请求参数</div>';
-    let hasParams = false;
     const qs = parsePairs(d.query);
+    const isForm = /urlencoded/i.test(d.content_type || '');
+    const formPairs = isForm ? parsePairs(d.body) : [];
+    let h = '<div class="mock-detail-grid">';
+    // 左栏：请求头
+    h += '<div class="mock-detail-col"><div class="mock-detail-sec">请求头</div>';
+    h += (d.headers && d.headers.length) ? kvRows(d.headers) : '<div class="mock-detail-none">无</div>';
+    h += '</div>';
+    // 右栏：请求参数（表格化 + 复制）
+    h += '<div class="mock-detail-col"><div class="mock-detail-sec">请求参数<span class="mock-detail-acts">';
+    h += '<button class="mock-detail-act" data-act="url" title="复制完整请求 URL（含查询参数）">复制完整 URL</button>';
+    if (d.body) h += '<button class="mock-detail-act" data-act="params" title="复制请求参数（正文原文）">复制参数</button>';
+    h += '</span></div>';
+    let hasParams = false;
     if (qs.length) {
       hasParams = true;
-      h += '<div class="mock-detail-sub">Query 参数</div>' + kvRows(qs);
+      h += '<div class="mock-detail-sub">Query 参数</div>' + paramTableHtml(qs);
     }
-    if (d.body) {
+    if (formPairs.length) {
+      hasParams = true;
+      h += '<div class="mock-detail-sub">表单参数</div>' + paramTableHtml(formPairs);
+    }
+    if (d.body && !formPairs.length) {
       hasParams = true;
       const ctype = d.content_type ? '（' + esc(d.content_type) + '）' : '';
       h += '<div class="mock-detail-sub">请求正文' + (d.body_truncated ? '（超过 256KB，仅记录前 256KB）' : '') + ctype + '</div>' +
@@ -230,6 +262,7 @@
     if (!hasParams) {
       h += '<div class="mock-detail-none">无查询参数与请求正文</div>';
     }
+    h += '</div></div>';
     return h;
   }
 
@@ -437,8 +470,28 @@
     }
   });
 
-  // 请求记录行：点击展开详情（再次点击收起）
+  // 请求记录行：点击展开详情（再次点击收起）；详情内参数复制 / 工具按钮复制（v0.49.0）
   listEl.addEventListener('click', async function (e) {
+    // 参数表格逐行复制（k=v）
+    const pcopy = e.target.closest('.mock-param-copy');
+    if (pcopy) {
+      window.copyText(pcopy.dataset.k + '=' + pcopy.dataset.v, '已复制参数');
+      return;
+    }
+    // 工具按钮：复制完整 URL / 复制参数（正文原文串）
+    const act = e.target.closest('.mock-detail-act');
+    if (act) {
+      const det = act.closest('.mock-detail');
+      const d = det && det._data;
+      if (!d) return;
+      if (act.dataset.act === 'url') {
+        const base = state.lastIp ? 'http://' + state.lastIp + ':' + portEl.textContent : '';
+        window.copyText(base + d.path, base ? '已复制请求 URL' : '已复制请求路径（未检测到本机 IP）');
+      } else if (act.dataset.act === 'params') {
+        window.copyText(d.body, d.body_truncated ? '已复制请求参数（仅前 256KB）' : '已复制请求参数');
+      }
+      return;
+    }
     const row = e.target.closest('.mock-row');
     if (!row || !invoke) return;
     const next = row.nextElementSibling;
@@ -458,6 +511,7 @@
         detail.innerHTML = '<div class="mock-detail-none">[记录已不在内存中（超过 500 条上限被淘汰）]</div>';
         return;
       }
+      detail._data = d;
       detail.innerHTML = detailHtml(d);
     } catch (err) {
       detail.innerHTML = '<div class="mock-detail-none">读取失败：' + esc(err && err.message ? err.message : err) + '</div>';
