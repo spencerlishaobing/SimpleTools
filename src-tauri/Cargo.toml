@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.42.0"
+version = "0.43.0"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"
@@ -27,7 +27,11 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 # 0.22 使用 ring（无需 cmake / nasm）；0.23+ 切换 aws-lc-rs 会要求 CMake 工具链
 hudsucker = "=0.22.0"
 http-body-util = "0.1"
-tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt"] }
+tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt", "fs", "io-util"] }
+
+# 版本更新（v0.43.0）：检测 GitHub Releases 与下载安装包
+# native-tls = Windows 系统 TLS（schannel），无额外 C 工具链依赖
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
 
 # 模拟服务器（v0.36.0）：本地 HTTP 模拟服务（复用 hudsucker 依赖树中的 hyper 1.x，无额外编译负担）
 hyper = { version = "1", features = ["server", "http1"] }

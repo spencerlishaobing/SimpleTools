@@ -9,6 +9,7 @@ mod mock;
 mod notes;
 mod textfile;
 mod titlebar;
+mod update;
 mod winsec;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -70,7 +71,10 @@ pub fn run() {
             mock::mock_clear_requests,
             mock::mock_public_retry,
             db::db_open,
-            db::db_query
+            db::db_query,
+            update::update_check,
+            update::update_download,
+            update::update_install
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
