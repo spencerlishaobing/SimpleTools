@@ -5495,6 +5495,43 @@ textarea[readonly] {
   font-style: italic;
 }
 
+/* 行复制列（v0.44.0：每行复制为 JSON） */
+.db-table .db-copy-col {
+  width: 30px;
+  min-width: 30px;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.db-row-copy {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0.35;
+  vertical-align: middle;
+}
+
+.db-row-copy svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+  margin: 0 auto;
+}
+
+.db-table tbody tr:hover .db-row-copy {
+  opacity: 1;
+}
+
+.db-row-copy:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
 /* ===== 分页条（v0.41.0：每页数量 / 翻页 / 跳页 / 行号口径切换） ===== */
 .db-pager {
   display: flex;

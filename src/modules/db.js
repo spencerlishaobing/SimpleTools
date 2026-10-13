@@ -338,6 +338,9 @@
 
   // ---------- 执行查询与结果渲染 ----------
 
+  /** 行复制图标（v0.44.0：复制该行为 JSON 数据） */
+  const ROW_COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>';
+
   function renderResult(res) {
     const rows = res.rows || [];
     const cols = res.columns || [];
@@ -347,7 +350,7 @@
     cols.forEach(function (c) {
       h += '<th>' + esc(c) + '</th>';
     });
-    h += '</tr></thead><tbody>';
+    h += '<th class="db-copy-col" title="每行可复制为 JSON"></th></tr></thead><tbody>';
     rows.forEach(function (r, i) {
       h += '<tr><td class="db-idx">' + (base + i + 1) + '</td>';
       r.forEach(function (v) {
@@ -355,6 +358,7 @@
         else if (typeof v === 'number') h += '<td class="db-num">' + esc(v) + '</td>';
         else h += '<td>' + esc(v) + '</td>';
       });
+      h += '<td class="db-copy-col"><button class="db-row-copy" data-row="' + i + '" title="复制该行（JSON）">' + ROW_COPY_SVG + '</button></td>';
       h += '</tr>';
     });
     h += '</tbody></table>';
@@ -372,6 +376,30 @@
     statusEl.textContent = '查询出错';
     statusEl.classList.add('is-error');
   }
+
+  // 行复制（v0.44.0）：把该行输出为 JSON（列名 → 值；重复列名自动加 _2 / _3 后缀防覆盖）
+  resultEl.addEventListener('click', function (e) {
+    const btn = e.target.closest('.db-row-copy');
+    if (!btn || !state.lastResult) return;
+    const idx = Number(btn.dataset.row);
+    const rows = state.lastResult.rows || [];
+    const cols = state.lastResult.columns || [];
+    const row = rows[idx];
+    if (!row) return;
+    const counter = {};
+    const obj = {};
+    cols.forEach(function (c, i) {
+      let key = c;
+      if (counter[key] != null) {
+        counter[key] += 1;
+        key = c + '_' + counter[key];
+      } else {
+        counter[key] = 1;
+      }
+      obj[key] = i < row.length ? row[i] : null;
+    });
+    window.copyText(JSON.stringify(obj, null, 2), '已复制该行 JSON');
+  });
 
   // ---------- 分页（v0.41.0） ----------
 
