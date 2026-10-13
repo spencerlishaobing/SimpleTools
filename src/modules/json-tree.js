@@ -120,25 +120,49 @@
   // ---------- 行模型构建 ----------
 
   /**
+   * 字符串值 → JSON 对象/数组（v0.48.0 内嵌 JSON 字符串解析）：
+   * trim 后以 { / [ 开头且能成功解析为对象/数组时返回解析值，否则 undefined（保持普通字符串）
+   */
+  function parseEmbedded(v) {
+    if (typeof v !== 'string') return undefined;
+    const t = v.trim();
+    if (!t || (t[0] !== '{' && t[0] !== '[')) return undefined;
+    const parsed = tryParse(t);
+    if (parsed.ok && parsed.value !== null && typeof parsed.value === 'object') return parsed.value;
+    return undefined;
+  }
+
+  /**
    * 值 → 行模型数组（行式渲染：每行一个 token，容器行为 open / close 配对）。
    * path 规则（与 diffMarks 一致）：对象成员 parent + '.' + key，数组元素 parent + '[i]'
+   * v0.48.0：expandEmbedded 开启时，值为 JSON（对象/数组）的字符串自动解析展开，
+   * open 行标记 embedded（原始字符串，供角标 / 悬停查看），最多递归 8 层，防解析爆炸
    */
-  function buildRows(v, key, depth, path, isLast, rows) {
+  function buildRows(v, key, depth, path, isLast, rows, embeddedSrc, embedDepth, expandEmbedded) {
+    embedDepth = embedDepth || 0;
+    if (expandEmbedded && embeddedSrc === undefined && embedDepth < 8) {
+      const decoded = parseEmbedded(v);
+      if (decoded !== undefined) {
+        buildRows(decoded, key, depth, path, isLast, rows, v, embedDepth + 1, expandEmbedded);
+        return;
+      }
+    }
     if (v !== null && typeof v === 'object') {
       const isArr = Array.isArray(v);
       const keys = isArr ? null : Object.keys(v);
       const size = isArr ? v.length : keys.length;
       const row = { kind: 'open', depth: depth, key: key, arr: isArr, isLast: isLast, path: path, size: size, hasChildren: size > 0, collapsed: false };
+      if (embeddedSrc !== undefined) row.embedded = embeddedSrc;
       rows.push(row);
       if (size > 0) {
         if (isArr) {
           for (let i = 0; i < v.length; i++) {
-            buildRows(v[i], null, depth + 1, path + '[' + i + ']', i === v.length - 1, rows);
+            buildRows(v[i], null, depth + 1, path + '[' + i + ']', i === v.length - 1, rows, undefined, embedDepth, expandEmbedded);
           }
         } else {
           for (let i = 0; i < keys.length; i++) {
             const k = keys[i];
-            buildRows(v[k], k, depth + 1, path + '.' + k, i === keys.length - 1, rows);
+            buildRows(v[k], k, depth + 1, path + '.' + k, i === keys.length - 1, rows, undefined, embedDepth, expandEmbedded);
           }
         }
         row.endIdx = rows.length;
@@ -165,6 +189,10 @@
     if (row.kind === 'open') {
       body += '<span class="jt-toggle' + (row.hasChildren ? '' : ' jt-toggle-empty') + '">\u25be</span>';
       if (row.key !== null) body += '<span class="jt-key">"' + esc(row.key) + '"</span><span class="jt-punct">: </span>';
+      if (row.embedded !== undefined) {
+        const tip = String(row.embedded).length > 300 ? String(row.embedded).slice(0, 300) + '…' : String(row.embedded);
+        body += '<span class="jt-embed-badge" title="' + esc('内嵌 JSON 字符串已解析，原始内容：\n' + tip) + '">JSON</span>';
+      }
       const open = row.arr ? '[' : '{';
       const close = row.arr ? ']' : '}';
       body += '<span class="jt-punct">' + open + '</span>';
@@ -240,7 +268,7 @@
   function render(container, value, options) {
     const opts = options || {};
     const rows = [];
-    buildRows(value, null, 0, '', true, rows);
+    buildRows(value, null, 0, '', true, rows, undefined, 0, !!opts.expandEmbedded);
     if (rows.length > MAX_ROWS) return { ok: false, reason: 'too-large' };
     let html = '';
     for (let i = 0; i < rows.length; i++) html += lineHtml(rows[i], i, opts.markSet, opts.markClass);

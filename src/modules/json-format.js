@@ -56,6 +56,58 @@
     }
   }
 
+  /**
+   * 字符串值 → JSON 对象/数组（v0.48.0 内嵌 JSON 字符串解析）：
+   * trim 后以 { / [ 开头且能成功解析为对象/数组时返回解析值，否则 undefined（保持普通字符串）
+   */
+  function tryParseObject(s) {
+    const t = s.trim();
+    if (!t || (t[0] !== '{' && t[0] !== '[')) return undefined;
+    try {
+      const v = JSON.parse(t);
+      if (v !== null && typeof v === 'object') return v;
+    } catch (_) { /* 非 JSON，保持原字符串 */ }
+    return undefined;
+  }
+
+  /**
+   * 递归展开内嵌 JSON 字符串（v0.48.0）：值为 JSON（对象/数组）的字符串替换为解析结果（可多层嵌套，上限 8 层）。
+   * 返回 { value, count }（count = 展开处数；未变化子树保持原引用）
+   */
+  function expandEmbedded(root) {
+    let count = 0;
+    function walk(v, depth) {
+      if (depth > 8) return v;
+      if (typeof v === 'string') {
+        const inner = tryParseObject(v);
+        if (inner === undefined) return v;
+        count++;
+        return walk(inner, depth + 1);
+      }
+      if (Array.isArray(v)) {
+        let changed = false;
+        const out = v.map(function (x) {
+          const y = walk(x, depth);
+          if (y !== x) changed = true;
+          return y;
+        });
+        return changed ? out : v;
+      }
+      if (v !== null && typeof v === 'object') {
+        let changed = false;
+        const out = {};
+        Object.keys(v).forEach(function (k) {
+          const y = walk(v[k], depth);
+          if (y !== v[k]) changed = true;
+          out[k] = y;
+        });
+        return changed ? out : v;
+      }
+      return v;
+    }
+    return { value: walk(root, 0), count: count };
+  }
+
   /** 解析输入：先直接解析；失败且开启去转义时，去转义后重试 */
   function resolveInput(raw) {
     const text = raw.trim();
@@ -95,7 +147,7 @@
       treeActions.classList.add('hidden');
       return true;
     }
-    if (!window.JsonTree.render(treeView, lastValue).ok) {
+    if (!window.JsonTree.render(treeView, lastValue, { expandEmbedded: true }).ok) {
       showTextOutput();
       return false;
     }
@@ -194,13 +246,15 @@
       setStatus('解析失败：' + parsed.error.message, 'error');
       return;
     }
-    output.value = JSON.stringify(parsed.value, null, getIndent());
+    const expanded = expandEmbedded(parsed.value);
+    output.value = JSON.stringify(expanded.value, null, getIndent());
     lastValue = parsed.value;
     const lines = output.value.split('\n').length;
     const treeSkipped = treeCheck.checked && !renderTreeView();
     if (!treeCheck.checked) showTextOutput();
     setStatus(
       (usedUnescape ? '已自动去除转义，' : '') + '格式化成功 · ' + lines + ' 行' +
+      (expanded.count ? '（已展开 ' + expanded.count + ' 处内嵌 JSON 字符串）' : '') +
       (treeSkipped ? '（JSON 过大，树形视图已跳过）' : ''),
       'success'
     );

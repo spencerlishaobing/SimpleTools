@@ -4008,6 +4008,22 @@ textarea[readonly] {
   color: var(--text-dim);
 }
 
+/* 内嵌 JSON 字符串角标（v0.48.0：标识该对象由字符串值解析展开，虚线框、悬停看原始字符串） */
+.jt-embed-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  border: 1px dashed var(--primary);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 14px;
+  font-family: var(--sans);
+  color: var(--primary);
+  opacity: 0.85;
+  cursor: help;
+  vertical-align: 1px;
+}
+
 .jt-line.jt-collapsed .jt-summary {
   display: inline;
 }
