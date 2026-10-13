@@ -33,6 +33,11 @@
   const helpOpenBtn = document.getElementById('cap-help-open');
   const helpMask = document.getElementById('cap-help-modal');
   const helpCloseBtn = document.getElementById('cap-help-close');
+  const diagBtn = document.getElementById('cap-diag-btn');
+  const diagCountEl = document.getElementById('cap-diag-count');
+  const diagPopEl = document.getElementById('cap-diag-pop');
+  const diagListEl = document.getElementById('cap-diag-list');
+  const diagClearEl = document.getElementById('cap-diag-clear');
 
   /** 列表最多渲染的行数（内存记录本身由后端控制上限） */
   const MAX_ROWS = 1000;
@@ -49,6 +54,7 @@
     tab: 'res-body',
     filter: 'all',  // all / ok / fail
     keyword: '',
+    diag: [],       // 诊断条目（v0.50.0：连接失败 / TLS 握手失败等）
   };
 
   let pendingBuf = [];      // 待批量渲染的摘要
@@ -291,6 +297,53 @@
     renderDetail();
   }
 
+  // ---------- 抓包诊断（v0.50.0：连接失败 / TLS 握手失败等，帮助定位「部分 APP 抓不到」） ----------
+
+  /** 渲染诊断列表（最近 100 条；错误红 / 警告黄） */
+  function renderDiag() {
+    const list = state.diag;
+    diagCountEl.textContent = list.length ? String(list.length) : '';
+    diagCountEl.classList.toggle('hidden', !list.length);
+    if (!list.length) {
+      diagListEl.innerHTML = '<div class="cap-diag-empty">暂无诊断信息</div>';
+      return;
+    }
+    diagListEl.innerHTML = list.map(function (d) {
+      return '<div class="cap-diag-item' + (d.level === '错误' ? ' s-err' : ' s-warn') + '">' +
+        '<span class="cap-diag-time">' + fmtTime(d.at) + '</span>' +
+        '<span class="cap-diag-level">' + esc(d.level) + '</span>' +
+        '<span class="cap-diag-msg" title="' + esc(d.message) + '">' + esc(d.message) + '</span></div>';
+    }).join('');
+    diagListEl.scrollTop = diagListEl.scrollHeight;
+  }
+
+  async function refreshDiag() {
+    if (!invoke) return;
+    try {
+      state.diag = (await invoke('capture_diag_list')) || [];
+    } catch (e) {
+      return;
+    }
+    renderDiag();
+  }
+
+  function openDiagPop() {
+    const r = diagBtn.getBoundingClientRect();
+    const w = 440;
+    let left = r.right - w;
+    if (left < 8) left = 8;
+    diagPopEl.style.left = left + 'px';
+    diagPopEl.style.top = (r.bottom + 6) + 'px';
+    diagPopEl.style.width = w + 'px';
+    diagPopEl.classList.remove('hidden');
+    diagBtn.classList.add('is-open');
+  }
+
+  function closeDiagPop() {
+    diagPopEl.classList.add('hidden');
+    diagBtn.classList.remove('is-open');
+  }
+
   // ---------- 运行状态 ----------
 
   function applyInfo(info) {
@@ -462,6 +515,35 @@
     if (e.target === helpMask) helpMask.classList.add('hidden');
   });
 
+  // 诊断（v0.50.0）：弹出查看 / 清空 / 点击空白关闭
+  diagBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (diagPopEl.classList.contains('hidden')) {
+      openDiagPop();
+      refreshDiag();
+    } else {
+      closeDiagPop();
+    }
+  });
+
+  diagPopEl.addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+
+  document.addEventListener('click', function () {
+    if (!diagPopEl.classList.contains('hidden')) closeDiagPop();
+  });
+
+  diagClearEl.addEventListener('click', async function (e) {
+    e.stopPropagation();
+    if (!invoke) return;
+    try {
+      await invoke('capture_diag_clear');
+    } catch (err) { /* 忽略 */ }
+    state.diag = [];
+    renderDiag();
+  });
+
   // 面板由隐藏变为可见：刷新运行状态；首次打开时回填已捕获记录
   panelEl.addEventListener('panel-shown', function () {
     refreshInfo();
@@ -474,7 +556,14 @@
     listenFn('capture-session', function (ev) {
       onSession(ev.payload);
     });
+    listenFn('capture-diag', function (ev) {
+      if (!ev.payload) return;
+      state.diag.push(ev.payload);
+      if (state.diag.length > 100) state.diag.shift();
+      renderDiag();
+    });
   }
   refreshInfo();
   backfill();
+  refreshDiag();
 })();

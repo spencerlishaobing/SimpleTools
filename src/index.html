@@ -195,7 +195,7 @@
         <span>设置</span>
       </button>
       <button class="version" id="version-btn" title="点击检查更新">
-        <span id="version-text">v0.49.0</span> <span class="version-stack">· Tauri + Rust</span>
+        <span id="version-text">v0.50.0</span> <span class="version-stack">· Tauri + Rust</span>
         <span class="version-update-dot hidden" id="version-update-dot"></span>
       </button>
       <div class="credit">Developed by Spencer</div>
@@ -636,6 +636,7 @@
         </div>
         <input id="cap-search" class="cap-search" placeholder="搜索 域名 / 路径 / 方法（关键字）" spellcheck="false" />
         <span class="cap-count" id="cap-count">0 条</span>
+        <button class="cap-diag-btn" id="cap-diag-btn" title="查看连接失败 / TLS 握手失败等诊断信息">诊断<span class="cap-diag-count hidden" id="cap-diag-count"></span></button>
       </div>
       <div class="cap-body">
         <div class="cap-list-wrap">
@@ -661,6 +662,14 @@
             <pre class="cap-tab-content" id="cap-tab-content"></pre>
           </div>
         </div>
+      </div>
+      <div class="cap-diag-pop hidden" id="cap-diag-pop">
+        <div class="cap-diag-head">
+          <span class="cap-diag-title">抓包诊断</span>
+          <button class="cap-diag-clear" id="cap-diag-clear">清空</button>
+        </div>
+        <div class="cap-diag-list" id="cap-diag-list"></div>
+        <div class="cap-diag-hint">无记录 = 该 APP 未走系统代理；TLS 握手失败 = 证书未安装或 APP 启用了证书固定（详见「使用教程」）</div>
       </div>
     </section>
     <!-- ===== 模拟服务器 ===== -->
@@ -965,10 +974,23 @@
         </div>
 
         <div class="cap-help-sec">
+          <div class="cap-help-sec-title">5. 某些 App 抓不到包？（诊断指南）</div>
+          <ul>
+            <li><b>先看「诊断」</b>：抓包面板顶部的「诊断」按钮会记录连接失败 / TLS 握手失败等异常——完全没有该 App 的诊断记录，说明它<b>没有走系统代理</b>；有 TLS 握手失败记录，多为证书未安装 / 未信任或 App 启用了证书固定。</li>
+            <li><b>证书未生效（Android 7.0+）</b>：系统默认只信任内置根证书，用户安装的证书对不少 App 不生效，表现：浏览器能抓到、App 抓不到（需 Root 将证书装入系统分区才能绕过，非本工具问题）。</li>
+            <li><b>证书固定（SSL Pinning）</b>：微信 / 支付宝 / 银行 / 部分视频类 App 内置证书校验，握手会直接失败（诊断可见）——属 App 自有的安全机制，任何抓包工具都无法绕过。</li>
+            <li><b>App 不走系统代理</b>：少数视频 / 游戏 App 自建网络直连（不读 Wi-Fi 代理设置），抓包列表与诊断都不会出现它的任何记录。</li>
+            <li><b>QUIC / HTTP/3（UDP 流量）</b>：代理只能接管 TCP 流量，部分 App 优先使用 QUIC 导致抓不到；可尝试在 App 设置中关闭「HTTP/3 / QUIC」开关（部分 App 提供）。</li>
+            <li><b>逐步定位</b>：依次用「系统浏览器 → 第三方浏览器 → 目标 App」访问同一网络——浏览器能抓到而 App 不能，基本可判定为上述证书固定 / 不走代理类原因。</li>
+          </ul>
+        </div>
+
+        <div class="cap-help-sec">
           <div class="cap-help-sec-title">常见问题</div>
           <ul>
             <li>列表一直为空：确认「启动抓包」已开启、手机与电脑在同一 Wi-Fi、代理地址与端口填写正确。</li>
             <li>HTTPS 网页打不开或提示证书错误：根证书未安装或未信任（iPhone 需在「证书信任设置」中开启完全信任）。</li>
+            <li>只能抓到部分 App：属 App 侧安全机制（证书固定 / 不走代理 / QUIC），逐条对照第 5 节诊断指南排查。</li>
             <li>抓包结束后请在手机上关闭代理，否则手机将无法上网。</li>
             <li>记录保存在内存中（上限 2000 条），重启应用自动清空；根证书长期有效，无需重复安装。</li>
           </ul>

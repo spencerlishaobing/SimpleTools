@@ -22,6 +22,8 @@ pub fn run() {
         .setup(|app| {
             // 模拟服务器：启动时载入已保存的接口规则（数据目录 mock-rules.json）
             mock::init_load(app.handle());
+            // 抓包诊断（v0.50.0）：安装 tracing 捕获层（hudsucker 警告 / 错误 → 诊断列表）
+            capture::init_diag(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -60,6 +62,8 @@ pub fn run() {
             capture::capture_detail,
             capture::capture_clear,
             capture::capture_export_ca,
+            capture::capture_diag_list,
+            capture::capture_diag_clear,
             mock::mock_info,
             mock::mock_start,
             mock::mock_stop,

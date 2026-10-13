@@ -35,10 +35,18 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tracing::{field::Field, Level, Subscriber};
+use tracing_subscriber::{
+    layer::{Context as TraceContext, Layer, SubscriberExt},
+    registry::LookupSpan,
+    util::SubscriberInitExt,
+};
 
 /// 代理监听端口（手机代理设置里填写本机 IP + 此端口）
 pub const PROXY_PORT: u16 = 8888;
+/// 诊断信息环形缓冲上限（连接失败 / TLS 握手失败等，v0.50.0）
+const DIAG_MAX: usize = 100;
 /// 内存中最多保留的会话条数（超出淘汰最早的）
 const MAX_SESSIONS: usize = 2000;
 /// 请求 / 响应正文记录上限（单侧 256KB，超出截断）
@@ -119,11 +127,24 @@ struct ProxyRuntime {
     task: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
+/// 抓包诊断条目（v0.50.0）：捕获 hudsucker 内部警告 / 错误（上游连接失败 / TLS 握手失败 /
+/// 转发失败等），帮助用户定位「部分 APP 抓不到包」的原因
+#[derive(Debug, Clone, Serialize)]
+pub struct DiagEntry {
+    /// 时间（毫秒时间戳）
+    pub at: u64,
+    /// 级别：错误 / 警告
+    pub level: String,
+    pub message: String,
+}
+
 /// 抓包全局状态（tauri manage）
 #[derive(Default)]
 pub struct CaptureState {
     store: Arc<Mutex<Store>>,
     runtime: Mutex<ProxyRuntime>,
+    /// 诊断环形缓冲（v0.50.0）
+    diag: Arc<Mutex<VecDeque<DiagEntry>>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -320,7 +341,17 @@ impl HttpHandler for CaptureHandler {
 
     async fn handle_error(&mut self, _ctx: &HttpContext, err: ClientError) -> Response<Body> {
         if let Some(pending) = self.pending.take() {
-            self.record_error(pending, error_chain(&err));
+            let detail = error_chain(&err);
+            // v0.50.0：本实现覆盖了 hudsucker 默认 handle_error（其内部会输出 error! 日志），
+            // 此处主动上报诊断（连接失败 / TLS 报错等，帮助定位「部分 APP 抓不到」）
+            tracing::error!(
+                target: "hudsucker::capture",
+                "上游转发失败（{}:{}）：{}",
+                pending.host,
+                pending.port,
+                detail
+            );
+            self.record_error(pending, detail);
         }
         Response::builder()
             .status(StatusCode::BAD_GATEWAY)
@@ -577,7 +608,10 @@ pub async fn capture_start(app: AppHandle, state: State<'_, CaptureState>) -> Re
     };
     let proxy = Proxy::builder()
         .with_listener(listener)
-        .with_rustls_client()
+        // v0.50.0：上游 TLS 改用系统栈（Windows schannel）——信任系统根证书库：
+        // 覆盖国内 CA / 用户手动信任的证书（此前 webpki-roots 内置列表不包含它们，
+        // 导致部分 APP 的服务器握手失败抓不到），同时兼容更宽的 TLS 版本范围
+        .with_native_tls_client()
         .with_ca(ca)
         .with_http_handler(handler)
         .with_graceful_shutdown(async move {
@@ -613,6 +647,87 @@ pub async fn capture_stop(state: State<'_, CaptureState>) -> Result<(), String> 
         .await;
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// 抓包诊断（v0.50.0）
+// ---------------------------------------------------------------------------
+
+/// 诊断捕获层：只处理 hudsucker 目标（含内部模块）的 WARN / ERROR 事件，
+/// 写入环形缓冲并实时推送前端（事件 capture-diag）
+struct DiagLayer {
+    diag: Arc<Mutex<VecDeque<DiagEntry>>>,
+    app: AppHandle,
+}
+
+impl<S> Layer<S> for DiagLayer
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    fn on_event(&self, event: &tracing::Event<'_>, _ctx: TraceContext<'_, S>) {
+        let meta = event.metadata();
+        if !meta.target().starts_with("hudsucker") {
+            return;
+        }
+        let level = *meta.level();
+        if level != Level::WARN && level != Level::ERROR {
+            return;
+        }
+        struct MsgVisitor {
+            msg: String,
+        }
+        impl tracing::field::Visit for MsgVisitor {
+            fn record_str(&mut self, field: &Field, value: &str) {
+                if field.name() == "message" {
+                    self.msg = value.to_string();
+                }
+            }
+            fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                if field.name() == "message" && self.msg.is_empty() {
+                    self.msg = format!("{value:?}").trim_matches('"').to_string();
+                }
+            }
+        }
+        let mut v = MsgVisitor {
+            msg: String::new(),
+        };
+        event.record(&mut v);
+        if v.msg.is_empty() {
+            return;
+        }
+        let entry = DiagEntry {
+            at: now_ms(),
+            level: if level == Level::ERROR { "错误".to_string() } else { "警告".to_string() },
+            message: v.msg,
+        };
+        {
+            let mut d = self.diag.lock().unwrap();
+            d.push_back(entry.clone());
+            while d.len() > DIAG_MAX {
+                d.pop_front();
+            }
+        }
+        let _ = self.app.emit("capture-diag", &entry);
+    }
+}
+
+/// 安装诊断捕获层（应用启动时调用一次；已有全局 subscriber 时静默跳过）
+pub fn init_diag(app: AppHandle) {
+    let diag = app.state::<CaptureState>().diag.clone();
+    let layer = DiagLayer { diag, app };
+    let _ = tracing_subscriber::registry().with(layer).try_init();
+}
+
+/// 诊断列表（最近 100 条，供前端诊断面板拉取）
+#[tauri::command]
+pub fn capture_diag_list(state: State<'_, CaptureState>) -> Vec<DiagEntry> {
+    state.diag.lock().unwrap().iter().cloned().collect()
+}
+
+/// 清空诊断列表
+#[tauri::command]
+pub fn capture_diag_clear(state: State<'_, CaptureState>) {
+    state.diag.lock().unwrap().clear();
 }
 
 /// 全量会话摘要（面板打开时拉取已有记录）
