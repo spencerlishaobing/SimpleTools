@@ -147,9 +147,9 @@
   const NAV_STYLE_KEY = 'simpletools-nav-style';
   const NAV_HIDDEN_KEY = 'simpletools-nav-hidden';
   const NAV_STYLE_ALL = ['both', 'icon', 'label'];
-  // 默认隐藏的功能（v0.38.0：功能默认全部显示；此机制保留，供后续如需改默认时使用）
+  // 默认隐藏的功能（v0.42.0：默认仅显示「记事本」与「账号密码」，其余功能可在设置中勾选恢复）
   // 注意：需与 index.html head 内联脚本的 NH_DEFAULT 保持一致
-  const NAV_HIDDEN_DEFAULT = [];
+  const NAV_HIDDEN_DEFAULT = ['json', 'diff', 'md5', 'str', 'md', 'capture', 'mock', 'db'];
   const navStyleGroup = document.getElementById('nav-style-group');
   const navFeatureGrid = document.getElementById('nav-feature-grid');
   const htmlRoot = document.documentElement;
