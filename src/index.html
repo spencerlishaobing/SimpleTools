@@ -195,7 +195,7 @@
         <span>设置</span>
       </button>
       <button class="version" id="version-btn" title="点击检查更新">
-        <span id="version-text">v0.55.0</span> <span class="version-stack">· Tauri + Rust</span>
+        <span id="version-text">v0.56.0</span> <span class="version-stack">· Tauri + Rust</span>
         <span class="version-update-dot hidden" id="version-update-dot"></span>
       </button>
       <div class="credit">Developed by Spencer</div>
@@ -801,6 +801,7 @@
           <button type="button" class="settings-nav-item" role="tab" data-settings-tab="display">功能显示</button>
           <button type="button" class="settings-nav-item" role="tab" data-settings-tab="security">安全</button>
           <button type="button" class="settings-nav-item" role="tab" data-settings-tab="storage">存储</button>
+          <button type="button" class="settings-nav-item" role="tab" data-settings-tab="about">关于</button>
         </div>
         <div class="settings-main">
           <div class="settings-pane" data-settings-pane="display" role="tabpanel">
@@ -872,6 +873,18 @@
               <div class="settings-actions">
                 <button class="btn" id="data-restore-btn" title="从导入 / 合并前自动生成的备份恢复数据">恢复数据</button>
               </div>
+            </div>
+          </div>
+          <!-- 关于（v0.56.0：图标 + 版本号 + 版本更新入口） -->
+          <div class="settings-pane" data-settings-pane="about" role="tabpanel">
+            <div class="about-box">
+              <div class="about-logo">ST</div>
+              <div class="about-name">SimpleTools</div>
+              <div class="about-desc">常用工具合集 · Tauri + Rust</div>
+              <div class="about-version" id="about-version">v—</div>
+              <button class="btn primary about-check" id="about-check-update">检查更新</button>
+              <div class="about-hint">点击后将检测 GitHub 上的最新发布：有新版会弹出更新说明，可直接一键更新</div>
+              <div class="about-credit">Developed by Spencer</div>
             </div>
           </div>
           <div class="modal-actions">

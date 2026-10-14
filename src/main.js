@@ -564,6 +564,30 @@
   const settingsNav = document.getElementById('settings-nav');
   const settingsPanes = document.querySelectorAll('#settings-modal .settings-pane');
 
+  // ---------- 设置 · 关于（v0.56.0：图标 + 版本号 + 版本更新入口） ----------
+  (function initAbout() {
+    const versionEl = document.getElementById('about-version');
+    const checkBtn = document.getElementById('about-check-update');
+    if (versionEl) {
+      const vt = document.getElementById('version-text');
+      versionEl.textContent = vt ? vt.textContent : 'v—';
+      // Tauri 环境下用运行时版本号校准（与构建配置一致）
+      const appApi = window.__TAURI__ && window.__TAURI__.app;
+      if (appApi && appApi.getVersion) {
+        appApi.getVersion().then(function (v) {
+          if (v) versionEl.textContent = 'v' + v;
+        }).catch(function () { /* 保持静态文本 */ });
+      }
+    }
+    if (checkBtn) {
+      // 复用侧边栏版本号的检查逻辑：有新版弹窗、已最新 toast
+      checkBtn.addEventListener('click', function () {
+        const vb = document.getElementById('version-btn');
+        if (vb) vb.click();
+      });
+    }
+  })();
+
   function setSettingsTab(tab) {
     settingsNav.querySelectorAll('.settings-nav-item').forEach((b) => {
       const on = b.dataset.settingsTab === tab;

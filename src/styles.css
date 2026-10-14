@@ -3026,6 +3026,67 @@ textarea[readonly] {
   word-break: break-all;
 }
 
+/* ===== 设置 · 关于（v0.56.0：图标 + 版本号 + 版本更新入口） ===== */
+.about-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px 4px;
+  text-align: center;
+}
+
+.about-logo {
+  width: 92px;
+  height: 92px;
+  border-radius: 23px;
+  background: var(--brand-icon-bg);
+  color: var(--brand-icon-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+}
+
+.about-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 8px;
+}
+
+.about-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.about-version {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.about-check {
+  margin-top: 10px;
+}
+
+.about-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  max-width: 320px;
+}
+
+.about-credit {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.85;
+  margin-top: 14px;
+}
+
 /* ===== 应用设置弹窗：功能显示（v0.26.0） ===== */
 .settings-row-col {
   display: block;
