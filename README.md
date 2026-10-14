@@ -145,7 +145,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.54.0_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.55.0_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
 - 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
@@ -218,6 +218,11 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.55.0（2026-10-15）
+
+- 版本更新弹窗优化：弹窗加宽（340px → 560px），更新说明阅读更舒适
+- 更新按钮状态优化：点击「立即更新」后按钮随阶段实时变化（下载中 0% → … → 正在安装…），不再是灰色的「立即更新」；下载失败时自动恢复为可点击的「立即更新」并提示原因，重新打开弹窗按钮状态自动重置
 
 ### v0.54.0（2026-10-15）
 

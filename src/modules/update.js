@@ -44,11 +44,21 @@
     if (!state.busy) mask.classList.add('hidden');
   }
 
+  /** 重置更新按钮 / 进度区到初始状态（打开弹窗、更新失败时调用，v0.55.0） */
+  function resetUpdateButtons() {
+    nowBtn.disabled = false;
+    laterBtn.disabled = false;
+    nowBtn.textContent = '立即更新';
+    progressWrap.classList.add('hidden');
+  }
+
   function renderInfo(info) {
     state.info = info;
     latestEl.textContent = info.latest || '—';
     currentEl.textContent = info.current || '—';
     notesEl.textContent = info.notes || '（本次更新暂无说明）';
+    // v0.55.0：每次打开弹窗重置按钮状态（避免残留上一次的「下载中 / 正在安装」文案）
+    resetUpdateButtons();
   }
 
   /** 检查更新：silent = 启动时自动检查（不打扰，仅红点提示） */
@@ -101,6 +111,8 @@
     state.busy = true;
     nowBtn.disabled = true;
     laterBtn.disabled = true;
+    // v0.55.0：按钮不再是普通「立即更新」——随阶段实时显示下载进度 / 安装中
+    nowBtn.textContent = '下载中 0%';
     progressWrap.classList.remove('hidden');
     progressFill.style.width = '0%';
     progressText.textContent = '开始下载…';
@@ -109,14 +121,13 @@
         url: state.info.asset_url,
         name: state.info.asset_name,
       });
+      nowBtn.textContent = '正在安装…';
       progressText.textContent = '下载完成，正在启动安装程序…';
       await invoke('update_install', { path: path });
       progressText.textContent = '安装程序已启动，应用即将自动关闭并完成更新…';
     } catch (e) {
       state.busy = false;
-      nowBtn.disabled = false;
-      laterBtn.disabled = false;
-      progressWrap.classList.add('hidden');
+      resetUpdateButtons();
       window.toast('更新失败：' + (e && e.message ? e.message : e));
     }
   });
@@ -131,8 +142,11 @@
         const pct = Math.min(100, Math.round((downloaded / total) * 100));
         progressFill.style.width = pct + '%';
         progressText.textContent = '下载中 ' + pct + '%（' + fmtMB(downloaded) + ' / ' + fmtMB(total) + '）';
+        // v0.55.0：按钮文案同步下载进度
+        if (state.busy) nowBtn.textContent = '下载中 ' + pct + '%';
       } else {
         progressText.textContent = '下载中（已接收 ' + fmtMB(downloaded) + '）';
+        if (state.busy) nowBtn.textContent = '下载中…';
       }
     });
   }

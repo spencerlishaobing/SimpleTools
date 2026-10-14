@@ -2785,7 +2785,12 @@ textarea[readonly] {
   border-color: var(--primary);
 }
 
-/* ===== 版本更新弹窗（v0.43.0：检查更新说明 / 下载进度） ===== */
+/* ===== 版本更新弹窗（v0.43.0：检查更新说明 / 下载进度；v0.55.0：宽度加宽） ===== */
+#update-modal .modal-card {
+  width: 560px;
+  max-width: 92vw;
+}
+
 .update-vers {
   font-size: 13px;
   font-weight: 600;
