@@ -10,6 +10,9 @@ pub struct AppSettings {
     /// 自定义数据目录（空字符串 = 使用默认目录）
     #[serde(default)]
     pub data_dir: String,
+    /// 当前主题（v0.54.0：light / dark / mix / khaki，供启动时设置窗口底色，消除启动白闪）
+    #[serde(default)]
+    pub theme: String,
 }
 
 /// 需要随数据目录迁移的数据文件（平铺在数据目录下；数据导入导出 v0.30.0 复用同一白名单）
@@ -34,6 +37,32 @@ pub(crate) fn has_image_ext(name: &str) -> bool {
         .and_then(|e| e.to_str())
         .map(|e| IMAGE_EXTS.contains(&e.to_ascii_lowercase().as_str()))
         .unwrap_or(false)
+}
+
+/// 启动主题（v0.54.0）：读取应用设置中的主题（无效 / 未设置时返回 light），
+/// 供应用启动时在显示窗口前设置窗口底色（与主题一致的背景，消除启动白闪）
+pub fn boot_theme(app: &AppHandle) -> String {
+    let Ok(default) = default_dir(app) else {
+        return "light".to_string();
+    };
+    let t = read_settings(&default).theme;
+    match t.as_str() {
+        "dark" | "mix" | "khaki" => t,
+        _ => "light".to_string(),
+    }
+}
+
+/// 保存当前主题到应用设置（前端主题切换时调用；读-改-写保留其他字段）
+#[tauri::command]
+pub fn app_set_theme(app: AppHandle, theme: String) -> Result<(), String> {
+    let t = match theme.as_str() {
+        "light" | "dark" | "mix" | "khaki" => theme,
+        _ => return Err("不支持的主题".into()),
+    };
+    let default = default_dir(&app)?;
+    let mut settings = read_settings(&default);
+    settings.theme = t;
+    write_settings(&default, &settings)
 }
 
 /// 默认数据目录：{AppData}/com.simpletools.desktop
@@ -308,13 +337,16 @@ pub fn data_dir_set(app: AppHandle, dir: String) -> Result<String, String> {
     migrate_data_files(&current, &new_dir)?;
     // 新位置即默认目录时写空值（视为恢复默认）；否则记录自定义路径
     let def_canon = fs::canonicalize(&default).unwrap_or_else(|_| default.clone());
-    let settings = if new_canon == def_canon {
+    let prev = read_settings(&default);
+    let mut settings = if new_canon == def_canon {
         AppSettings::default()
     } else {
         AppSettings {
             data_dir: display_path(&new_canon),
+            theme: String::new(),
         }
     };
+    settings.theme = prev.theme; // 迁移数据目录不影响主题设置（v0.54.0）
     write_settings(&default, &settings)?;
     Ok(display_path(&new_canon))
 }
@@ -424,6 +456,7 @@ mod tests {
             &dir,
             &AppSettings {
                 data_dir: r"D:\SimpleToolsData".into(),
+                theme: String::new(),
             },
         )
         .expect("写入设置");

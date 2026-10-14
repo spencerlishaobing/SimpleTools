@@ -436,6 +436,11 @@
         const t = b.dataset.themeOpt;
         closeThemeMenu();
         applyTheme(t);
+        // v0.54.0：持久化主题到应用设置（下次启动按主题设置窗口底色，消除启动白闪）
+        const inv = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+        if (inv) {
+          inv('app_set_theme', { theme: t }).catch(function () { /* 忽略 */ });
+        }
       });
     });
     setTimeout(() => {
@@ -1377,8 +1382,9 @@
 
   accLockSwitch.checked = accLockEnabled();
 
-  // ---------- 启动初始化动画收尾（v0.47.0）----------
-  // 主界面已在遮罩下完成渲染（全程无闪动）；最短展示 800ms 保证动画完整，随后淡出移除
+  // ---------- 启动初始化动画收尾（v0.47.0；v0.54.0 等待首屏数据就绪）----------
+  // 主界面已在遮罩下完成渲染；满足「最短展示 450ms + 首屏数据渲染完成（__bootDataReady）」
+  // 后再淡出（最长再等 1.6s 兜底），避免主界面内容填充瞬间的视觉闪动
   (function finishBootSplash() {
     const splash = document.getElementById('boot-splash');
     if (!splash) return;
@@ -1389,14 +1395,20 @@
     const textTimer = setInterval(function () {
       si = Math.min(si + 1, steps.length - 1);
       if (textEl) textEl.textContent = steps[si];
-    }, 260);
+    }, 200);
     const finish = function () {
       clearInterval(textTimer);
-      const wait = Math.max(0, 800 - (performance.now() - started));
-      setTimeout(function () {
-        splash.classList.add('is-done');
-        setTimeout(function () { splash.remove(); }, 400);
-      }, wait);
+      const deadline = performance.now() + 1600;
+      const tryFade = function () {
+        const minShown = performance.now() - started >= 450;
+        if ((minShown && window.__bootDataReady) || performance.now() >= deadline) {
+          splash.classList.add('is-done');
+          setTimeout(function () { splash.remove(); }, 400);
+        } else {
+          setTimeout(tryFade, 50);
+        }
+      };
+      tryFade();
     };
     if (document.readyState === 'complete') finish();
     else window.addEventListener('load', finish);

@@ -1587,6 +1587,8 @@
       editorEl.classList.add('hidden');
     }
     if (migrated) scheduleSave(); // 转换结果尽快回写（rich 标记），避免下次启动重复转换
+    // v0.54.0：首屏数据渲染完成标记（启动动画据此等待，消除主界面填充瞬间的闪动）
+    window.__bootDataReady = true;
   }
 
   init();

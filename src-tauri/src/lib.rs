@@ -34,6 +34,18 @@ pub fn run() {
             mock::init_load(app.handle());
             // 抓包诊断（v0.50.0）：安装 tracing 捕获层（hudsucker 警告 / 错误 → 诊断列表）
             capture::init_diag(app.handle().clone());
+            // v0.54.0：启动防白闪——窗口初始隐藏（tauri.conf visible:false），
+            // 按已保存主题设置窗口底色后再显示，首帧即为主题色
+            let theme = datadir::boot_theme(app.handle());
+            let (r, g, b) = match theme.as_str() {
+                "dark" => (15u8, 23u8, 42u8),   // #0f172a
+                "khaki" => (15, 14, 12),        // #0f0e0c
+                _ => (246, 247, 249),           // light / mix #f6f7f9
+            };
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_background_color(Some(tauri::window::Color(r, g, b, 255)));
+                let _ = w.show();
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -42,6 +54,7 @@ pub fn run() {
             accounts::accounts_export,
             datadir::data_dir_info,
             datadir::data_dir_set,
+            datadir::app_set_theme,
             datadir::storage_info,
             datadir::open_in_explorer,
             backup::data_export,

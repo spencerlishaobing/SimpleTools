@@ -366,6 +366,7 @@ fn resolve_import_target(
             custom_path,
             Some(AppSettings {
                 data_dir: custom.to_string(),
+                theme: parsed.theme.clone(),
             }),
             false,
         ))
@@ -952,14 +953,14 @@ mod tests {
         // data_dir 指向已存在目录（同机恢复）
         let custom = test_dir("resolve_exist");
         let json =
-            serde_json::to_vec(&AppSettings { data_dir: custom.display().to_string() }).unwrap();
+            serde_json::to_vec(&AppSettings { data_dir: custom.display().to_string(), theme: String::new() }).unwrap();
         let (t, s, fb) = resolve_import_target(Some(&json), &default, &current).unwrap();
         assert_eq!(t, custom);
         assert!(!fb && s.is_some());
         // data_dir 指向不存在目录（换机场景）→ 回退默认
         let missing = default.join("no_such_sub");
         let json2 =
-            serde_json::to_vec(&AppSettings { data_dir: missing.display().to_string() }).unwrap();
+            serde_json::to_vec(&AppSettings { data_dir: missing.display().to_string(), theme: String::new() }).unwrap();
         let (t, s, fb) = resolve_import_target(Some(&json2), &default, &current).unwrap();
         assert_eq!(t, default);
         assert!(fb && s.unwrap().data_dir.is_empty());

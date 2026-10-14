@@ -695,6 +695,8 @@
     if (state.groups.length) state.currentGroupId = state.groups[0].id;
     renderAll();
     setSaveStatus('', '就绪');
+    // v0.54.0：首屏数据渲染完成标记（启动动画据此等待，消除主界面填充瞬间的闪动）
+    window.__bootDataReady = true;
   }
 
   init();
