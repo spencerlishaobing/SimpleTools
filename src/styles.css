@@ -5767,12 +5767,28 @@ textarea[readonly] {
   font-style: italic;
 }
 
-/* 行复制列（v0.44.0：每行复制为 JSON） */
+/* 行复制列（v0.44.0：每行复制为 JSON；v0.51.0：固定在表格右侧——横向滚动无需滑到最右） */
 .db-table .db-copy-col {
+  position: sticky;
+  right: 0;
+  z-index: 2;
   width: 30px;
   min-width: 30px;
   padding: 4px 6px;
   text-align: center;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--border-light);
+}
+
+/* 表头复制单元格：叠加顶部吸附 + 右侧固定（更高层级） */
+.db-table th.db-copy-col {
+  z-index: 3;
+  background: var(--panel-bg-subtle);
+}
+
+/* 行悬停时固定列背景同步（避免滑动内容透字） */
+.db-table tbody tr:hover .db-copy-col {
+  background: var(--panel-bg-subtle);
 }
 
 .db-row-copy {

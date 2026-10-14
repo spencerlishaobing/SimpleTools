@@ -25,6 +25,9 @@ use hudsucker::{
     Body, HttpContext, HttpHandler, Proxy, RequestOrResponse,
 };
 use http_body_util::{BodyExt, Full};
+use hyper_rustls::{ConfigBuilderExt, HttpsConnector, HttpsConnectorBuilder};
+use hyper_util::client::legacy::{connect::HttpConnector, Client};
+use hyper_util::rt::TokioExecutor;
 use serde::Serialize;
 use std::{
     collections::VecDeque,
@@ -572,6 +575,34 @@ pub fn capture_info(app: AppHandle, state: State<'_, CaptureState>) -> CaptureIn
     build_info(&app, &state)
 }
 
+/// 构建上游 HTTP 客户端（v0.51.0）：rustls + 系统根证书库——
+/// - 根证书优先 Windows 系统信任库（含国内 CA / 用户手动信任的自签证书），异常时回退 Mozilla 内置列表
+/// - TLS 指纹保持 rustls（schannel 指纹会被部分服务器拒绝：received fatal alert）
+/// - 上游 ALPN（HTTP/2 优先、回落 HTTP/1.1）由 hyper-rustls 自动配置：
+///   with_tls_config 要求传入的 config 的 alpn_protocols 为空（否则 assert panic），
+///   故不能手动设置，改用 enable_all_versions 自动写入
+fn build_upstream_client() -> Client<HttpsConnector<HttpConnector>, Body> {
+    let cfg = match rustls::ClientConfig::builder().with_native_roots() {
+        Ok(b) => b.with_no_client_auth(),
+        Err(_) => {
+            let mut roots = rustls::RootCertStore::empty();
+            roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+            rustls::ClientConfig::builder()
+                .with_root_certificates(roots)
+                .with_no_client_auth()
+        }
+    };
+    let https = HttpsConnectorBuilder::new()
+        .with_tls_config(cfg)
+        .https_or_http()
+        .enable_all_versions()
+        .build();
+    Client::builder(TokioExecutor::new())
+        .http1_title_case_headers(true)
+        .http1_preserve_header_case(true)
+        .build(https)
+}
+
 /// 启动代理（监听 0.0.0.0:8888；端口占用等失败直接返回原因）
 #[tauri::command]
 pub async fn capture_start(app: AppHandle, state: State<'_, CaptureState>) -> Result<CaptureInfo, String> {
@@ -608,10 +639,9 @@ pub async fn capture_start(app: AppHandle, state: State<'_, CaptureState>) -> Re
     };
     let proxy = Proxy::builder()
         .with_listener(listener)
-        // v0.50.0：上游 TLS 改用系统栈（Windows schannel）——信任系统根证书库：
-        // 覆盖国内 CA / 用户手动信任的证书（此前 webpki-roots 内置列表不包含它们，
-        // 导致部分 APP 的服务器握手失败抓不到），同时兼容更宽的 TLS 版本范围
-        .with_native_tls_client()
+        // v0.51.0：上游 TLS 自建 rustls 连接器——信任系统根证书库（国内 CA / 用户信任证书），
+        // TLS 指纹保持 rustls（避免 schannel 指纹被部分服务器拒绝：received fatal alert）
+        .with_client(build_upstream_client())
         .with_ca(ca)
         .with_http_handler(handler)
         .with_graceful_shutdown(async move {
@@ -781,6 +811,13 @@ pub fn capture_export_ca(app: AppHandle, path: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn upstream_client_builds_with_system_roots() {
+        // v0.51.0 防回归：构建上游客户端不得 panic（曾因手动设置 alpn_protocols 触发
+        // hyper-rustls with_tls_config 的 assert 而崩溃）
+        let _client = super::build_upstream_client();
+    }
 
     #[test]
     fn parse_uri_fields() {

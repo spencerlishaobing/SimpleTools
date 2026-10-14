@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.50.0"
+version = "0.51.0"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"
@@ -25,11 +25,17 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 
 # 抓包（v0.35.0）：MITM HTTP/S 代理（rcgen 动态签发域名证书 + rustls/hyper）
 # 0.22 使用 ring（无需 cmake / nasm）；0.23+ 切换 aws-lc-rs 会要求 CMake 工具链
-# v0.50.0：native-tls-client（上游改用 Windows 系统 TLS 栈 schannel，信任系统根证书）
-#         + http2（客户端側 ALPN 支持 h2，兼容强制 HTTP/2 的 APP）
-hudsucker = { version = "=0.22.0", features = ["native-tls-client", "http2"] }
+# v0.50.0：http2（客户端側 ALPN 支持 h2，兼容强制 HTTP/2 的 APP）
+hudsucker = { version = "=0.22.0", features = ["http2"] }
 http-body-util = "0.1"
 tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt", "fs", "io-util"] }
+
+# 抓包上游链路（v0.51.0）：自建 rustls 连接器——
+# 信任 Windows 系统根证书库（含国内 CA / 用户手动信任的自签；修复 schannel 指纹被
+# 部分服务器拒绝：received fatal alert；同时解决 webpki 内置列表不含国内 CA 的问题）
+hyper-rustls = { version = "0.26", default-features = false, features = ["http1", "http2", "ring", "tls12", "logging", "rustls-native-certs"] }
+rustls = "0.22"
+webpki-roots = "0.26"
 
 # 抓包诊断（v0.50.0）：捕获 hudsucker 内部警告 / 错误日志展示给用户
 tracing = "0.1"
@@ -40,8 +46,9 @@ tracing-subscriber = "0.3"
 reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
 
 # 模拟服务器（v0.36.0）：本地 HTTP 模拟服务（复用 hudsucker 依赖树中的 hyper 1.x，无额外编译负担）
+# v0.51.0：client-legacy / http2 供抓包上游自建连接器使用
 hyper = { version = "1", features = ["server", "http1"] }
-hyper-util = { version = "0.1", features = ["tokio"] }
+hyper-util = { version = "0.1", features = ["tokio", "client-legacy", "http1", "http2"] }
 
 # 数据库读取（v0.37.0）：SQLite 只读查询（bundled 内置 SQLite C 源码，无系统依赖）
 rusqlite = { version = "0.32", features = ["bundled"] }
