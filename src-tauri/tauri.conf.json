@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SimpleTools",
-  "version": "0.51.0",
+  "version": "0.52.0",
   "identifier": "com.simpletools.desktop",
   "build": {
     "frontendDist": "../src"
@@ -36,6 +36,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "languages": ["SimpChinese"],
+        "displayLanguageSelector": false,
+        "template": "nsis/installer.nsi",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "nsis/header.bmp",
+        "sidebarImage": "nsis/sidebar.bmp",
+        "installerHooks": "nsis/hooks.nsh",
+        "compression": "lzma"
+      }
+    }
   }
 }
