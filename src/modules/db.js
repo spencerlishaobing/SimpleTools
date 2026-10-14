@@ -160,9 +160,9 @@
           '</div>';
       }).join('');
       return '<div class="db-table-item">' +
-        '<div class="db-table-row" title="点击展开 / 收起列">' +
-        '<span class="db-table-arrow">▸</span>' +
-        '<span class="db-table-name">' + esc(t.name) + '</span>' +
+        '<div class="db-table-row">' +
+        '<span class="db-table-arrow" title="展开 / 收起字段">▸</span>' +
+        '<span class="db-table-name" title="点击查询该表数据">' + esc(t.name) + '</span>' +
         '<span class="db-table-kind">' + (t.kind === 'view' ? '视图' : '') + '</span>' +
         '<span class="db-table-colcount">' + (t.columns || []).length + '</span>' +
         '</div>' +
@@ -178,14 +178,19 @@
       insertAtCursor(colItem.dataset.col);
       return;
     }
-    // 表行：展开 / 收起列列表
     const row = e.target.closest('.db-table-row');
     if (!row) return;
-    const item = row.closest('.db-table-item');
-    const list = item.querySelector('.db-col-list');
-    const open = !list.classList.contains('hidden');
-    list.classList.toggle('hidden', open);
-    row.querySelector('.db-table-arrow').classList.toggle('open', !open);
+    // v0.53.0：点击展开图标 = 展开 / 收起字段列表
+    if (e.target.closest('.db-table-arrow')) {
+      const item = row.closest('.db-table-item');
+      const list = item.querySelector('.db-col-list');
+      const open = !list.classList.contains('hidden');
+      list.classList.toggle('hidden', open);
+      row.querySelector('.db-table-arrow').classList.toggle('open', !open);
+      return;
+    }
+    // v0.53.0：点击表名（行内其余区域）= 直接查询该表数据（不再依赖双击）
+    queryTable(row);
   });
 
   /** 整体设置编辑器内容（光标置于末尾） */
@@ -200,17 +205,22 @@
     return '"' + String(name).replace(/"/g, '""') + '"';
   }
 
-  // 双击表名行：查询该表数据（SELECT * FROM "表名"，v0.41.0）
-  // 单击仍为展开 / 收起：双击的两次 click 会抵消展开状态，最终仅触发查询
-  tablesEl.addEventListener('dblclick', function (e) {
-    const row = e.target.closest('.db-table-row');
-    if (!row || !invoke || !state.info) return;
+  /**
+   * 点击表名：直接查询该表数据（SELECT * FROM "表名"，v0.53.0）。
+   * 单击即查；400ms 内同名表重复查询去重（防双击触发两次请求）
+   */
+  let lastTableQuery = { name: '', at: 0 };
+  function queryTable(row) {
+    if (!invoke || !state.info) return;
     const nameEl = row.querySelector('.db-table-name');
     if (!nameEl) return;
-    const sql = 'SELECT * FROM ' + quoteIdent(nameEl.textContent);
-    setEditorValue(sql);
+    const name = nameEl.textContent;
+    const now = Date.now();
+    if (lastTableQuery.name === name && now - lastTableQuery.at < 400) return;
+    lastTableQuery = { name: name, at: now };
+    setEditorValue('SELECT * FROM ' + quoteIdent(name));
     runQuery(1);
-  });
+  }
 
   // ---------- 编辑器插入与补全 ----------
 
