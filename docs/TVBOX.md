@@ -1,4 +1,4 @@
-# TVBOX 桌面版 · v0.58.1
+# TVBOX 桌面版 · v0.58.2
 
 按 TVBoxOS 的配置与采集约定独立实现 Windows 桌面影音功能，交互采用鼠标和键盘。内嵌开源 libmpv、QuickJS、Python 与 OpenJDK，无需另装播放器、Python、Java 或 Android 环境。兼容影视仓生态的多仓合集与“加密配置”地址：图片 / 文本外壳内的 Base64 配置自动解密；主流 JAR / Python / JS 片源可直接运行（详见「影视仓生态兼容」）。
 

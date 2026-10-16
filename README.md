@@ -149,7 +149,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.1_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.2_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
 - 免安装运行：`src-tauri/target/release/SimpleTools.exe`，须同时携带完整 `resources` 运行时目录。
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。TVBOX 版的构建会在编译前自动执行 `scripts/prepare-tvbox-all.ps1` 准备 libmpv / Python / JRE / dex2jar 运行时（固定版本 + SHA256 校验，首次需联网）。
@@ -233,6 +233,13 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.58.2（2026-10-17）
+
+- 破解 ftyguard（神の蝶）加壳保护：guard 载荷是整文件字节值映射（字节值 ∈ {1,2,5,6} 时异或 7），桌面端离线自动解包为标准 JAR（CRC 全量校验通过）后走 dex2jar 加载——饭太硬加壳源（含 46 个源）解锁，实测 AiDj / Pan 完成加载与首页调用。
+- Java 兼容层补齐加壳片源引用的 90+ 个 Android 桩类（View / WebView / 对话框 / 列表 / SQLite / Cursor / Intent 等），并初始化片源自带的 InitOrigin 上下文；修复 SQLiteDatabase 继承链缺失导致的 JVM 段错误。
+- 少数 dex2jar 转换产物缺 StackMapTable（复杂 switch），运行时以禁用字节码验证的方式加载（-Xverify:none）。
+- 十六进制加密配置（`$#lintech#$` 等变体）与 360 加固 / DexHelper / libshell 等其他壳仍给出明确提示。
 
 ### v0.58.1（2026-10-17）
 
