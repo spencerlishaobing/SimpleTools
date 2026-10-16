@@ -65,6 +65,7 @@ fn html_query(html: String, rule: String, many: bool) -> String {
 }
 fn client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
+        .user_agent(crate::tvbox::TVBOX_UA)
         .timeout(Duration::from_secs(15))
         .build()
         .map_err(|e| e.to_string())

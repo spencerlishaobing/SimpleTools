@@ -5,6 +5,8 @@ SimpleTools 一键发布 GitHub Release
   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.34.0
   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.34.0 -NotesFile .\notes.md
   powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.34.0 -DryRun
+  TVBOX 版（仅限 tvbox 分支，标签与资产自动带 tvbox 标识）：
+  powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.34.0 -Tvbox
   网络被干扰导致 fetch/push/API 失败时附加：-Proxy http://127.0.0.1:44447
 
 流程：校验（版本三处一致 / 工作区干净 / HEAD 已推送 / tag 未被占用 / 安装包与免安装 exe 存在）
@@ -22,7 +24,8 @@ param(
   [string]$Notes = '',
   [string]$NotesFile = '',
   [string]$Proxy = '',
-  [switch]$DryRun
+  [switch]$DryRun,
+  [switch]$Tvbox
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,6 +45,12 @@ function Fail([string]$msg) {
 $v = $Version.Trim().TrimStart('v', 'V')
 if ($v -notmatch '^\d+\.\d+\.\d+$') { Fail "bad version '$Version' (expect X.Y.Z)" }
 $tag = "v$v"
+
+# ---------- 分支与 TVBOX 版本（防止把 TVBOX 构建当成标准版发布，或反之） ----------
+$branch = (git -C $RepoDir rev-parse --abbrev-ref HEAD).Trim()
+if ($Tvbox -and $branch -ne 'tvbox') { Fail "-Tvbox requires the tvbox branch (current: $branch)" }
+if (-not $Tvbox -and $branch -eq 'tvbox') { Fail "on tvbox branch use -Tvbox (refusing to publish the TVBOX build as a standard release)" }
+if ($Tvbox) { $tag = "v$v-tvbox" }
 
 # ---------- 版本号一致校验（tauri.conf.json / package.json / Cargo.toml） ----------
 $confVer = (Get-Content (Join-Path $RepoDir 'src-tauri\tauri.conf.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
@@ -73,6 +82,11 @@ $sizeMB = [math]::Round($inst.Length / 1MB, 2)
 $portable = Get-Item -LiteralPath $PortableExe
 # 免安装 exe 上传时改用带版本名（原文件名固定为 SimpleTools.exe，多版本下载易混淆）
 $portableAssetName = "SimpleTools_${v}_x64-portable.exe"
+if ($Tvbox) {
+  # TVBOX 版：资产名带 tvbox 标识，避免与标准版混淆
+  $assetName = $assetName -replace '_x64-setup', '_tvbox_x64-setup'
+  $portableAssetName = "SimpleTools_${v}_x64-portable-tvbox.exe"
+}
 $portableSha = (Get-FileHash -LiteralPath $PortableExe -Algorithm SHA256).Hash
 $portableMB = [math]::Round($portable.Length / 1MB, 2)
 $assets = @(
@@ -168,6 +182,7 @@ try { $me = Api 'GET' 'https://api.github.com/user' } catch { Fail "GitHub API c
 if ($DryRun) {
   Write-Output "RELEASE-PLAN $tag"
   Write-Output "  repo      : $RepoSlug"
+  Write-Output "  branch    : $branch$(if ($Tvbox) { ' (TVBOX 版)' } else { ' (标准版)' })"
   Write-Output "  api user  : $($me.login)"
   Write-Output "  head      : $headCommit (ahead=$ahead behind=$behind)"
   Write-Output "  tag       : $(if ($localTag) { 'exists (reuse)' } else { 'will create' }) local / $(if ($remoteTag) { 'exists (reuse)' } else { 'will push' }) remote"
@@ -218,7 +233,7 @@ try {
 if (-not $release) {
   $release = Api 'POST' "$ApiBase/releases" @{
     tag_name   = $tag
-    name       = "SimpleTools $tag"
+    name       = $(if ($Tvbox) { "SimpleTools $v · TVBOX 版" } else { "SimpleTools $tag" })
     body       = $releaseNotes
     draft      = $false
     prerelease = $false

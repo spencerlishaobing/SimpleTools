@@ -23,12 +23,61 @@ public final class Main {
     private static JSONObject object(String text){return text==null||text.trim().isEmpty()?new JSONObject():new JSONObject(text);}
     private static HashMap<String,String> map(JSONObject obj){HashMap<String,String> out=new HashMap<>();if(obj!=null)for(String key:obj.keySet())out.put(key,obj.optString(key));return out;}
     private static List<String> list(JSONArray a){List<String> out=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++)out.add(a.getString(i));return out;}
+    /** 修复 dex2jar 2.4 的已知产物缺陷：部分字段的 ConstantValue 属性与字段描述符类型不匹配
+     * （实测：HashMap 字段携带 String 常量），JVM 定义类时直接抛 ClassFormatError
+     * （Bad string initial value），导致整个 JAR 无法加载。这里将非法属性就地改名
+     * （改成字段名），未知属性会被 JVM 忽略，字节长度不变，属于最小安全补丁。 */
+    private static int u2(byte[] b,int o){return ((b[o]&0xff)<<8)|(b[o+1]&0xff);}
+    private static long u4(byte[] b,int o){return ((long)(b[o]&0xff)<<24)|((long)(b[o+1]&0xff)<<16)|((long)(b[o+2]&0xff)<<8)|(long)(b[o+3]&0xff);}
+    private static int constantValueTag(String desc){
+        if(desc==null)return -1;
+        switch(desc){
+            case "B":case "C":case "I":case "S":case "Z":return 3;
+            case "F":return 4;
+            case "J":return 5;
+            case "D":return 6;
+            case "Ljava/lang/String;":return 8;
+            default:return -1;
+        }
+    }
+    private static byte[] repairClass(byte[] data){
+        if(data.length<10||(data[0]&0xff)!=0xCA||(data[1]&0xff)!=0xFE)return data;
+        try{
+            int cpCount=u2(data,8);int[] tags=new int[cpCount];String[] utf8=new String[cpCount];
+            int p=10;
+            for(int i=1;i<cpCount;i++){int tag=data[p]&0xff;tags[i]=tag;
+                switch(tag){
+                    case 1:{int len=u2(data,p+1);utf8[i]=new String(data,p+3,len,StandardCharsets.UTF_8);p+=3+len;break;}
+                    case 3:case 4:case 9:case 10:case 11:case 12:case 17:case 18:p+=5;break;
+                    case 7:case 8:case 16:case 19:case 20:p+=3;break;
+                    case 15:p+=4;break;
+                    case 5:case 6:p+=9;i++;break;
+                    default:return data;
+                }
+            }
+            p+=6;int interfaces=u2(data,p);p+=2+2*interfaces;
+            int fields=u2(data,p);p+=2;
+            for(int f=0;f<fields;f++){
+                int nameIndex=u2(data,p+2),descIndex=u2(data,p+4),valueTag=constantValueTag(utf8[descIndex]);
+                p+=6;int attributes=u2(data,p);p+=2;
+                for(int a=0;a<attributes;a++){
+                    int attrName=u2(data,p);long length=u4(data,p+2);int content=p+6;
+                    if(length>=2&&"ConstantValue".equals(utf8[attrName])&&nameIndex!=attrName){
+                        int value=u2(data,content);int tag=value>0&&value<cpCount?tags[value]:0;
+                        if(tag!=valueTag){data[p]=(byte)(nameIndex>>8);data[p+1]=(byte)nameIndex;}
+                    }
+                    p+=6+(int)length;
+                }
+            }
+            return data;
+        }catch(RuntimeException e){return data;}
+    }
     private static File executableJar(File original,File folder)throws Exception {
         boolean dex=false,classes=false;
         try(InputStream input=new FileInputStream(original)){byte[] magic=new byte[4];if(input.read(magic)==4)dex=Arrays.equals(magic,new byte[]{'d','e','x','\n'});}
         if(!dex)try(ZipFile zip=new ZipFile(original)){Enumeration<? extends ZipEntry> items=zip.entries();while(items.hasMoreElements()){String name=items.nextElement().getName();dex|=name.matches("classes[0-9]*\\.dex");classes|=name.endsWith(".class");}}
         if(!dex){if(!classes)throw new IOException("JAR does not contain Java classes or Android DEX");return original;}
-        File converted=new File(folder,"converted-v2.4.jar");if(converted.isFile())return converted;
+        File converted=new File(folder,"converted-v2.4r.jar");if(converted.isFile())return converted;
         File temporary=new File(folder,"converting.jar"),log=new File(folder,"conversion.log");
         Process process=new ProcessBuilder(new File(System.getProperty("java.home"),"bin/java.exe").getPath(),"-Xmx384m","-cp",System.getProperty("tvbox.dex"),"com.googlecode.dex2jar.tools.Dex2jarCmd","-f","-o",temporary.getPath(),original.getPath()).redirectErrorStream(true).redirectOutput(log).start();
         try {
@@ -37,7 +86,19 @@ public final class Main {
                 byte[] bytes=Files.readAllBytes(log.toPath());throw new IOException("DEX conversion failed: "+new String(bytes,0,Math.min(bytes.length,3000),StandardCharsets.UTF_8));
             }
             try(ZipFile check=new ZipFile(temporary)){if(!check.stream().anyMatch(e->e.getName().endsWith(".class")))throw new IOException("DEX conversion produced no Java classes");}
-            Files.move(temporary.toPath(),converted.toPath(),StandardCopyOption.REPLACE_EXISTING);return converted;
+            File repaired=new File(folder,"converting-fixed.jar");
+            try(ZipFile source=new ZipFile(temporary);ZipOutputStream out=new ZipOutputStream(new FileOutputStream(repaired))){
+                Enumeration<? extends ZipEntry> items=source.entries();byte[] buffer=new byte[65536];
+                while(items.hasMoreElements()){
+                    ZipEntry item=items.nextElement();out.putNextEntry(new ZipEntry(item.getName()));
+                    try(InputStream input=source.getInputStream(item)){
+                        if(item.getName().endsWith(".class")){ByteArrayOutputStream raw=new ByteArrayOutputStream();int n;while((n=input.read(buffer))!=-1)raw.write(buffer,0,n);out.write(repairClass(raw.toByteArray()));}
+                        else{int n;while((n=input.read(buffer))!=-1)out.write(buffer,0,n);}
+                    }
+                    out.closeEntry();
+                }
+            }
+            Files.move(repaired.toPath(),converted.toPath(),StandardCopyOption.REPLACE_EXISTING);return converted;
         }finally{if(process.isAlive())process.destroyForcibly();}
     }
     private static Entry load(JSONObject data)throws Exception {
@@ -51,7 +112,9 @@ public final class Main {
         File executable=executableJar(original,folder);
         Entry entry=new Entry();entry.loader=new URLClassLoader(new URL[]{executable.toURI().toURL(),original.toURI().toURL()},Main.class.getClassLoader());
         try {
-            Context context=new Context(new File(folder,"context"));
+            // spider 的 Init.init 会把传入对象强转为 android.app.Application（桌面兼容层实现），
+            // 因此这里传入 Application 实例而不是裸 Context。
+            Context context=new android.app.Application(new File(folder,"context"));
             try{entry.loader.loadClass("com.github.catvod.spider.Init").getMethod("init",Context.class).invoke(null,context);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
             String cls=data.getString("api");if(cls.startsWith("csp_"))cls="com.github.catvod.spider."+cls.substring(4);
             entry.spider=(Spider)entry.loader.loadClass(cls).getDeclaredConstructor().newInstance();

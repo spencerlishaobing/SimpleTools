@@ -7,6 +7,17 @@ import org.json.*;
 /** Files and preferences are scoped to this source's private cache directory. */
 public class Context {
     public static final int MODE_PRIVATE=0;
+    public static final String CONNECTIVITY_SERVICE="connectivity";
+    public static final String WIFI_SERVICE="wifi";
+    public static final String POWER_SERVICE="power";
+    public static final String ACTIVITY_SERVICE="activity";
+    public static final String WINDOW_SERVICE="window";
+    public static final String CLIPBOARD_SERVICE="clipboard";
+    public static final String TELEPHONY_SERVICE="phone";
+    public static final String NOTIFICATION_SERVICE="notification";
+    public static final String INPUT_METHOD_SERVICE="input_method";
+    public static final String LAYOUT_INFLATER_SERVICE="layout_inflater";
+    public static final String CONNECTIVITY_ACTION="android.net.conn.CONNECTIVITY_CHANGE";
     private final File root;
     private final Map<String,SharedPreferences> prefs=new HashMap<>();
     public Context(){this(new File("context"));}
@@ -16,8 +27,16 @@ public class Context {
     public File getCacheDir(){return folder("cache");}public File getCodeCacheDir(){return folder("code");}
     public File getFilesDir(){return folder("files");}public File getExternalFilesDir(String type){return folder("external/"+(type==null?"":safe(type)));}
     public File getExternalCacheDir(){return folder("external-cache");}public File getDir(String name,int mode){return folder("app_"+safe(name));}
-    public String getPackageName(){return "com.simpletools.desktop";}public ClassLoader getClassLoader(){return getClass().getClassLoader();}
-    public Object getSystemService(String name){throw new UnsupportedOperationException("Unsupported Android system service: "+name);}
+    /** TVBox 生态的 spider 常用包名做白名单校验，这里保持与主流客户端的既有包名一致。 */
+    public String getPackageName(){return "com.github.tvbox.osc";}public android.content.pm.ApplicationInfo getApplicationInfo(){return new android.content.pm.ApplicationInfo();}
+    public android.content.pm.PackageManager getPackageManager(){return new android.content.pm.PackageManager();}
+    public int checkCallingOrSelfPermission(String permission){return 0;}
+    public int checkCallingPermission(String permission){return 0;}
+    public int checkSelfPermission(String permission){return 0;}
+    public int checkPermission(String permission,int pid,int uid){return 0;}
+    public void enforceCallingOrSelfPermission(String permission,String message){}
+    public ClassLoader getClassLoader(){return getClass().getClassLoader();}
+    public Object getSystemService(String name){if(CONNECTIVITY_SERVICE.equals(name))return new android.net.ConnectivityManager();throw new UnsupportedOperationException("Unsupported Android system service: "+name);}
     public File getFileStreamPath(String name){return new File(getFilesDir(),safe(name));}
     public FileInputStream openFileInput(String name)throws FileNotFoundException{return new FileInputStream(getFileStreamPath(name));}
     public FileOutputStream openFileOutput(String name,int mode)throws FileNotFoundException{return new FileOutputStream(getFileStreamPath(name),(mode&32768)!=0);}

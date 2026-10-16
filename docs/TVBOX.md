@@ -1,12 +1,12 @@
 # TVBOX 桌面版 · v0.58.0
 
-按 TVBoxOS 的配置与采集约定独立实现 Windows 桌面影音功能，交互采用鼠标和键盘。内嵌开源 libmpv、QuickJS、Python 与 OpenJDK，无需另装播放器、Python、Java 或 Android 环境。
+按 TVBoxOS 的配置与采集约定独立实现 Windows 桌面影音功能，交互采用鼠标和键盘。内嵌开源 libmpv、QuickJS、Python 与 OpenJDK，无需另装播放器、Python、Java 或 Android 环境。兼容影视仓生态的多仓合集与“加密配置”地址：图片 / 文本外壳内的 Base64 配置自动解密；主流 JAR / Python / JS 片源可直接运行（详见「影视仓生态兼容」）。
 
 ## 使用
 
-在侧栏打开 TVBOX。首次进入时，首页会提示添加配置网址、手机扫码或打开本地视频；“配置与设置”按网址、扫码和本地导入分步展示。顶部“当前配置仓”直接切换多仓线路；首页右侧可以输入关键词筛选片源，再选分类或搜索影片。首页保留 TVBox 风格的横向分类和海报网格，搜索、直播、收藏、观看记录使用顶部导航切换。直接播放、配置编辑和播放偏好收在“配置与设置”中。配置支持切换、重命名、编辑 JSON 与导出；重新加载相同地址会更新该配置。
+在侧栏打开 TVBOX。界面按 TVBox 交互组织：顶部导航（影视 / 搜索 / 直播 / 收藏 / 历史 / 设置），右上角切换片源与配置仓（多仓线路）。影视页为搜索框 + 分类胶囊 + 筛选 + 海报网格（海报角标显示更新集数）；点击影片进入整页详情：海报、信息、线路胶囊、剧集网格与返回。首次进入时，首页会提示添加配置网址、手机扫码或打开本地视频；设置页按网址、扫码和本地导入分步展示。直接播放、配置编辑和播放偏好收在设置页中。配置支持切换、重命名、编辑 JSON 与导出；重新加载相同地址会更新该配置。
 
-支持顶层 `urls` 数组的多仓配置网址。导入后每个仓作为具名配置出现在“配置列表”中，切换时才加载该仓的 `sites` / `lives`；不可用的仓不会阻止其他仓导入。多仓原始网址保留在配置网址输入框中，便于重新加载。单个仓首次加载后保存在应用数据中。
+支持顶层 `urls` 数组的多仓配置网址。导入后每个仓作为具名配置出现在“配置列表”中，切换时才加载该仓的 `sites` / `lives`；不可用的仓不会阻止其他仓导入。多仓原始网址保留在配置网址输入框中，便于重新加载。单个仓首次加载后保存在应用数据中。加载请求默认使用 OkHttp 客户端标识，与安卓端 TVBox / 影视仓保持一致，避免源站按客户端类型返回不同内容。
 
 点播可选择片源、分类、筛选条件，单源或全源搜索，进入详情后选择线路和剧集。全源搜索最多同时请求四个源，切换页面会停止继续派发旧搜索。收藏支持影片与频道。
 
@@ -40,6 +40,7 @@
 | type=3，api 为 .js | QuickJS 源码模块，默认导出 Spider 或 `__jsEvalReturn` / `__JS_SPIDER__`，支持相对模块导入与 async 方法 |
 | JAR / csp_* | 内置 JVM 反射加载 Spider；普通 `.class` JAR 直接运行，DEX JAR / 原始 DEX 首次转换并缓存 |
 | Python `.py` | 内置 CPython 3.13，支持常见 Spider 接口、持久实例与 localProxy |
+| 加密配置 | 图片（JPEG / PNG / 常见图片 MIME）或纯文本外壳 + `**` + Base64，内层可再套 GZIP、含 JSONC 注释；按响应内容自动识别解密（饭太硬实测）；十六进制加密变体（`$#lintech#$` / `$#347#$` 等）识别后给出明确提示 |
 | QuickJS 专用字节码 | 未实现；需提供源码 JS 或远程接口 |
 
 JS 提供 home / homeVod / category / detail / search / play 调度，`req` / `http` / `fetch` 网络请求、HTML 选择器 `pdfh` / `pdfa` / `pd`、URL 工具、MD5、Base64、随机数、TextEncoder / TextDecoder 与分源 local 存储。HTTP 请求有超时和响应大小限制，运行时限制约 96 MB 内存与 30 秒执行时间，不暴露进程或原生模块接口。不是完整 Android JS 环境：某些脚本的代理、RSA/AES 宿主扩展、计时器、动态模板或字节码仍可能不兼容。
@@ -50,9 +51,9 @@ JSON 配置支持 BOM、注释与尾随逗号。远程与本地配置支持相�
 
 配置仍使用原版字段：全局 `spider` 或单源 `jar` 提供 JAR 地址，`api: "csp_类名"` 指定 Spider 类；`api` 为 `.py` 地址时进入 Python 适配器。相对路径按配置地址解析，JAR 支持 `;md5;校验值`。不需要 Android SDK、模拟器或 ADB。
 
-- 普通 JAR 通过 URLClassLoader 按类名创建 Spider；DEX 使用随包的 dex2jar 2.4 转换为 JVM 字节码，再执行相同接口。转换按内容与配置身份缓存。
+- 普通 JAR 通过 URLClassLoader 按类名创建 Spider；DEX 使用随包的 dex2jar 2.4 转换为 JVM 字节码，再执行相同接口。转换按内容与配置身份缓存，并自动修补 dex2jar 的已知类文件缺陷（字段 ConstantValue 类型不匹配导致的 ClassFormatError，如 ``HashMap`` 字段携带 String 常量）。
 - Java / Python 均覆盖 home、category、detail、search、play，以及本地媒体代理。源实例会复用，停止运行时后自动重建。Java 代理返回的 HLS 中常见 localhost:9978 代理地址会重写到当前会话。
-- Java 兼容层实现 Context 文件目录、SharedPreferences、Base64、TextUtils、Uri、Log、Handler / Looper 等常用接口，并提供 JSON、OkHttp、Jsoup、Gson。它不是完整 Android 平台：依赖 WebView、Android Service、JNI `.so`、Android Keystore 或其他未实现 API 的 JAR 仍会报具体缺失类 / 方法；DEX 转换也可能遇到不支持的字节码。当前验证使用自建接口测试片源，不能等同于所有第三方 JAR 均兼容。
+- Java 兼容层实现 Context 文件目录、SharedPreferences、PackageManager/签名与应用信息、网络状态、Bundle、Base64、TextUtils、Uri、Log、Handler / Looper 等常用接口，并提供 JSON、OkHttp、Jsoup、Gson。部分 TVBox 生态片源（如饭太硬同系列的 csp_* 源）会用应用签名 / 包名 / 应用名做来源校验：兼容层内置影视仓 6.2.8 的公开签名证书（APK 内公开分发的证书）并使用主流客户端包名，使这类片源可在桌面端运行；校验不通过时片源自身的提示（如“接口暂时没有适配此app”）也可正常显示。它不是完整 Android 平台：依赖 WebView、Android Service、JNI `.so`、Android Keystore 或其他未实现 API 的 JAR 仍会报具体缺失类 / 方法；DEX 转换也可能遇到不支持的字节码。当前验证使用自建接口测试片源与真实 csp_* 片源，不能等同于所有第三方 JAR 均兼容。
 - Python 包含 requests、lxml、pycryptodome、beautifulsoup4、pyquery、jsonpath、ujson、cachetools。提供 `base.spider.Spider` 常用工具；依赖额外模块、多源依赖注入或 Android 的 Python 桥接接口的脚本仍可能需要适配。
 - 运行时在应用私有子进程中按需启动，接口只绑定本机并验证会话密钥。超时会重置运行时；Windows Job Object 在应用退出时清理子进程和 DEX 转换进程。设置中“停止片源兼容后台”可立即释放资源。
 - Python / Java 片源属于可执行代码，拥有当前用户权限，并非安全沙箱；只导入可信片源。已启用配置会在首页恢复时执行。
@@ -84,7 +85,7 @@ TVBOX 内置 aria2 1.37.0 Windows 版作为独立的 BitTorrent 下载进程。�
 
 ## 尚未覆盖
 
-专用 JS 字节码、DLNA 投屏、私有 P2P 协议、弹幕、DoH/Hosts 规则、加密配置、完整 Android 爬虫宿主接口和 DRM。当前实现未复制 TVBoxOS 的 Java 源码或媒体资源。
+专用 JS 字节码、DLNA 投屏、私有 P2P 协议、弹幕、DoH/Hosts 规则、十六进制加密配置（`$#lintech#$` 等变体，会给出明确提示）、安卓原生加壳（ftyguard / 神の蝶 等，解密依赖 ARM 运行库，会给出明确提示）、完整 Android 爬虫宿主接口和 DRM。当前实现未复制 TVBoxOS 的 Java 源码或媒体资源。
 
 ## 内核与构建
 
@@ -101,6 +102,7 @@ TVBOX 内置 aria2 1.37.0 Windows 版作为独立的 BitTorrent 下载进程。�
 
 ```powershell
 node --test tests/tvbox*.test.cjs
+node tests/uia-tvbox-e2e.js
 python tests/libmpv-smoke.py
 python tests/tvbox-runtimes.py
 cd src-tauri
@@ -108,4 +110,4 @@ cargo test --offline --lib
 cargo test --offline --lib windows_job_terminates_packaged_worker -- --ignored
 ```
 
-协议和 DOM 流程使用本地模拟接口测试，QuickJS 测试执行真实脚本并请求本地 HTTP 服务。桌面自动操作工具拒绝访问 SimpleTools，尚未完成原生窗口视觉和点击验收。
+协议和 DOM 流程使用本地模拟接口测试，QuickJS 测试执行真实脚本并请求本地 HTTP 服务。`tests/uia-tvbox-e2e.js` 通过 WebView2 CDP 连接运行中的应用（需以 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` 启动），验证面板结构、加密配置解密、多仓导入、加壳提示与截图。桌面自动操作工具拒绝访问 SimpleTools，尚未完成原生窗口视觉和点击验收。

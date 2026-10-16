@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::{path::PathBuf, process::Stdio, time::Duration};
 use tauri::Manager;
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
+    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
     process::{Child, Command},
     sync::Mutex,
 };
@@ -80,6 +80,19 @@ fn command(path: impl AsRef<std::ffi::OsStr>) -> Command {
     cmd.creation_flags(0x08000000);
     cmd
 }
+/// Tauri 的 resource_dir() 会返回带 `\\?\` 前缀的 verbatim 路径：
+/// CreateProcess 能接受，但 JVM 解析 `-cp` / `-Dtvbox.dex` 时会失败（ClassNotFoundException），
+/// 因此统一还原为普通路径形式后再交给子进程。
+fn normalize_path(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    if let Some(rest) = text.strip_prefix(r"\\?\") {
+        return PathBuf::from(rest.to_string());
+    }
+    path
+}
 fn resource(app: &tauri::AppHandle, relative: &str) -> Result<PathBuf, String> {
     let installed = app
         .path()
@@ -87,11 +100,11 @@ fn resource(app: &tauri::AppHandle, relative: &str) -> Result<PathBuf, String> {
         .map_err(|e| e.to_string())?
         .join(relative);
     if installed.exists() {
-        return Ok(installed);
+        return Ok(normalize_path(installed));
     }
     let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative);
     if dev.exists() {
-        Ok(dev)
+        Ok(normalize_path(dev))
     } else {
         Err(format!("运行时文件缺失：{relative}，请重新安装完整安装包"))
     }
@@ -121,21 +134,37 @@ async fn python(app: &tauri::AppHandle) -> Result<Worker, String> {
         .args(["--token", &secret])
         .current_dir(cache)
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Python 启动失败：{e}"))?;
     let mut line = String::new();
     let job = Job::attach(&child)?;
     let mut reader = BufReader::new(child.stdout.take().ok_or("Python 输出通道缺失")?);
-    tokio::time::timeout(Duration::from_secs(15), reader.read_line(&mut line))
-        .await
-        .map_err(|_| "Python 启动超时")?
-        .map_err(|e| e.to_string())?;
-    let data: Value =
-        serde_json::from_str(&line).map_err(|_| "Python 启动失败，请检查内置运行时和依赖")?;
-    // Drain plugin logging so a verbose source cannot fill the pipe and deadlock.
+    let mut err_reader = BufReader::new(child.stderr.take().ok_or("Python 错误通道缺失")?);
+    let read = tokio::time::timeout(Duration::from_secs(15), reader.read_line(&mut line)).await;
+    match read {
+        Err(_) => return Err("Python 启动超时".into()),
+        Ok(Err(e)) => return Err(format!("Python 输出读取失败：{e}")),
+        Ok(Ok(0)) => {
+            // 进程提前退出且没有输出：附上退出状态与 stderr 细节，便于定位缺依赖等问题
+            let mut err = String::new();
+            let _ = tokio::time::timeout(Duration::from_secs(2), err_reader.read_to_string(&mut err)).await;
+            let status = child.try_wait().ok().flatten();
+            return Err(format!(
+                "Python 启动失败（进程退出 {status:?}）：{}",
+                err.trim().chars().take(400).collect::<String>()
+            ));
+        }
+        Ok(Ok(_)) => {}
+    }
+    let data: Value = serde_json::from_str(&line)
+        .map_err(|_| format!("Python 启动失败，输出异常：{}", line.trim().chars().take(200).collect::<String>()))?;
+    // Drain runtime logging so a verbose source cannot fill the pipe and deadlock.
     tokio::spawn(async move {
         let _ = tokio::io::copy(&mut reader, &mut tokio::io::sink()).await;
+    });
+    tokio::spawn(async move {
+        let _ = tokio::io::copy(&mut err_reader, &mut tokio::io::sink()).await;
     });
     let port = data["port"]
         .as_u64()
@@ -173,20 +202,36 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
         .args(["com.simpletools.tvbridge.Main", &secret])
         .current_dir(cache)
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("内置 JVM 启动失败：{e}"))?;
     let job = Job::attach(&child)?;
     let mut line = String::new();
     let mut reader = BufReader::new(child.stdout.take().ok_or("JVM 输出通道缺失")?);
-    tokio::time::timeout(Duration::from_secs(15), reader.read_line(&mut line))
-        .await
-        .map_err(|_| "内置 JVM 启动超时")?
-        .map_err(|e| e.to_string())?;
-    let data: Value =
-        serde_json::from_str(&line).map_err(|_| "内置 JVM 启动失败，请检查运行时资源")?;
+    let mut err_reader = BufReader::new(child.stderr.take().ok_or("JVM 错误通道缺失")?);
+    let read = tokio::time::timeout(Duration::from_secs(15), reader.read_line(&mut line)).await;
+    match read {
+        Err(_) => return Err("内置 JVM 启动超时".into()),
+        Ok(Err(e)) => return Err(format!("内置 JVM 输出读取失败：{e}")),
+        Ok(Ok(0)) => {
+            // 进程提前退出且没有输出：附上退出状态与 stderr 细节，便于定位运行时资源问题
+            let mut err = String::new();
+            let _ = tokio::time::timeout(Duration::from_secs(2), err_reader.read_to_string(&mut err)).await;
+            let status = child.try_wait().ok().flatten();
+            return Err(format!(
+                "内置 JVM 启动失败（进程退出 {status:?}）：{}",
+                err.trim().chars().take(400).collect::<String>()
+            ));
+        }
+        Ok(Ok(_)) => {}
+    }
+    let data: Value = serde_json::from_str(&line)
+        .map_err(|_| format!("内置 JVM 启动失败，输出异常：{}", line.trim().chars().take(200).collect::<String>()))?;
     tokio::spawn(async move {
         let _ = tokio::io::copy(&mut reader, &mut tokio::io::sink()).await;
+    });
+    tokio::spawn(async move {
+        let _ = tokio::io::copy(&mut err_reader, &mut tokio::io::sink()).await;
     });
     let port = data["port"]
         .as_u64()
@@ -203,6 +248,23 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
 static SOURCE_CACHE: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, Vec<u8>)>>,
 > = std::sync::OnceLock::new();
+
+/// 安卓原生加壳（ftyguard / 神の蝶 等）的 JAR：解密依赖 ARM 运行库，桌面 JVM 无法解包运行。
+/// 提前识别，给出明确提示，而不是等到加载类时抛出难懂的缺失错误。
+fn android_guard_marker(bytes: &[u8]) -> Option<&'static str> {
+    const MARKERS: [&[u8]; 5] = [
+        b"ftyshinidie",
+        b"ftyguard",
+        b"libjiagu",
+        b"libDexHelper",
+        b"libshell",
+    ];
+    MARKERS
+        .iter()
+        .find(|needle| bytes.windows(needle.len()).any(|w| w == **needle))
+        .map(|needle| std::str::from_utf8(needle).unwrap_or("guard"))
+}
+
 async fn read_source(url: &str, max: usize) -> Result<Vec<u8>, String> {
     let cache = SOURCE_CACHE.get_or_init(Default::default);
     if !url.starts_with("file:") {
@@ -239,6 +301,7 @@ async fn read_source_uncached(url: &str, max: usize) -> Result<Vec<u8>, String> 
         return Err("片源只支持 HTTP(S) 或本地文件".into());
     }
     let mut response = reqwest::Client::builder()
+        .user_agent(crate::tvbox::TVBOX_UA)
         .timeout(Duration::from_secs(40))
         .build()
         .map_err(|e| e.to_string())?
@@ -330,6 +393,11 @@ pub async fn tvbox_external(
             }
         }
         identity = format!("{:x}", Md5::digest(format!("{hash}|{api}|{key}|{ext}")));
+        if let Some(marker) = android_guard_marker(&bytes) {
+            return Err(format!(
+                "该片源使用安卓原生加壳保护（{marker}），解密依赖 ARM 运行库，桌面端暂无法运行，请换其他片源"
+            ));
+        }
         data["identity"] = json!(identity);
         data["jarData"] = json!(STANDARD.encode(bytes));
         if !ext.is_string() {
@@ -414,6 +482,30 @@ mod tests {
         assert_eq!(pairs["token"], "secret");
         assert_eq!(value["header"]["Referer"], "https://example.test:9978/page");
     }
+    #[test]
+    fn strips_verbatim_windows_prefix() {
+        assert_eq!(
+            normalize_path(PathBuf::from(r"\\?\F:\a\b")).to_string_lossy(),
+            r"F:\a\b"
+        );
+        assert_eq!(
+            normalize_path(PathBuf::from(r"\\?\UNC\srv\share\a")).to_string_lossy(),
+            r"\\srv\share\a"
+        );
+        assert_eq!(
+            normalize_path(PathBuf::from(r"F:\a")).to_string_lossy(),
+            r"F:\a"
+        );
+    }
+
+    #[test]
+    fn detects_android_guarded_jar() {
+        let guarded = b"PK\x03\x04assets/ftyshinidie.guard\x00\x00";
+        assert_eq!(android_guard_marker(guarded), Some("ftyshinidie"));
+        let plain = b"PK\x03\x04com/github/catvod/spider/DouDou.class";
+        assert!(android_guard_marker(plain).is_none());
+    }
+
     #[cfg(windows)]
     #[tokio::test]
     #[ignore = "requires scripts/prepare-tvbox-runtimes.py"]

@@ -1,6 +1,8 @@
 # SimpleTools
 
-新增 **TVBOX**：集成开源 libmpv + QuickJS，支持 JSON / XML / 远程接口 / 源码 JS 点播、全源搜索、收藏、续播、自动下一集、M3U / TXT 直播及节目单、网页解析、本地播放列表。鼠标键盘操作，支持手机扫码配置，尝试硬件解码播放 4K / 8K，无需另装播放器。当前构建携带约 121 MB 内核，原有安装包大小说明不再适用。详见 [TVBOX 文档](docs/TVBOX.md)。
+新增 **TVBOX**：集成开源 libmpv + QuickJS + OpenJDK / Python，支持 JSON / XML / 远程接口 / 源码 JS / JAR / Python 点播、全源搜索、收藏、续播、自动下一集、M3U / TXT 直播及节目单、网页解析、本地播放列表，并兼容影视仓生态的多仓与“加密配置”地址（饭太硬等）。鼠标键盘操作，支持手机扫码配置，尝试硬件解码播放 4K / 8K，无需另装播放器。当前构建携带约 121 MB 内核，原有安装包大小说明不再适用。详见 [TVBOX 文档](docs/TVBOX.md)。
+
+> 本仓库有两个分支：`main` 为标准版（不含 TVBOX），`tvbox` 为 TVBOX 版（main + 影音功能，当前分支）。普通功能继续在 main 开发，合并进 tvbox 后发版时同步发布两个版本；流程见「分支与双版本发布」。
 
 常用工具合集 —— 基于 **Tauri 2 + Rust** 的 Windows 桌面小工具，界面简约、开箱即用。
 安装包包含内置影音内核，默认浅色主题，支持深色 / 深浅混搭 / 卡其色主题；侧边栏功能与样式可在「应用设置 → 功能显示」中自定义。
@@ -150,7 +152,17 @@ npm run build
 - 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.0_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
 - 免安装运行：`src-tauri/target/release/SimpleTools.exe`，须同时携带完整 `resources` 运行时目录。
 
-> 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
+> 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。TVBOX 版的构建会在编译前自动执行 `scripts/prepare-tvbox-all.ps1` 准备 libmpv / Python / JRE / dex2jar 运行时（固定版本 + SHA256 校验，首次需联网）。
+
+## 分支与双版本发布
+
+- `main`：标准版，不含 TVBOX；日常功能与修复都先提交到这里。
+- `tvbox`：TVBOX 版 = main + 影音功能与兼容层；TVBOX 相关改动只留在本分支。
+- 同步新功能：`git checkout tvbox` 后 `git merge main`（保持两个分支版本号一致，便于对照）。
+- 发版（两个版本同一版本号）：
+  - 标准版：在 `main` 上构建后执行 `.\release.ps1 -Version X.Y.Z`；
+  - TVBOX 版：在 `tvbox` 上构建后执行 `.\release.ps1 -Version X.Y.Z -Tvbox`（自动使用 `vX.Y.Z-tvbox` 标签，安装包与免安装 exe 带 `_tvbox` 标识，发布标题标注 TVBOX 版）；
+  - 非 tvbox 分支传 `-Tvbox`、或在 tvbox 分支漏传 `-Tvbox`，发布脚本会直接拒绝，避免发错版本。
 
 ## 技术栈
 
@@ -226,6 +238,10 @@ SimpleTools/
 - TVBOX 内置 OpenJDK / Python：普通 JAR 直接加载，DEX 首次转换缓存，Python 使用随包运行时；无需安装 Android 环境。
 - 接入 JAR / Python 的首页、分类、搜索、详情、播放与本地代理，补充常用 Android API 兼容层。完整兼容范围见 TVBOX 文档。
 - 片源子进程超时重置，应用退出时自动清理。
+- 兼容影视仓生态“加密配置”：多仓合集（urls）导入 + 图片/文本外壳（JPEG / PNG / 纯文本 + `**` + Base64，含 JSONC 注释）自动解密（饭太硬等实测可用）；十六进制加密变体（`$#lintech#$` 等）明确提示暂不支持。
+- 修复内置 JVM 在应用内无法启动的根因（Tauri 资源目录返回 `\\?\` verbatim 路径导致 JVM 无法解析 classpath）与 dex2jar 2.4 的类文件缺陷（字段 ConstantValue 类型不匹配 → ClassFormatError，转换后自动修补）。
+- 增强 Java 片源兼容层：签名 / 包名 / 应用名白名单、PackageManager / Bundle / ConnectivityManager / Toast 等常用 API 桩，主流 csp_* 片源（如 csp_Douban）实测可运行；安卓原生加壳（ftyguard）的片源给出明确提示。
+- TVBOX 界面按 TVBox 交互重构：顶部导航（影视 / 搜索 / 直播 / 收藏 / 历史 / 设置）+ 片源与配置仓切换、海报网格与角标、整页详情（海报 + 线路胶囊 + 剧集网格 + 返回）、视图级空状态与状态栏。
 
 ### v0.57.0（2026-10-16）
 
