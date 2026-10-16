@@ -6,7 +6,13 @@
   let db={profiles:[],profileId:'',history:[],favorites:[],prefs:{resume:true,autoNext:true,speed:1,volume:100,skipIntro:0,skipOutro:0,hwdec:'auto-safe'}};
   let page=1,keyword='',filters={},homeData={},view='home',generation=0,playGeneration=0,saveTimer,saveQueue=Promise.resolve();
   let liveChannels=[],current=null,queue=null,sniffPending=null,lastSave=0,trackSignature='',busyPoll=false;
-  const status=message=>{$('status').textContent=message;};
+  let statusTimer=null;
+  const status=message=>{
+    const node=$('status');node.textContent=message;node.classList.remove('is-idle');
+    clearTimeout(statusTimer);
+    // 结果类消息自动淡出，进行中/播放中的消息保持可见
+    if(!/正在|加载中|播放中/.test(String(message)))statusTimer=setTimeout(()=>node.classList.add('is-idle'),8000);
+  };
   const profile=()=>db.profiles.find(p=>p.id===db.profileId) || {id:'',config:{},base:'',name:''};
   const config=()=>profile().config || {};
   const sites=()=>Array.isArray(config().sites)?config().sites:[];
@@ -337,7 +343,9 @@
   function completed(){if(!current||current.manualStop||current.eofTriggered)return;current.eofTriggered=true;const h=db.history.find(h=>h.key===current.key);if(h){h.position=h.duration||h.position;persist();}if(db.prefs.autoNext&&queue?.episodes[queue.index+1])run(()=>nextEpisode());else status('播放结束');}
   function historyItems() {
     switchView('history');$('results').replaceChildren();$('prev').disabled=$('next').disabled=true;
-    for(const h of db.history){const wrapper=el('div',undefined,'tv-record'),b=button(h.name,()=>replay(h));wrapper.append(b,el('small',`${time(h.position)} / ${time(h.duration)} · ${new Date(h.time||Date.now()).toLocaleString()}`));wrapper.append(button('移除',()=>{db.history=db.history.filter(item=>item!==h);persist();historyItems();}));$('results').append(wrapper);}status(`${db.history.length} 条观看记录`);
+    for(const h of db.history){const wrapper=el('div',undefined,'tv-record'),b=button(h.name,()=>replay(h));wrapper.append(b,el('small',`${time(h.position)} / ${time(h.duration)} · ${new Date(h.time||Date.now()).toLocaleString()}`));wrapper.append(button('移除',()=>{db.history=db.history.filter(item=>item!==h);persist();historyItems();}));$('results').append(wrapper);}
+    if(!db.history.length)$('results').append(el('div','暂无观看记录，播放过的影片会自动出现在这里','tv-empty'));
+    status(`${db.history.length} 条观看记录`);
   }
   async function replay(h) {
     if(h.context){const p=db.profiles.find(p=>p.id===h.context.profileId),s=p?.config.sites?.find(s=>(s.key||s.api)===h.context.siteKey);if(p&&s){await detail(h.context.vodId,s,p,h.context);return;}}
@@ -351,7 +359,9 @@
       const art=el('div',undefined,'tv-poster');art.append(el('span','TV','tv-poster-fallback'));poster(art,f.movie?.vod_pic||f.channel?.logo,f.base);
       b.append(art,el('strong',f.kind==='movie'?f.movie.vod_name:f.channel.name));
       card.append(b,button('取消收藏',()=>{db.favorites=db.favorites.filter(item=>item!==f);persist();favorites();}));$('results').append(card);
-    }status(`${db.favorites.length} 个收藏`);
+    }
+    if(!db.favorites.length)$('results').append(el('div','还没有收藏，在影片详情或直播频道点击「收藏」即可','tv-empty'));
+    status(`${db.favorites.length} 个收藏`);
   }
   async function loadLive() {
     switchView('live');const token=++generation;status('正在加载直播…');const p=profile(),items=C.liveItems(config().lives,p.base),loaded=[],failures=[];
@@ -380,11 +390,12 @@
     list.filter(p=>p.end>=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime()).slice(0,100).forEach(p=>{const row=el('div',`${new Date(p.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} — ${new Date(p.end).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}  ${p.title}`,'tv-program');if(p.start<=now&&p.end>now)row.classList.add('is-selected');$('epg').append(row);});if(!list.length)$('epg').append(el('p','没有匹配到节目单'));
   }
   // Phone configuration uses an ephemeral LAN session, enabled only from Settings.
-  $('settings-tab').onclick=()=>{view='settings';generation++;const panel=document.getElementById('panel-tvbox');panel.dataset.view='settings';panel.classList.remove('tv-detail-mode');$('detail-back').classList.add('hidden');$('settings-panel').classList.remove('hidden');$('library').classList.add('hidden');for(const key of ['home','live','favorites','history'])$(key).classList.remove('is-selected');$('settings-tab').classList.add('is-selected');};
+  function openSettings(){view='settings';generation++;const panel=document.getElementById('panel-tvbox');panel.dataset.view='settings';panel.classList.remove('tv-detail-mode');$('detail-back').classList.add('hidden');$('settings-panel').classList.remove('hidden');$('library').classList.add('hidden');for(const key of ['home','live','favorites','history'])$(key).classList.remove('is-selected');$('settings-tab').classList.add('is-selected');}
+  $('settings-tab').onclick=openSettings;
   $('onboard-config').onclick=()=>{$('settings-tab').click();$('config-url').focus();};
   $('onboard-phone').onclick=()=>{$('settings-tab').click();$('phone-start').click();};
   $('onboard-local').onclick=()=>$('local').click();
-  $('find').onclick=()=>{switchView('home');$('keyword').focus();};
+  $('find').onclick=()=>{switchView('home');$('keyword').focus();$('keyword').select?.();};
   $('phone-start').onclick=()=>run(async()=>{const result=await invoke('tvbox_remote_start');$('phone').replaceChildren(el('p','手机与电脑连接同一网络，扫描对应网卡的二维码。配置完成后可关闭此入口。'));for(const code of result.codes){const card=el('div'),img=el('img');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(code.svg);img.alt='手机配置二维码';card.append(img,el('p',code.url.split('#')[0]));$('phone').append(card);}$('phone').classList.remove('hidden');$('phone-stop').classList.remove('hidden');});
   $('runtime-stop').onclick=()=>run(async()=>{await invoke('tvbox_external_stop');status('Python / Java 片源运行时已停止，下次使用时自动启动');});
   $('phone-stop').onclick=()=>run(async()=>{await invoke('tvbox_remote_stop');$('phone').replaceChildren();$('phone').classList.add('hidden');$('phone-stop').classList.add('hidden');status('手机配置入口已关闭');});
@@ -400,9 +411,9 @@
   $('import').onclick=()=>run(async()=>{const path=await dialog.open({multiple:false,filters:[{name:'TVBox 配置 / 直播',extensions:['json','m3u','m3u8','txt']}]});if(path){const local=new URL('file:///');local.pathname='/'+path.replace(/\\/g,'/');await importConfig((await invoke('read_text_file',{path})).content,local.href,path.split(/[\\/]/).pop());}});
   $('export').onclick=()=>run(async()=>{const path=await dialog.save({defaultPath:'tvbox-config.json',filters:[{name:'TVBox 配置',extensions:['json']}]});if(path){await invoke('write_text_file',{path,content:JSON.stringify(config(),null,2)});status('配置已导出');}});
   $('apply-config').onclick=()=>run(async()=>{const conf=C.json($('config-editor').value);if(!Array.isArray(conf.sites)&&!Array.isArray(conf.lives))throw Error('配置需包含 sites 或 lives');if(!profile().id)return importConfig($('config-editor').value);profile().config=conf;await persist(true);setup();});
-  $('profile').onchange=()=>run(async()=>{db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);await loadCollectionProfile(p);setup();if(sites().some(C.supported))await browse(true);}});
-  $('rename').onclick=()=>{const name=$('profile-name').value.trim();if(profile().id&&name){profile().name=name;persist();setup();}};
-  $('delete-profile').onclick=()=>run(async()=>{if(!profile().id)return;if(!await window.showConfirm('删除当前片源配置？收藏和观看记录将保留。'))return;db.profiles=db.profiles.filter(p=>p.id!==db.profileId);db.profileId=db.profiles[0]?.id||'';await persist(true);setup();});
+  $('profile').onchange=()=>run(async()=>{const stay=view==='settings';db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);await loadCollectionProfile(p);setup();if(!stay&&sites().some(C.supported))await browse(true);}if(stay)openSettings();});
+  $('rename').onclick=()=>{const stay=view==='settings';const name=$('profile-name').value.trim();if(profile().id&&name){profile().name=name;persist();setup();if(stay)openSettings();}};
+  $('delete-profile').onclick=()=>run(async()=>{const stay=view==='settings';if(!profile().id)return;if(!await window.showConfirm('删除当前片源配置？收藏和观看记录将保留。'))return;db.profiles=db.profiles.filter(p=>p.id!==db.profileId);db.profileId=db.profiles[0]?.id||'';await persist(true);setup();if(stay)openSettings();});
   $('home').onclick=()=>run(()=>browse(true));$('live').onclick=()=>run(loadLive);$('favorites').onclick=favorites;$('history').onclick=historyItems;
   $('site-filter').oninput=()=>{const count=renderSiteOptions($('site-filter').value);status(count?`找到 ${count} 个片源 · 从右侧列表选择`: '没有匹配的片源，试试其他关键词');};
   $('site-filter').onkeydown=e=>{if(e.key==='Enter'&&$('site').options.length)run(()=>browse(true));};
@@ -414,6 +425,7 @@
   $('play').onclick=()=>run(()=>play($('direct').value.trim(),'网络视频'));
   $('sniff').onclick=()=>run(()=>sniff($('direct').value.trim(),'网页视频',{}));
   for(const action of ['pause','stop','forward','backward','fullscreen'])$(action).onclick=()=>run(()=>control(action));
+  $('more-toggle').onclick=()=>{const more=$('controls-more');const collapsed=more.classList.toggle('hidden');$('more-toggle').textContent=collapsed?'更多 ⌄':'收起 ⌃';};
   $('episode-prev').onclick=()=>run(()=>nextEpisode(-1));$('episode-next').onclick=()=>run(()=>nextEpisode(1));
   for(const [id,action]of [['speed','speed'],['volume','volume'],['sub-delay','sub-delay'],['audio','aid'],['subtitles','sid'],['aspect','aspect']])$(id).onchange=()=>run(async()=>{const value=['speed','volume','sub-delay'].includes(id)?Number($(id).value):$(id).value;if(id==='speed'||id==='volume'){db.prefs[id]=value;persist();}if(current)await control(action,value);});
   $('seek').onchange=()=>run(()=>control('seek',Number($('seek').value)));

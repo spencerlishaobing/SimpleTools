@@ -86,11 +86,18 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
       navCount: panel.querySelectorAll('.tv-nav button').length,
       searchbarVisible: !!document.getElementById('tv-searchbar').offsetWidth,
       status: document.getElementById('tv-status').textContent.slice(0, 60),
+      clusterLabel: !!panel.querySelector('.tv-topbar-sources .tv-cluster-label'),
+      topbarSelects: panel.querySelectorAll('.tv-topbar-sources select').length,
+      profileInSettings: !!document.getElementById('tv-settings-panel').querySelector('#tv-profile'),
+      moreHidden: document.getElementById('tv-controls-more').classList.contains('hidden'),
     });
   })()`));
   T('panel active', ui.active === true, ui.view + '/' + ui.topbar);
   T('nav 6 buttons + topbar', ui.navCount === 6 && ui.topbar === true, 'nav=' + ui.navCount);
   T('home view + searchbar visible', ui.view === 'home' && ui.searchbarVisible === true, ui.view + '/' + ui.searchbarVisible);
+  T('compact topbar (label + filter + one site select)', ui.clusterLabel === true && ui.topbarSelects === 1, 'label=' + ui.clusterLabel + ' selects=' + ui.topbarSelects);
+  T('profile select moved into settings', ui.profileInSettings === true, String(ui.profileInSettings));
+  T('player extras collapsed by default', ui.moreHidden === true, String(ui.moreHidden));
 
   // 2) 真实拉取饭太硬加密配置（Rust 侧：IDN + okhttp UA + 图片外壳解密），并在页面内按 TVBoxCore 规则解析
   const conf = JSON.parse(await evaluate(ws, `window.__TAURI__.core.invoke('tvbox_fetch', { url: 'https://www.饭太硬.cc/tv' }).then(t => { try { const c = window.TVBoxCore.json(t); return JSON.stringify({ head: t.slice(0, 40), sites: (c.sites || []).length, lives: (c.lives || []).length, first: (c.sites || [])[0] && (c.sites[0].api || '') }); } catch (e) { return JSON.stringify({ head: t.slice(0, 60), error: String(e) }); } })`));
