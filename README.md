@@ -163,6 +163,7 @@ npm run build
   - 标准版：在 `main` 上构建后执行 `.\release.ps1 -Version X.Y.Z`；
   - TVBOX 版：在 `tvbox` 上构建后执行 `.\release.ps1 -Version X.Y.Z -Tvbox`（自动使用 `vX.Y.Z-tvbox` 标签，安装包与免安装 exe 带 `_tvbox` 标识，发布标题标注 TVBOX 版）；
   - 非 tvbox 分支传 `-Tvbox`、或在 tvbox 分支漏传 `-Tvbox`，发布脚本会直接拒绝，避免发错版本。
+  - TVBOX 版可选便携包（exe + resources，免安装用户使用）：`powershell -File scripts/package-portable.ps1 -Version X.Y.Z` 生成后，`release.ps1 -Tvbox` 会自动将其作为第三个资产上传。
 
 ## 技术栈
 
