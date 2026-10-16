@@ -31,3 +31,6 @@ Thumbs.db
 /runtime/java/*.zip
 /runtime/java/build/
 /src-tauri/resources/java/
+
+# TVBOX E2E 截图（本地验证产物，不入库）
+/_uia-*.png
