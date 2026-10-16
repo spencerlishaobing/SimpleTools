@@ -38,6 +38,8 @@ public class Context {
     public ClassLoader getClassLoader(){return getClass().getClassLoader();}
     public Object getSystemService(String name){if(CONNECTIVITY_SERVICE.equals(name))return new android.net.ConnectivityManager();throw new UnsupportedOperationException("Unsupported Android system service: "+name);}
     public File getFileStreamPath(String name){return new File(getFilesDir(),safe(name));}
+    /** SQLite 数据库目录：外置片源初始化时会用它定位本地库文件。 */
+    public File getDatabasePath(String name){return new File(folder("databases"),safe(name));}
     public FileInputStream openFileInput(String name)throws FileNotFoundException{return new FileInputStream(getFileStreamPath(name));}
     public FileOutputStream openFileOutput(String name,int mode)throws FileNotFoundException{return new FileOutputStream(getFileStreamPath(name),(mode&32768)!=0);}
     public boolean deleteFile(String name){return getFileStreamPath(name).delete();}

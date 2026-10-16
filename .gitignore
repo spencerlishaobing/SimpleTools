@@ -34,3 +34,15 @@ Thumbs.db
 
 # TVBOX E2E 截图（本地验证产物，不入库）
 /_uia-*.png
+
+# ftyguard 逆向探测脚本与临时产物（本地用，不入库）
+/_*.py
+/_*.txt
+/_*.bin
+/_*.java
+/_*.mjs
+/T.java
+/T3.java
+/T4.java
+/T*.class
+/_jtest-cache/

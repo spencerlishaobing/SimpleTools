@@ -72,14 +72,41 @@ public final class Main {
             return data;
         }catch(RuntimeException e){return data;}
     }
+    /** ftyguard（神の蝶）加壳：assets/*.guard 是整文件字节值映射后的 JAR。
+     * 映射规则 b∈{1,2,5,6} ? b^7 : b 在字节值域上自反（与 ftyguard_v8.so getLoader 的
+     * 仿真产物逐字节比对验证，CRC 全部通过），桌面端无需 ARM 加固运行库即可离线还原真实 DEX。 */
+    private static byte[] unguard(byte[] data){
+        byte[] out=new byte[data.length];
+        for(int i=0;i<data.length;i++){int b=data[i]&0xff;out[i]=(byte)(b==1||b==2||b==5||b==6?b^7:b);}
+        return out;
+    }
+    private static byte[] readAll(InputStream input)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[65536];int n;while((n=input.read(buffer))!=-1)out.write(buffer,0,n);return out.toByteArray();}
+    private static boolean looksContainer(byte[] data){
+        try(ZipInputStream zip=new ZipInputStream(new ByteArrayInputStream(data))){ZipEntry item;while((item=zip.getNextEntry())!=null)if(item.getName().matches("classes[0-9]*\\.dex"))return true;return false;}
+        catch(IOException e){return false;}
+    }
+    /** 检测 ftyguard 加壳的 JAR（assets/*.guard）：还原成功返回解壳后的 JAR 文件，普通 JAR 返回 null。 */
+    private static File unguarded(File original,File folder)throws Exception {
+        try(ZipFile zip=new ZipFile(original)){
+            Enumeration<? extends ZipEntry> items=zip.entries();
+            while(items.hasMoreElements()){
+                ZipEntry item=items.nextElement();if(!item.getName().endsWith(".guard"))continue;
+                byte[] raw;try(InputStream input=zip.getInputStream(item)){raw=readAll(input);}catch(IOException e){continue;}
+                byte[] data=unguard(raw);if(data.length<4||data[0]!='P'||data[1]!='K'||!looksContainer(data))continue;
+                File target=new File(folder,"unguarded.jar");Files.write(target.toPath(),data);return target;
+            }
+        }
+        return null;
+    }
     private static File executableJar(File original,File folder)throws Exception {
+        File restored=unguarded(original,folder);File material=restored!=null?restored:original;
         boolean dex=false,classes=false;
-        try(InputStream input=new FileInputStream(original)){byte[] magic=new byte[4];if(input.read(magic)==4)dex=Arrays.equals(magic,new byte[]{'d','e','x','\n'});}
-        if(!dex)try(ZipFile zip=new ZipFile(original)){Enumeration<? extends ZipEntry> items=zip.entries();while(items.hasMoreElements()){String name=items.nextElement().getName();dex|=name.matches("classes[0-9]*\\.dex");classes|=name.endsWith(".class");}}
-        if(!dex){if(!classes)throw new IOException("JAR does not contain Java classes or Android DEX");return original;}
-        File converted=new File(folder,"converted-v2.4r.jar");if(converted.isFile())return converted;
+        try(InputStream stream=new FileInputStream(material)){byte[] magic=new byte[4];if(stream.read(magic)==4)dex=Arrays.equals(magic,new byte[]{'d','e','x','\n'});}
+        if(!dex)try(ZipFile zip=new ZipFile(material)){Enumeration<? extends ZipEntry> items=zip.entries();while(items.hasMoreElements()){String name=items.nextElement().getName();dex|=name.matches("classes[0-9]*\\.dex");classes|=name.endsWith(".class");}}
+        if(!dex){if(!classes)throw new IOException("JAR does not contain Java classes or Android DEX");return material;}
+        File converted=new File(folder,restored!=null?"converted-v2.4g.jar":"converted-v2.4r.jar");if(converted.isFile())return converted;
         File temporary=new File(folder,"converting.jar"),log=new File(folder,"conversion.log");
-        Process process=new ProcessBuilder(new File(System.getProperty("java.home"),"bin/java.exe").getPath(),"-Xmx384m","-cp",System.getProperty("tvbox.dex"),"com.googlecode.dex2jar.tools.Dex2jarCmd","-f","-o",temporary.getPath(),original.getPath()).redirectErrorStream(true).redirectOutput(log).start();
+        Process process=new ProcessBuilder(new File(System.getProperty("java.home"),"bin/java.exe").getPath(),"-Xmx384m","-cp",System.getProperty("tvbox.dex"),"com.googlecode.dex2jar.tools.Dex2jarCmd","-f","-o",temporary.getPath(),material.getPath()).redirectErrorStream(true).redirectOutput(log).start();
         try {
             if(!process.waitFor(35,TimeUnit.SECONDS)){process.destroyForcibly();throw new IOException("DEX conversion timed out");}
             if(process.exitValue()!=0||!temporary.isFile()){
@@ -116,6 +143,14 @@ public final class Main {
             // 因此这里传入 Application 实例而不是裸 Context。
             Context context=new android.app.Application(new File(folder,"context"));
             try{entry.loader.loadClass("com.github.catvod.spider.Init").getMethod("init",Context.class).invoke(null,context);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
+            // 外置片源自带的 InitOrigin（网盘系爬虫的上下文持有者）也要初始化，
+            // 否则 InitOrigin.context() 返回 null，下游 getSharedPreferences 会抛 NPE。
+            try{entry.loader.loadClass("com.github.catvod.spider.InitOrigin").getMethod("init",Context.class).invoke(null,context);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
+            // 部分混淆版本的 InitOrigin.init 会因桌面缺失依赖中途失败，这里兜底：
+            // 直接把 Application 反射写入 InitOrigin 单例的上下文字段，保证 InitOrigin.context() 非空。
+            try{Class<?> origin=entry.loader.loadClass("com.github.catvod.spider.InitOrigin");Object instance=origin.getMethod("get").invoke(null);
+                for(java.lang.reflect.Field field:origin.getDeclaredFields())if(field.getType()==android.app.Application.class&&!java.lang.reflect.Modifier.isStatic(field.getModifiers())){field.setAccessible(true);field.set(instance,context);}
+            }catch(Throwable ignored){}
             String cls=data.getString("api");if(cls.startsWith("csp_"))cls="com.github.catvod.spider."+cls.substring(4);
             entry.spider=(Spider)entry.loader.loadClass(cls).getDeclaredConstructor().newInstance();
             entry.spider.siteKey=data.getString("key");entry.spider.initApi(new SpiderApi());entry.spider.init(context,data.optString("ext",""));

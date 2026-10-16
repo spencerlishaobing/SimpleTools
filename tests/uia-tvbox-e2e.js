@@ -150,17 +150,19 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
   })()`, 60000, 1500) || '{}');
   T('饭太硬 decrypted config gives ~49 sites', Number(fty.sites) >= 40, JSON.stringify(fty));
 
-  // 5) 选择一个受保护（Guard）源：应给出明确的加壳提示而不是难懂错误
+  // 5) 选择一个受保护（Guard / ftyguard 加壳）源：桌面端应自动离线解包，不再提示无法运行
   await evaluate(ws, `(() => {
     const site = document.getElementById('tv-site');
     site.value = site.options[0].value; site.dispatchEvent(new Event('change'));
     return true;
   })()`);
-  const guardMsg = await poll(ws, `(() => {
+  const guardResult = JSON.parse(await poll(ws, `(() => {
     const t = document.getElementById('tv-status').textContent;
-    return t.includes('加壳') || t.includes('无法运行') ? t : null;
-  })()`, 90000, 1200);
-  T('guarded jar gives clear message', typeof guardMsg === 'string' && guardMsg.includes('加壳'), guardMsg);
+    if (t.includes('无法运行')) return JSON.stringify({ blocked: t });
+    if (t.includes('加载中') || t.trim() === '') return null;
+    return JSON.stringify({ t: t.slice(0, 120) });
+  })()`, 120000, 1200) || '{}');
+  T('ftyguard jar unwraps offline (no ARM runtime error)', guardResult.blocked === undefined && guardResult.t !== undefined, JSON.stringify(guardResult));
   await shot(ws, `_uia-tvbox-fantaiying-v${VER}.png`);
 
   // 6) 设置页视图切换 + 截图

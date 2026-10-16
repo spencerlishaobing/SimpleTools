@@ -191,6 +191,10 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
     let classpath = std::env::join_paths([host, lib.join("*")]).map_err(|e| e.to_string())?;
     let mut child = command(executable)
         .args([
+            // 少数外置片源的 dex2jar 产物缺少 StackMapTable（复杂 switch 漏生成），
+            // 类型检查验证器会报 VerifyError：Expecting a stackmap frame；
+            // 禁用字节码验证后这些类可正常链接（方法体本身在实测中可执行）。
+            "-Xverify:none",
             "-Xmx384m",
             "-Dfile.encoding=UTF-8",
             "-Dsun.net.httpserver.maxReqTime=45",
@@ -249,8 +253,10 @@ static SOURCE_CACHE: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, Vec<u8>)>>,
 > = std::sync::OnceLock::new();
 
-/// 安卓原生加壳（ftyguard / 神の蝶 等）的 JAR：解密依赖 ARM 运行库，桌面 JVM 无法解包运行。
-/// 提前识别，给出明确提示，而不是等到加载类时抛出难懂的缺失错误。
+/// 安卓原生加壳 JAR 的识别标记。ftyguard（神の蝶 / ftyshinidie）的 guard 载荷是整文件
+/// 字节值映射，桌面端由 Java 侧离线还原（Main.unguarded），无需 ARM 加固运行库；
+/// 其余加固方案（360 加固、DexHelper、libshell 等）仍依赖 ARM 运行库，桌面 JVM 无法解包运行，
+/// 提前识别并给出明确提示，而不是等到加载类时抛出难懂的缺失错误。
 fn android_guard_marker(bytes: &[u8]) -> Option<&'static str> {
     const MARKERS: [&[u8]; 5] = [
         b"ftyshinidie",
@@ -263,6 +269,12 @@ fn android_guard_marker(bytes: &[u8]) -> Option<&'static str> {
         .iter()
         .find(|needle| bytes.windows(needle.len()).any(|w| w == **needle))
         .map(|needle| std::str::from_utf8(needle).unwrap_or("guard"))
+}
+
+/// ftyguard（神の蝶）的 guard 载荷可在桌面端离线还原（Java 侧 unguarded 处理），不拦截；
+/// 其余加壳方案仍依赖 ARM 运行库，继续明确拒绝。
+fn desktop_guard_unsupported(marker: &str) -> bool {
+    !matches!(marker, "ftyshinidie" | "ftyguard")
 }
 
 async fn read_source(url: &str, max: usize) -> Result<Vec<u8>, String> {
@@ -394,9 +406,11 @@ pub async fn tvbox_external(
         }
         identity = format!("{:x}", Md5::digest(format!("{hash}|{api}|{key}|{ext}")));
         if let Some(marker) = android_guard_marker(&bytes) {
-            return Err(format!(
-                "该片源使用安卓原生加壳保护（{marker}），解密依赖 ARM 运行库，桌面端暂无法运行，请换其他片源"
-            ));
+            if desktop_guard_unsupported(marker) {
+                return Err(format!(
+                    "该片源使用安卓原生加壳保护（{marker}），解密依赖 ARM 运行库，桌面端暂无法运行，请换其他片源"
+                ));
+            }
         }
         data["identity"] = json!(identity);
         data["jarData"] = json!(STANDARD.encode(bytes));
@@ -504,6 +518,15 @@ mod tests {
         assert_eq!(android_guard_marker(guarded), Some("ftyshinidie"));
         let plain = b"PK\x03\x04com/github/catvod/spider/DouDou.class";
         assert!(android_guard_marker(plain).is_none());
+    }
+
+    #[test]
+    fn ftyguard_is_recoverable_on_desktop() {
+        assert!(!desktop_guard_unsupported("ftyshinidie"));
+        assert!(!desktop_guard_unsupported("ftyguard"));
+        assert!(desktop_guard_unsupported("libjiagu"));
+        assert!(desktop_guard_unsupported("libDexHelper"));
+        assert!(desktop_guard_unsupported("libshell"));
     }
 
     #[cfg(windows)]
