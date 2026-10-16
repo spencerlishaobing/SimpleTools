@@ -1,9 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SimpleTools",
-  "version": "0.56.0",
+  "version": "0.58.0",
   "identifier": "com.simpletools.desktop",
   "build": {
+    "beforeBuildCommand": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-tvbox-all.ps1",
+    "beforeDevCommand": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-tvbox-all.ps1",
     "frontendDist": "../src"
   },
   "app": {
@@ -29,6 +31,7 @@
     }
   },
   "bundle": {
+    "resources": ["resources/mpv/libmpv-2.dll", "resources/mpv/provenance.json", "resources/mpv/COPYING.txt", "resources/mpv/Copyright.txt", "resources/aria2/aria2c.exe", "resources/aria2/COPYING", "resources/aria2/LICENSE.OpenSSL", "resources/aria2/provenance.json", "resources/python/", "resources/tvpython/", "resources/java/jre/", "resources/java/lib/", "resources/java/dex-runtime/", "resources/java/host.jar", "resources/java/jre-provenance.json", "resources/java/dependencies.json"],
     "active": true,
     "targets": ["nsis"],
     "icon": [

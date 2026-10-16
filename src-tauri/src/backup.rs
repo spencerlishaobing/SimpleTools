@@ -65,6 +65,8 @@ pub struct BackupInfo {
 /// v0.33.0：备份中的图片已在 prepare 阶段复制进当前数据目录（重名改名已完成替换）
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportPrepareResult {
+    pub tvbox: Option<Value>,
+    pub script_local: Option<Value>,
     pub notes: Option<Value>,
     pub accounts: Option<Value>,
     pub history: Option<Value>,
@@ -561,7 +563,9 @@ pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepa
         return Err("未找到可导入的数据文件（备份中应包含 notes / accounts / history 等已知文件）".into());
     }
     let (mut notes, accounts, history, mut warnings) = parse_import_data(&files);
-    if notes.is_none() && accounts.is_none() && history.is_none() {
+    let tvbox=files.iter().find(|(name,_)|name=="tvbox.json").and_then(|(_,bytes)|serde_json::from_slice::<Value>(bytes).ok()).filter(Value::is_object);
+    let script_local=files.iter().find(|(name,_)|name=="tvbox-script-local.json").and_then(|(_,bytes)|serde_json::from_slice::<Value>(bytes).ok()).filter(Value::is_object);
+    if notes.is_none() && accounts.is_none() && history.is_none() && tvbox.is_none() && script_local.is_none() {
         let detail = if warnings.is_empty() {
             String::new()
         } else {
@@ -594,6 +598,8 @@ pub fn data_import_prepare(app: AppHandle, source: String) -> Result<ImportPrepa
         }
     }
     Ok(ImportPrepareResult {
+        tvbox,
+        script_local,
         notes,
         accounts,
         history,
@@ -766,15 +772,23 @@ pub fn data_merge_write(
     notes: Option<Value>,
     accounts: Option<Value>,
     history: Option<Value>,
+    tvbox: Option<Value>,
+    script_local: Option<Value>,
     backup_name: String,
 ) -> Result<MergeWriteResult, String> {
-    if notes.is_none() && accounts.is_none() && history.is_none() {
+    if notes.is_none() && accounts.is_none() && history.is_none() && tvbox.is_none() && script_local.is_none() {
         return Err("没有可写入的合并数据".into());
     }
+    if tvbox.as_ref().is_some_and(|v|!v.is_object()) || script_local.as_ref().is_some_and(|v|!v.is_object()) {return Err("TVBOX 合并数据格式无效".into());}
     let backup_name = validate_backup_name(&backup_name)?;
     let current = datadir::data_dir(&app)?;
     let backup = backup_existing_files(&current, None, &backup_name)?;
-    let written = write_merged_files(&current, notes.as_ref(), accounts.as_ref(), history.as_ref())?;
+    let mut written = write_merged_files(&current, notes.as_ref(), accounts.as_ref(), history.as_ref())?;
+    if let Some(tvbox)=tvbox {write_atomic(&current.join("tvbox.json"),serde_json::to_string_pretty(&tvbox).map_err(|e|e.to_string())?.as_bytes())?;written.push("tvbox.json".into());}
+    if let Some(mut local)=script_local {
+        if let Ok(bytes)=fs::read(current.join("tvbox-script-local.json")) {if let Ok(Value::Object(existing))=serde_json::from_slice::<Value>(&bytes) {local.as_object_mut().unwrap().extend(existing);}}
+        write_atomic(&current.join("tvbox-script-local.json"),serde_json::to_string_pretty(&local).map_err(|e|e.to_string())?.as_bytes())?;written.push("tvbox-script-local.json".into());
+    }
     Ok(MergeWriteResult {
         written,
         backup,

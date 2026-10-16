@@ -286,7 +286,7 @@
   // ---------- 新功能提示（v0.38.0）：红色「新」角标，点击对应功能后消失（持久记忆） ----------
   const NAV_SEEN_KEY = 'simpletools-nav-seen';
   // 需要提示的新功能（后续版本发布新功能时加入；用户点击后消失，已点击记录持久保存）
-  const NEW_FEATURES = ['capture', 'mock', 'db'];
+  const NEW_FEATURES = ['capture', 'mock', 'db', 'tvbox'];
   const navSeen = (function () {
     try {
       const arr = JSON.parse(localStorage.getItem(NAV_SEEN_KEY) || '[]');
@@ -686,6 +686,8 @@
   // - 路径由 storage_info 实时解析，切换数据存储位置后随之变化（不写死）
   // - 「打开」按钮调 open_in_explorer：文件已生成时在资源管理器中定位，否则打开所在目录
   const STORAGE_FILE_META = {
+    'tvbox.json': { label: 'TVBOX', desc: '片源配置、收藏、播放进度与影音设置，随数据备份和迁移' },
+    'tvbox-script-local.json': { label: 'TVBOX 脚本存储', desc: 'JS 爬虫的 local 键值存储，随数据备份和迁移' },
     'notes.json': { label: '记事本', desc: '笔记内容（普通笔记 / Markdown），输入自动保存' },
     'accounts.json': { label: '账号密码', desc: '分组与条目（含备注），经 DPAPI 加密存储' },
     'history.json': { label: '历史记录', desc: '格式化 / 对比 / MD5 / 转换记录，各最多 50 条' },
@@ -1177,6 +1179,9 @@
     const curNotes = prep.notes ? await loadSafe('notes_load') : null;
     const curAccounts = prep.accounts ? await loadSafe('accounts_load') : null;
     const curHistory = prep.history ? await loadSafe('history_load') : null;
+    let curTvbox = null;
+    let tvboxReadable = true;
+    if (prep.tvbox) { try { curTvbox = await invokeApi('tvbox_load'); } catch (_) { tvboxReadable = false; warnings.push('TVBOX 当前数据读取失败，已跳过合并'); } }
     // 当前数据读取失败时跳过对应文件的合并（宁可少写，不覆盖丢失）
     if (prep.notes && curNotes === null) warnings.push('当前笔记数据读取失败，已跳过笔记合并');
     if (prep.accounts && curAccounts === null) warnings.push('当前账号数据读取失败，已跳过账号合并');
@@ -1186,8 +1191,9 @@
       notes: prep.notes && curNotes !== null ? mergeNotes(curNotes, prep.notes) : null,
       accounts: prep.accounts && curAccounts !== null ? mergeAccounts(curAccounts, prep.accounts) : null,
       history: prep.history && curHistory !== null ? mergeHistory(curHistory, prep.history) : null,
+      tvbox: prep.tvbox && tvboxReadable ? window.TVBoxCore.mergeData(curTvbox, prep.tvbox) : null,
     };
-    if (merged.notes === null && merged.accounts === null && merged.history === null) {
+    if (merged.notes === null && merged.accounts === null && merged.history === null && merged.tvbox === null && !prep.script_local) {
       window.toast('备份中没有可合并的数据');
       return;
     }
@@ -1195,6 +1201,8 @@
     // 统计（供确认弹窗展示合并影响：新增条数 / 自动改名数）
     const parts = [];
     let totalAdded = 0;
+    if (merged.tvbox) { totalAdded += 1; parts.push('TVBOX 配置 / 收藏 / 观看记录合并（同 ID 的不同配置自动分开）'); }
+    if (prep.script_local) { totalAdded += 1; parts.push('TVBOX 脚本存储合并（同键保留当前值）'); }
     if (merged.notes) {
       const added = merged.notes.length - curNotes.length;
       totalAdded += added;
@@ -1240,6 +1248,8 @@
         notes: merged.notes,
         accounts: merged.accounts,
         history: merged.history,
+        tvbox: merged.tvbox,
+        scriptLocal: prep.script_local,
         backupName: backupName,
       });
       let out = '已合并 ' + ((res && res.written && res.written.length) || 0) + ' 个数据文件';

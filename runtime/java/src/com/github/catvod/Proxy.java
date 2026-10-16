@@ -1,0 +1,1 @@
+package com.github.catvod;public final class Proxy {private static int port=9978;public static void set(int value){port=value;}public static int getPort(){return port;}public static String getUrl(boolean local){return "http://127.0.0.1:"+port+"/proxy";}}

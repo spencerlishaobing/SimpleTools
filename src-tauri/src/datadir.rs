@@ -16,11 +16,13 @@ pub struct AppSettings {
 }
 
 /// 需要随数据目录迁移的数据文件（平铺在数据目录下；数据导入导出 v0.30.0 复用同一白名单）
-pub(crate) const DATA_FILES: [&str; 4] = [
+pub(crate) const DATA_FILES: [&str; 6] = [
     "notes.json",
     "accounts.json",
     "history.json",
     "notes.backup.json",
+    "tvbox.json",
+    "tvbox-script-local.json",
 ];
 
 /// 富文本图片目录（v0.33.0）：位于数据目录下，随数据目录迁移 / 导入导出打包；
@@ -424,7 +426,7 @@ mod tests {
         let dir = test_dir("storage_info");
         fs::write(dir.join("notes.json"), "0123456789").unwrap();
         let info = storage_info_of(&dir, &dir, false);
-        assert_eq!(info.files.len(), 5, "4 个数据文件 + images 目录");
+        assert_eq!(info.files.len(), super::DATA_FILES.len()+1, "数据文件 + images 目录");
         let notes = info.files.iter().find(|f| f.name == "notes.json").unwrap();
         assert!(notes.exists && notes.size == 10, "存在文件应记录大小");
         let acc = info

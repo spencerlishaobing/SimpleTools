@@ -1,0 +1,2 @@
+package android.os;
+public final class Build {public static final String MODEL="SimpleTools",MANUFACTURER="SimpleTools",BRAND="SimpleTools",DEVICE="desktop",PRODUCT="desktop",HARDWARE="Windows",FINGERPRINT="SimpleTools/JVM",CPU_ABI="x86_64";public static final String[] SUPPORTED_ABIS={"x86_64"};public static final class VERSION{public static final int SDK_INT=30;public static final String RELEASE="JVM compatibility",SDK="30";}public static final class VERSION_CODES{public static final int LOLLIPOP=21,M=23,N=24,O=26,P=28,Q=29,R=30,S=31,TIRAMISU=33;}}

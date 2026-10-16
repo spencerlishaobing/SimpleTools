@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.56.0"
+version = "0.58.0"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"
@@ -13,7 +13,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset", "image-png"] }
+tauri = { version = "2", features = ["protocol-asset", "image-png", "unstable"] }
+libloading = "0.7.4"
+rquickjs = { version = "0.9", features = ["loader"] }
+base64 = "0.22"
+scraper = "0.24"
+encoding_rs = "0.8"
+getrandom = "0.3"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
 # 单实例限制（v0.52.0）：重复启动时聚焦已有窗口并退出新实例
@@ -30,7 +36,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 # v0.50.0：http2（客户端側 ALPN 支持 h2，兼容强制 HTTP/2 的 APP）
 hudsucker = { version = "=0.22.0", features = ["http2"] }
 http-body-util = "0.1"
-tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt", "fs", "io-util"] }
+tokio = { version = "1", features = ["net", "time", "sync", "macros", "rt", "fs", "io-util", "process"] }
 
 # 抓包上游链路（v0.51.0）：自建 rustls 连接器——
 # 信任 Windows 系统根证书库（含国内 CA / 用户手动信任的自签；修复 schannel 指纹被
@@ -45,7 +51,7 @@ tracing-subscriber = "0.3"
 
 # 版本更新（v0.43.0）：检测 GitHub Releases 与下载安装包
 # native-tls = Windows 系统 TLS（schannel），无额外 C 工具链依赖
-reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "blocking"] }
 
 # 模拟服务器（v0.36.0）：本地 HTTP 模拟服务（复用 hudsucker 依赖树中的 hyper 1.x，无额外编译负担）
 # v0.51.0：client-legacy / http2 供抓包上游自建连接器使用
@@ -61,11 +67,12 @@ local-ip-address = "0.6"
 # 抓包：记录正文时解压（gzip / deflate / brotli，均为纯 Rust 实现）
 flate2 = "1"
 brotli = "8"
+qrcode = { version = "0.14.1", default-features = false }
 
 # Windows Hello 身份校验（v0.19.0）：UserConsentVerifier + IUserConsentVerifierInterop
 # （版本与 tauri 间接依赖的 windows 0.62 / windows-future 0.3 保持一致，共享 HWND 类型）
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT"] }
+windows = { version = "0.62", features = ["Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security"] }
 windows-future = "0.3"
 
 [profile.release]

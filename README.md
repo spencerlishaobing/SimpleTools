@@ -1,7 +1,9 @@
 # SimpleTools
 
+新增 **TVBOX**：集成开源 libmpv + QuickJS，支持 JSON / XML / 远程接口 / 源码 JS 点播、全源搜索、收藏、续播、自动下一集、M3U / TXT 直播及节目单、网页解析、本地播放列表。鼠标键盘操作，支持手机扫码配置，尝试硬件解码播放 4K / 8K，无需另装播放器。当前构建携带约 121 MB 内核，原有安装包大小说明不再适用。详见 [TVBOX 文档](docs/TVBOX.md)。
+
 常用工具合集 —— 基于 **Tauri 2 + Rust** 的 Windows 桌面小工具，界面简约、开箱即用。
-安装包仅约 1.4 MB，默认浅色主题，支持深色 / 深浅混搭 / 卡其色主题；侧边栏功能与样式可在「应用设置 → 功能显示」中自定义。
+安装包包含内置影音内核，默认浅色主题，支持深色 / 深浅混搭 / 卡其色主题；侧边栏功能与样式可在「应用设置 → 功能显示」中自定义。
 
 ## 效果预览
 
@@ -145,8 +147,8 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.56.0_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
-- 免安装单文件：`src-tauri/target/release/SimpleTools.exe`
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.0_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
+- 免安装运行：`src-tauri/target/release/SimpleTools.exe`，须同时携带完整 `resources` 运行时目录。
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。
 
@@ -218,6 +220,19 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.58.0（2026-10-16）
+
+- TVBOX 内置 OpenJDK / Python：普通 JAR 直接加载，DEX 首次转换缓存，Python 使用随包运行时；无需安装 Android 环境。
+- 接入 JAR / Python 的首页、分类、搜索、详情、播放与本地代理，补充常用 Android API 兼容层。完整兼容范围见 TVBOX 文档。
+- 片源子进程超时重置，应用退出时自动清理。
+
+### v0.57.0（2026-10-16）
+
+- 新增 TVBOX 桌面影音功能：内置 libmpv / QuickJS，支持 JSON / XML / type=4 / 源码 JS 源、多配置、筛选、全源搜索、线路选集、直播分组和节目单。
+- 支持收藏、续播、自动下一集、片头片尾跳过、倍速、音轨、字幕、画面比例和快捷键；网页解析采用独立的无应用命令权限窗口。
+- 首页导航、分类标签和海报网格采用 PC 交互；设置内可开启手机扫码配置，手机发送网址或 JSON 后自动加载。
+- TVBOX 配置、收藏、进度及脚本存储纳入数据目录迁移、备份、合并导入和恢复。内核随安装包提供，无需另装播放器。
 
 ### v0.56.0（2026-10-15）
 

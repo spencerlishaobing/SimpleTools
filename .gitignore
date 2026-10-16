@@ -3,6 +3,12 @@ node_modules/
 src-tauri/target/
 src-tauri/gen/schemas/
 dist/
+src-tauri/resources/mpv/*.dll
+src-tauri/resources/mpv/*.7z
+src-tauri/resources/mpv/*.a
+src-tauri/resources/mpv/include/
+/src-tauri/resources/aria2/aria2c.exe
+/src-tauri/resources/aria2/aria2.zip
 
 # IDE
 .idea/
@@ -12,3 +18,16 @@ dist/
 # OS
 Thumbs.db
 .DS_Store
+
+/runtime/android/build/
+/src-tauri/resources/python/
+/src-tauri/resources/tvpython/
+/src-tauri/resources/tvbridge.apk*
+/runtime/**/__pycache__/
+
+/runtime/python-runtime.zip
+/src-tauri/resources/prepare-tvbox-android.ps1
+
+/runtime/java/*.zip
+/runtime/java/build/
+/src-tauri/resources/java/
