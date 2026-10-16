@@ -13,7 +13,7 @@ const ROOT = path.join(__dirname, '..');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let msgId = 0;
-function cdp(ws, method, params) {
+function cdp(ws, method, params, timeoutMs = 8000) {
   const id = ++msgId;
   return new Promise((resolve, reject) => {
     const onMsg = (ev) => {
@@ -21,22 +21,30 @@ function cdp(ws, method, params) {
       try { m = JSON.parse(ev.data); } catch { return; }
       if (m.id !== id) return;
       ws.removeEventListener('message', onMsg);
+      clearTimeout(timer);
       m.error ? reject(new Error(method + ': ' + JSON.stringify(m.error))) : resolve(m.result);
     };
+    const timer = setTimeout(() => { ws.removeEventListener('message', onMsg); reject(new Error(method + ': cdp timeout')); }, timeoutMs);
     ws.addEventListener('message', onMsg);
     ws.send(JSON.stringify({ id, method, params }));
   });
 }
-async function evaluate(ws, expression) {
-  const r = await cdp(ws, 'Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+async function evaluate(ws, expression, timeoutMs = 15000) {
+  const r = await cdp(ws, 'Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }, timeoutMs);
   if (r.exceptionDetails) throw new Error('evaluate: ' + JSON.stringify(r.exceptionDetails.exception));
   return r.result && r.result.value;
 }
 async function shot(ws, file) {
-  await cdp(ws, 'Page.enable', {});
-  const s = await cdp(ws, 'Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync(path.join(ROOT, file), Buffer.from(s.data, 'base64'));
-  console.log('SHOT|' + file);
+  try {
+    try { await cdp(ws, 'Page.bringToFront', {}, 5000); } catch { /* best effort */ }
+    await cdp(ws, 'Page.enable', {}, 10000);
+    const s = await cdp(ws, 'Page.captureScreenshot', { format: 'png' }, 30000);
+    fs.writeFileSync(path.join(ROOT, file), Buffer.from(s.data, 'base64'));
+    console.log('SHOT|' + file);
+  } catch (e) {
+    // 截图仅为验证证据；窗口最小化等情况下 captureScreenshot 可能不可用，不影响断言结果
+    console.log('SHOT-FAIL|' + file + '|' + e.message);
+  }
 }
 async function poll(ws, expression, timeoutMs, stepMs = 700) {
   const end = Date.now() + timeoutMs;
@@ -63,6 +71,8 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
 
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.addEventListener('open', res); ws.addEventListener('error', rej); });
+  ws.addEventListener('close', () => { console.log('CDP-CLOSED: devtools session ended'); process.exit(3); });
+  ws.addEventListener('error', () => { console.log('CDP-ERROR: devtools session error'); process.exit(3); });
 
   const fails = [];
   const T = (name, ok, actual) => { console.log((ok ? 'PASS|' : 'FAIL|') + name + '|' + String(actual).slice(0, 260)); if (!ok) fails.push(name); };
@@ -100,7 +110,7 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
   T('player extras collapsed by default', ui.moreHidden === true, String(ui.moreHidden));
 
   // 2) 真实拉取饭太硬加密配置（Rust 侧：IDN + okhttp UA + 图片外壳解密），并在页面内按 TVBoxCore 规则解析
-  const conf = JSON.parse(await evaluate(ws, `window.__TAURI__.core.invoke('tvbox_fetch', { url: 'https://www.饭太硬.cc/tv' }).then(t => { try { const c = window.TVBoxCore.json(t); return JSON.stringify({ head: t.slice(0, 40), sites: (c.sites || []).length, lives: (c.lives || []).length, first: (c.sites || [])[0] && (c.sites[0].api || '') }); } catch (e) { return JSON.stringify({ head: t.slice(0, 60), error: String(e) }); } })`));
+  const conf = JSON.parse(await evaluate(ws, `window.__TAURI__.core.invoke('tvbox_fetch', { url: 'https://www.饭太硬.cc/tv' }).then(t => { try { const c = window.TVBoxCore.json(t); return JSON.stringify({ head: t.slice(0, 40), sites: (c.sites || []).length, lives: (c.lives || []).length, first: (c.sites || [])[0] && (c.sites[0].api || '') }); } catch (e) { return JSON.stringify({ head: t.slice(0, 60), error: String(e) }); } })`, 45000));
   T('encrypted 饭太硬 config decrypted via Rust', conf.sites >= 45 && conf.lives >= 4 && !conf.error, JSON.stringify(conf));
 
   // 3) 多仓 lmw.json 导入（使用用户实际的 catvod 代理地址；网络抖动时重试一次点击）
@@ -148,8 +158,8 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
   })()`);
   const guardMsg = await poll(ws, `(() => {
     const t = document.getElementById('tv-status').textContent;
-    return (t.includes('加壳') || t.includes('失败') || t.includes('没有找到')) ? t : null;
-  })()`, 60000, 1200);
+    return t.includes('加壳') || t.includes('无法运行') ? t : null;
+  })()`, 90000, 1200);
   T('guarded jar gives clear message', typeof guardMsg === 'string' && guardMsg.includes('加壳'), guardMsg);
   await shot(ws, `_uia-tvbox-fantaiying-v${VER}.png`);
 
