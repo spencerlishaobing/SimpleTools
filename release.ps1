@@ -93,6 +93,14 @@ $assets = @(
   @{ Name = $assetName;         File = $Installer;   MB = $sizeMB;     Sha = $sha },
   @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
 )
+if ($Tvbox) {
+  # TVBOX 版附带便携包（exe + resources，免安装用户使用）；存在才上传
+  $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_tvbox_portable.zip"
+  if (Test-Path -LiteralPath $portableZipPath) {
+    $zipItem = Get-Item -LiteralPath $portableZipPath
+    $assets += @{ Name = $zipItem.Name; File = $portableZipPath; MB = [math]::Round($zipItem.Length / 1MB, 2); Sha = (Get-FileHash -LiteralPath $portableZipPath -Algorithm SHA256).Hash }
+  }
+}
 
 # ---------- git 封装（可选代理） ----------
 $gitArgs = @('-C', $RepoDir)
@@ -109,11 +117,12 @@ function Invoke-Git([string[]]$argv) {
   return ($out -join "`n")
 }
 
-# ---------- git 状态校验 ----------
+# ---------- git 状态校验（以当前分支的上游为基准：main→origin/main，tvbox→origin/tvbox） ----------
 $dirty = (Invoke-Git @('status', '--porcelain', '-uno')).Trim()
-Invoke-Git @('fetch', 'origin', 'main', '--quiet') | Out-Null
-$ahead = (Invoke-Git @('rev-list', '--count', 'origin/main..HEAD')).Trim()
-$behind = (Invoke-Git @('rev-list', '--count', 'HEAD..origin/main')).Trim()
+$upstream = "origin/$branch"
+Invoke-Git @('fetch', 'origin', $branch, '--quiet') | Out-Null
+$ahead = (Invoke-Git @('rev-list', '--count', "$upstream..HEAD")).Trim()
+$behind = (Invoke-Git @('rev-list', '--count', "HEAD..$upstream")).Trim()
 $headCommit = (Invoke-Git @('rev-parse', 'HEAD')).Trim().Substring(0, 7)
 
 $warnings = @()
@@ -122,10 +131,10 @@ if ($dirty) {
   if ($DryRun) { $warnings += $msg } else { Fail $msg }
 }
 if ($ahead -ne '0') {
-  $msg = "local is ahead of origin/main by $ahead commit(s) (push first)"
+  $msg = "local is ahead of $upstream by $ahead commit(s) (push first)"
   if ($DryRun) { $warnings += $msg } else { Fail $msg }
 }
-if ($behind -ne '0') { Fail "local is behind origin/main by $behind commit(s) (pull first)" }
+if ($behind -ne '0') { Fail "local is behind $upstream by $behind commit(s) (pull first)" }
 
 # ---------- tag 占用检查（支持续跑） ----------
 $localTag = (Invoke-Git @('tag', '--list', $tag)).Trim()
@@ -204,6 +213,8 @@ if (-not $remoteTag) { Invoke-Git @('push', 'origin', $tag) | Out-Null; Write-Ou
 else { Write-Output "STEP remote tag exists, skip push" }
 
 # ---------- 2) Release ----------
+$zipSection = ''
+foreach ($a in $assets) { if ($a.Name -like '*tvbox_portable.zip') { $zipSection = "`nWindows x64 便携包（免安装，完整解压后使用，请保持 resources 目录与 EXE 同目录）：`n`n- 便携包：$($a.Name)（$($a.MB) MB）`n- SHA256：``$($a.Sha)``" } }
 $releaseNotes = @"
 ## SimpleTools $tag
 
@@ -216,7 +227,7 @@ Windows x64 免安装单文件（双击即用，无需安装）：
 
 - 免安装：$portableAssetName（$portableMB MB）
 - SHA256：``$portableSha``
-
+$zipSection
 $Notes
 "@
 $releaseNotes = $releaseNotes.Trim()
