@@ -29,9 +29,9 @@ public final class Main {
         Spider spider;Shared shared;
         public void close(){try{spider.destroy();}catch(Exception ignored){}}
     }
-    private static JSONObject object(String text){return text==null||text.trim().isEmpty()?new JSONObject():new JSONObject(text);}
-    private static HashMap<String,String> map(JSONObject obj){HashMap<String,String> out=new HashMap<>();if(obj!=null)for(String key:obj.keySet())out.put(key,obj.optString(key));return out;}
-    private static List<String> list(JSONArray a){List<String> out=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++)out.add(a.getString(i));return out;}
+    private static JSONObject object(String text){try{return text==null||text.trim().isEmpty()?new JSONObject():new JSONObject(text);}catch(org.json.JSONException e){return new JSONObject();}}
+    private static HashMap<String,String> map(JSONObject obj){HashMap<String,String> out=new HashMap<>();if(obj!=null){java.util.Iterator<?> it=obj.keys();while(it.hasNext()){String key=String.valueOf(it.next());out.put(key,obj.optString(key));}}return out;}
+    private static List<String> list(JSONArray a){List<String> out=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++){try{out.add(a.getString(i));}catch(org.json.JSONException ignored){}}return out;}
     /** 修复 dex2jar 2.4 的已知产物缺陷：部分字段的 ConstantValue 属性与字段描述符类型不匹配
      * （实测：HashMap 字段携带 String 常量），JVM 定义类时直接抛 ClassFormatError
      * （Bad string initial value），导致整个 JAR 无法加载。这里将非法属性就地改名
@@ -255,7 +255,7 @@ public final class Main {
             if(!path.equals("/call")||!exchange.getRequestMethod().equals("POST")){send(exchange,404,"text/plain",new byte[0]);return;}
             JSONObject data=new JSONObject(new String(readLimited(exchange.getRequestBody(),90*1024*1024),StandardCharsets.UTF_8));
             send(exchange,200,"application/json; charset=utf-8",call(data).toString().getBytes(StandardCharsets.UTF_8));
-        }catch(Throwable e){while(e.getCause()!=null)e=e.getCause();e.printStackTrace(System.err);String message=e.toString();if(e instanceof LinkageError)message="JAR compatibility API missing: "+message;send(exchange,500,"application/json; charset=utf-8",new JSONObject().put("error",message).toString().getBytes(StandardCharsets.UTF_8));}
+        }catch(Throwable e){while(e.getCause()!=null)e=e.getCause();e.printStackTrace(System.err);String message=e.toString();if(e instanceof LinkageError)message="JAR compatibility API missing: "+message;String body;try{body=new JSONObject().put("error",message).toString();}catch(org.json.JSONException je){body="{\"error\":\""+message.replace("\\"," ").replace("\"","")+"\"}";}send(exchange,500,"application/json; charset=utf-8",body.getBytes(StandardCharsets.UTF_8));}
         finally{exchange.close();}
     }
     private static byte[] readLimited(InputStream input,int max)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[65536];int n;while((n=input.read(buffer))!=-1){if(out.size()+n>max)throw new IOException("Request exceeds size limit");out.write(buffer,0,n);}return out.toByteArray();}

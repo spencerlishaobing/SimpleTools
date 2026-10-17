@@ -49,7 +49,7 @@ public class Context {
     private static String safe(String name){if(name.contains("/")||name.contains("\\")||name.equals(".."))throw new IllegalArgumentException("Invalid local name");return name;}
     private static final class Preferences implements SharedPreferences {
         final File file;final Map<String,Object> values=new HashMap<>();final Set<OnSharedPreferenceChangeListener> listeners=new HashSet<>();
-        Preferences(File file){this.file=file;try{JSONObject json=new JSONObject(new String(Files.readAllBytes(file.toPath()),"UTF-8"));for(String key:json.keySet()){Object v=json.get(key);if(v instanceof JSONArray){Set<String> set=new HashSet<>();for(Object o:(JSONArray)v)set.add(o.toString());v=set;}values.put(key,v);}}catch(IOException ignored){}}
+        Preferences(File file){this.file=file;try{JSONObject json=new JSONObject(new String(Files.readAllBytes(file.toPath()),"UTF-8"));java.util.Iterator kit=json.keys();while(kit.hasNext()){String key=String.valueOf(kit.next());Object v=json.get(key);if(v instanceof JSONArray){JSONArray arr=(JSONArray)v;Set<String> set=new HashSet<>();for(int ai=0;ai<arr.length();ai++)set.add(String.valueOf(arr.opt(ai)));v=set;}values.put(key,v);}}catch(Exception ignored){}}
         public synchronized Map<String,?> getAll(){return new HashMap<>(values);}public synchronized boolean contains(String k){return values.containsKey(k);}
         public synchronized String getString(String k,String f){Object v=values.get(k);return v==null?f:(String)v;}
         public synchronized Set<String> getStringSet(String k,Set<String> f){Object v=values.get(k);return v==null?f:new HashSet<>((Set<String>)v);}
