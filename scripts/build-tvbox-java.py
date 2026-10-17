@@ -39,7 +39,9 @@ deps={
  'okio':'com/squareup/okio/okio/1.17.5/okio-1.17.5.jar',
  'gson':'com/google/code/gson/gson/2.10.1/gson-2.10.1.jar',
  'jsoup':'org/jsoup/jsoup/1.16.1/jsoup-1.16.1.jar',
- 'json':'org/json/json/20240303/json-20240303.jar',
+ # Android 兼容 org.json（AOSP 2013 移植）：getString/getInt 等对类型宽松（JSON-java 新版会抛异常），
+ # TVBox 系 JAR 按 Android org.json 行为编写，必须用 Android 版
+ 'json':'com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar',
 }
 manifest_file=source/'dependencies.json'
 manifest=json.loads(manifest_file.read_text()) if manifest_file.exists() else {}

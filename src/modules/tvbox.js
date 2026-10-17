@@ -9,7 +9,9 @@
   let searchPanelOpen=false;
   // 程序化修改站点下拉时置位，避免 value 赋值触发的 change 把 remembered 源覆盖（WebView2 行为差异）
   let siteProgrammatic=false;
-  let xsearch={word:'',groups:[],profileId:'',done:0,total:0,running:false,token:0};
+  // 用户最近一次真实操作站点下拉的时间（只有用户操作触发的 change 才生效，程序化 change 一律忽略）
+  let siteUserTouched=0;
+  let xsearch={word:'',groups:[],current:'__all__',done:0,total:0,running:false,token:0};
   let statusTimer=null;
   const status=message=>{
     const node=$('status');node.textContent=message;node.classList.remove('is-idle');
@@ -206,20 +208,25 @@
     renderSidenav();
   }
   function renderSiteOptions(term='') {
-    const select=$('site'),previous=select.value,word=term.trim().toLowerCase();select.replaceChildren();
-    sites().forEach((s,i)=>{
-      if(word&&!`${s.name||''} ${s.key||''} ${s.api||''}`.toLowerCase().includes(word))return;
-      option(select,i,`${C.supported(s)?'':'[环境不兼容] '}${s.name||s.key||'片源'}`);
-    });
-    select.disabled=!select.options.length;
-    if(select.options.length)select.value=Array.from(select.options).some(o=>o.value===previous)?previous:select.options[0].value;
-    return select.options.length;
+    const select=$('site'),previous=select.value,word=term.trim().toLowerCase();
+    // 重建下拉期间全程标记程序化（WebView2 下 options 重建/赋值会异步触发 change，会把 remembered 源覆盖成第一个源）
+    siteProgrammatic=true;
+    try{
+      select.replaceChildren();
+      sites().forEach((s,i)=>{
+        if(word&&!`${s.name||''} ${s.key||''} ${s.api||''}`.toLowerCase().includes(word))return;
+        option(select,i,`${C.supported(s)?'':'[环境不兼容] '}${s.name||s.key||'片源'}`);
+      });
+      select.disabled=!select.options.length;
+      if(select.options.length)select.value=Array.from(select.options).some(o=>o.value===previous)?previous:select.options[0].value;
+      return select.options.length;
+    }finally{setTimeout(()=>{siteProgrammatic=false;},0);}
   }
   function setup() {
     const p=profile();$('profile').replaceChildren();db.profiles.forEach(p=>option($('profile'),p.id,p.name));$('profile').value=p.id;
     $('profile-name').value=p.name;const configUrl=p.collectionBase||p.base;$('config-url').value=configUrl.startsWith('http')?configUrl:'';
     $('config-editor').value=p.id?JSON.stringify(config(),null,2):'';
-    $('site-filter').value='';renderSiteOptions();
+    renderSiteOptions();
     // 让下拉与已记住的片源保持一致（部分环境下 options 重建会触发 change，可能把 selectedSite 改错）
     const remembered=sites().findIndex(s=>s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite);
     if(remembered>=0){siteProgrammatic=true;$('site').value=String(remembered);setTimeout(()=>{siteProgrammatic=false;},0);}
@@ -333,31 +340,39 @@
     }
   }
   // 左侧分组导航（左右布局）：影视 = 分类列；直播 = 直播源列 + 分组列（多层分组多列）
+  // 左侧源/分组列表：按钮文字最多一行，放不下时 title + hover 跑马灯
+  function navButton(text,onclick){
+    const b=button('',onclick);b.title=text;b.append(el('span',text));return b;
+  }
   function renderSidenav(){
     const nav=$('sidenav');if(!nav)return;
     nav.replaceChildren();
     if(view==='live'){
       const sources=ensureLiveSources();
       const sourceCol=el('div',undefined,'tv-nav-col');
-      sources.forEach(s=>{const b=button(s.name,()=>run(()=>loadLiveSource(s.id)));b.classList.toggle('is-selected',s.id===liveCurrent);sourceCol.append(b);});
+      sources.forEach(s=>{const b=navButton(s.name,()=>run(()=>loadLiveSource(s.id)));b.classList.toggle('is-selected',s.id===liveCurrent);sourceCol.append(b);});
       nav.append(sourceCol);
       const groups=[...new Set(liveChannels.map(c=>c.group).filter(Boolean))];
       if(groups.length){
         const col=el('div',undefined,'tv-nav-col');
-        const all=button('全部分组',()=>{liveGroup='';renderLive();});all.classList.toggle('is-selected',!liveGroup);col.append(all);
-        groups.forEach(g=>{const b=button(g,()=>{liveGroup=g;renderLive();});b.classList.toggle('is-selected',liveGroup===g);col.append(b);});
+        const all=navButton('全部分组',()=>{liveGroup='';renderLive();});all.classList.toggle('is-selected',!liveGroup);col.append(all);
+        groups.forEach(g=>{const b=navButton(g,()=>{liveGroup=g;renderLive();});b.classList.toggle('is-selected',liveGroup===g);col.append(b);});
         nav.append(col);
       }
     }else if(view==='xsearch'){
       const col=el('div',undefined,'tv-nav-col');
-      // 第一项「全部」：聚合所有仓的搜索结果（参考 Android 全源搜索）
+      // 只显示有结果的源（搜索进行中随结果陆续出现；无数据源不占列表）
+      const visible=xsearch.groups.filter(g=>g.count>0);
+      if(xsearch.current!=='__all__'&&!visible.some(g=>g.key===xsearch.current))xsearch.current='__all__';
+      // 第一项「全部」：当前仓所有源搜索结果的合集
       const total=xsearch.groups.reduce((n,g)=>n+g.count,0);
-      const all=button(`全部${total?` (${total})`:''}`,()=>{xsearch.profileId='__all__';renderSidenav();renderXSearch();});
-      all.classList.toggle('is-selected',xsearch.profileId==='__all__');
+      const all=navButton(`全部${total?` (${total})`:''}`,()=>{xsearch.current='__all__';renderSidenav();renderXSearch();});
+      all.classList.toggle('is-selected',xsearch.current==='__all__');
       col.append(all);
-      xsearch.groups.forEach(g=>{
-        const b=button(`${g.name}${g.count?` (${g.count})`:''}`,()=>{xsearch.profileId=g.profileId;renderSidenav();renderXSearch();});
-        b.classList.toggle('is-selected',xsearch.profileId===g.profileId);
+      visible.forEach(g=>{
+        const b=navButton(`${g.name}${g.count?` (${g.count})`:''}`,()=>{xsearch.current=g.key;renderSidenav();renderXSearch();});
+        b.dataset.key=g.key;
+        b.classList.toggle('is-selected',xsearch.current===g.key);
         col.append(b);
       });
       if(col.children.length)nav.append(col);
@@ -396,14 +411,10 @@
     const pool=[...(db.searchHistory||[]),...hotSearchWords()];
     return [...new Set(pool.filter(w=>w&&w.toLowerCase().includes(word)&&w.toLowerCase()!==word))].slice(0,8);
   }
-  function startSearch(word,all=false){
+  function startSearch(word){
     word=String(word||'').trim();if(!word)return;
-    recordSearch(word);
-    $('keyword').value=word;
-    searchPanelOpen=false;
-    if(view==='live')return renderLive();
-    if(all)return searchAll();
-    page=1;keyword=word;return browse();
+    if(view==='live'){recordSearch(word);$('keyword').value=word;searchPanelOpen=false;return renderLive();}
+    return searchWarehouse(word);
   }
   function renderSearchPanel(){
     searchPanelOpen=true;
@@ -471,11 +482,14 @@
       if(posterObserver)posterObserver.observe(img);else loadPoster(img);
     }catch(_){/* invalid poster */}
   }
-  function movieCard(v,s,p) {
-    const card=button('',()=>detail(v.vod_id,s,p,null,v),'tv-card'),art=el('div',undefined,'tv-poster');
+  function movieCard(v,s,p,onActivate) {
+    const card=button('',onActivate||(()=>detail(v.vod_id,s,p,null,v)),'tv-card'),art=el('div',undefined,'tv-poster');
     art.append(el('span','TV','tv-poster-fallback'));poster(art,v.vod_pic,p.base);
     if(v.vod_remarks)art.append(el('span',v.vod_remarks,'tv-card-remark'));
-    card.append(art,el('strong',v.vod_name||'未命名'));
+    // 标题最多一行（CSS 截断）；完整名称放 title / 内部 span 供 hover 跑马灯
+    const name=String(v.vod_name||'未命名');
+    const title=el('strong');title.title=name;title.append(el('span',name));
+    card.append(art,title);
     card.append(el('small',[v.vod_year,v.vod_area,s.name].filter(Boolean).join(' · ')));
     return card;
   }
@@ -512,9 +526,15 @@
       return String(a&&a.vod_name||'').localeCompare(String(b&&b.vod_name||''),'zh-Hans-CN');
     });
   }
-  function searchResultList(list,word){return sortSearchResults(filterRelevantResults(list,word),word);}
+  function searchResultList(list,word){return filterRelevantResults(list,word);}
   // 单请求超时（借鉴 LibreTV 搜索单源死线）：坏源/慢源不拖住整体队列
   function withTimeout(promise,ms,message){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(message||'请求超时')),ms))]);}
+  // 慢操作提示（不中断）：切换源/仓超过 30 秒仅提示“较慢”（JAR 首次转换可能更久，完成后正常渲染）
+  function warnAfter(ms,message){const timer=setTimeout(()=>status(message),ms);return ()=>clearTimeout(timer);}
+  // 搜索并发数：多源并行请求（每源 1 请求、不同站点互不影响；后端 JVM 16 线程池 / Python ThreadingHTTPServer 均支持并行）
+  const SEARCH_CONCURRENCY=16;
+  // 搜索单源超时：快速失败，不让慢源拖住整体（LibreTV 默认 10s，这里更积极）
+  const SEARCH_SOURCE_TIMEOUT=8000;
   function renderMovies(list,s,p=profile(),append=false) {
     if(!append)$('results').replaceChildren();
     for(const v of list) $('results').append(movieCard(v,s,p));
@@ -531,7 +551,10 @@
       status('正在加载 '+(s.name||'片源')+'…');
       if(!homeData.class) {
         const loaded=await api(s,'home',{},p);if(token!==generation)return;homeData=loaded;
-        option($('category'),'','推荐 / 全部');(homeData.class||[]).forEach(c=>option($('category'),c.type_id,c.type_name));
+        // class 缺失/为空时也置为空数组，避免每次 browse 重复请求并重复追加默认分类
+        if(!Array.isArray(homeData.class))homeData.class=[];
+        $('category').replaceChildren();
+        option($('category'),'','推荐 / 全部');const seenCats=new Set(['推荐 / 全部']);(homeData.class||[]).forEach(c=>{const name=String(c.type_name||'').trim();if(!name||seenCats.has(name))return;seenCats.add(name);option($('category'),c.type_id,name);});
       }
       const category=$('category').value||'';
       $('categories').replaceChildren();for(const opt of $('category').options){const tab=button(opt.textContent,()=>{$('category').value=opt.value;return $('category').onchange();});tab.classList.toggle('is-selected',opt.value===category);$('categories').append(tab);}
@@ -577,107 +600,110 @@
   const loadMoreObserver=typeof IntersectionObserver!=='undefined'?new IntersectionObserver(entries=>{
     if(entries.some(entry=>entry.isIntersecting))run(()=>loadMore());
   },{rootMargin:'480px'}):null;
-  async function searchAll() {
-    const word=$('keyword').value.trim();if(!word)throw Error('输入片名后搜索');searchPanelOpen=false;lastBrowseHadMore=false;switchView('home');const token=++generation,p=profile();
-    $('results').replaceChildren();$('prev').disabled=$('next').disabled=true;
-    const all=sites().filter(s=>C.supported(s)&&Number(s.searchable??1)!==0);
-    const sources=all.filter(s=>!isSourceCooling(sourceKey(s,p)));
-    const cooling=all.length-sources.length;
-    if(cooling)status(`全源搜索：跳过 ${cooling} 个冷却中的源（可在设置页恢复）`);let index=0,done=0,failed=0;
-    async function worker(){while(token===generation&&index<sources.length){const s=sources[index++];try{const data=await withTimeout(api(s,'search',{keyword:word,page:1},p),15000);if(token!==generation)return;renderMovies(searchResultList(data.list||[],word),s,p,true);}catch(_){failed++;}done++;if(token===generation)status(`全源搜索 ${done}/${sources.length} · ${failed} 个源失败`);}}
-    await Promise.all(Array.from({length:Math.min(4,sources.length)},worker));
-  }
-  // 跨仓搜索（参考 Android）：点片单源卡片时直接匹配所有配置仓，按仓顺序呈现（左列仓、右侧该仓结果，按源分组）
-  async function searchProfiles(word){
+  // 搜索视图（参考 Android）：只搜当前仓的源——搜索框在第一行，左侧源列表（第一项「全部」=所有源结果的合集），
+  // 右侧是选中源的结果宫格（按搜索结果返回顺序排列）；后台并发搜索，结果渐显不阻塞
+  async function searchWarehouse(word){
     word=String(word||'').trim();if(!word)throw Error('输入片名后搜索');
-    recordSearch(word);$('keyword').value=word;
+    recordSearch(word);$('keyword').value=word;searchPanelOpen=false;
+    delete $('results').dataset.xsearchBuilt; // 新搜索：重新建搜索视图骨架
     view='xsearch';const token=++generation;
     const panel=document.getElementById('panel-tvbox');panel.dataset.view='xsearch';panel.classList.remove('tv-detail-mode');
     $('settings-panel').classList.add('hidden');$('library').classList.remove('hidden');$('settings-tab').classList.remove('is-selected');$('detail-back').classList.add('hidden');$('clear-history').classList.add('hidden');
     for(const key of ['home','live','favorites','history'])$(key).classList.remove('is-selected');
-    $('section-title').textContent='跨仓搜索';$('onboarding').classList.add('hidden');
+    $('section-title').textContent='搜索';$('onboarding').classList.add('hidden');
     $('detail').replaceChildren();$('epg').replaceChildren();$('filters').replaceChildren();$('categories').replaceChildren();
     $('prev').disabled=$('next').disabled=true;
-    const targets=[];
-    db.profiles.forEach(p=>{const list=(p.config&&p.config.sites||[]).filter(s=>C.supported(s)&&Number(s.searchable??1)!==0);if(list.length)targets.push({profileId:p.id,name:p.name||'未命名仓',sites:list});});
-    xsearch={word,groups:targets.map(t=>({profileId:t.profileId,name:t.name,sites:t.sites.map(s=>({site:s,list:[]})),count:0,done:0})),profileId:'__all__',done:0,total:targets.reduce((n,t)=>n+t.sites.length,0),running:true,token};
+    const p=profile();
+    const all=sites().filter(s=>C.supported(s)&&Number(s.searchable??1)!==0);
+    const sources=all.filter(s=>!isSourceCooling(sourceKey(s,p)));
+    const cooling=all.length-sources.length;
+    xsearch={word,groups:sources.map(s=>({key:sourceKey(s,p),name:s.name||s.key||'源',site:s,list:[],count:0,done:0})),current:'__all__',done:0,total:sources.length,running:true,token};
     renderSidenav();renderXSearch();
-    status(`跨仓搜索「${word}」：${targets.length} 个仓 · ${xsearch.total} 个源`);
-    if(!targets.length){xsearch.running=false;status('没有可搜索的仓，请先在设置中加载或导入配置');return;}
-    // 后台异步搜索：不弹全局加载框，只在状态栏显示进度；搜索期间可正常切仓、看已有结果、进详情
-    const jobs=[];xsearch.groups.forEach(group=>group.sites.forEach(entry=>jobs.push({group,entry})));
-    let index=0;const total=jobs.length;
+    status(`搜索「${word}」：当前仓 ${sources.length} 个源${cooling?`（跳过 ${cooling} 个冷却中的源）`:''}`);
+    if(!sources.length){xsearch.running=false;status('当前仓没有可搜索的源，请先在设置中加载或导入配置');return;}
+    let index=0;const total=sources.length;
     async function worker(){
       while(index<total&&xsearch.token===token){
-        const job=jobs[index++],p=db.profiles.find(x=>x.id===job.group.profileId);
-        if(!p)continue;
-        if(isSourceCooling(sourceKey(job.entry.site,p))){
-          job.entry.error=true;job.group.done++;xsearch.done++;
-          if(xsearch.token!==token)return;
-          if(view==='xsearch')scheduleXSearchRender();
-          continue;
-        }
-        try{const data=await withTimeout(api(job.entry.site,'search',{keyword:word,page:1},p),15000);if(xsearch.token!==token)return;job.entry.list=searchResultList(Array.isArray(data.list)?data.list:[],word);if(job.entry.list.length)job.group.count+=job.entry.list.length;}
-        catch(_){job.entry.error=true;}
-        job.group.done++;xsearch.done++;
+        const group=xsearch.groups[index++];
+        try{const data=await withTimeout(api(group.site,'search',{keyword:word,page:1},p),SEARCH_SOURCE_TIMEOUT);if(xsearch.token!==token)return;group.list=filterRelevantResults(Array.isArray(data.list)?data.list:[],word);if(group.list.length)group.count+=group.list.length;}
+        catch(_){group.error=true;}
+        group.done=1;xsearch.done++;
         if(xsearch.token!==token)return;
-        if(view==='xsearch'){scheduleXSearchRender();status(`跨仓搜索 ${xsearch.done}/${total} · ${xsearch.groups.reduce((n,g)=>n+g.count,0)} 个结果`);}
+        if(view==='xsearch'){scheduleXSearchRender();status(`搜索 ${xsearch.done}/${total} · ${xsearch.groups.reduce((n,g)=>n+g.count,0)} 个结果`);}
       }
     }
-    await Promise.all(Array.from({length:Math.min(4,Math.max(total,1))},worker));
+    await Promise.all(Array.from({length:Math.min(SEARCH_CONCURRENCY,Math.max(total,1))},worker));
     if(xsearch.token!==token)return;
     xsearch.running=false;
-    if(view==='xsearch'){renderSidenav();renderXSearch();status(`跨仓搜索完成：${xsearch.groups.reduce((n,g)=>n+g.count,0)} 个结果 · 「${word}」`);}
+    if(view==='xsearch'){updateXSearchSidenav();renderXSearch();status(`搜索完成：${xsearch.groups.reduce((n,g)=>n+g.count,0)} 个结果 · 「${word}」`);}
   }
-  // 结果渐显节流：最多每 400ms 刷新一次，并保持滚动位置，避免打断用户浏览/选择
+  // 结果渐显节流：最多每 400ms 刷新一次；只更新计数文字 + 增量追加新源结果（不重建 DOM，避免闪动）
   let xsearchRenderTimer=0;
   function scheduleXSearchRender(){
     if(xsearchRenderTimer)return;
     xsearchRenderTimer=setTimeout(()=>{
       xsearchRenderTimer=0;
       if(view!=='xsearch')return;
-      const panel=document.getElementById('panel-tvbox'),library=$('library');
-      const panelTop=panel?panel.scrollTop:0,libTop=library?library.scrollTop:0;
-      renderSidenav();renderXSearch();
-      if(panel)panel.scrollTop=panelTop;if(library)library.scrollTop=libTop;
+      updateXSearchSidenav();
+      renderXSearch();
     },400);
+  }
+  // 左侧源列表：只更新按钮文字（计数），不重建 DOM（保留选中态与滚动位置）
+  function updateXSearchSidenav(){
+    const nav=$('sidenav');if(!nav)return;
+    const visible=xsearch.groups.filter(g=>g.count>0);
+    const btns=nav.querySelectorAll('.tv-nav-col button');
+    if(btns.length!==visible.length+1)return renderSidenav();
+    const total=xsearch.groups.reduce((n,g)=>n+g.count,0);
+    const setText=(btn,text)=>{btn.title=text;const span=btn.querySelector('span');if(span)span.textContent=text;else btn.textContent=text;};
+    setText(btns[0],`全部${total?` (${total})`:''}`);
+    visible.forEach((g,i)=>{const btn=btns[i+1];if(btn.dataset.key!==g.key)return renderSidenav();setText(btn,`${g.name}${g.count?` (${g.count})`:''}`);});
   }
   function renderXSearch(){
     if(view!=='xsearch')return;
-    const container=$('results');container.replaceChildren();
-    const all=xsearch.profileId==='__all__';
-    const groups=all?xsearch.groups:xsearch.groups.filter(g=>g.profileId===xsearch.profileId);
-    if(!groups.length){container.append(el('div','没有可搜索的仓','tv-empty'));return;}
-    const totalCount=xsearch.groups.reduce((n,g)=>n+g.count,0);
-    const head=el('div',undefined,'tv-xsearch-head');
-    head.append(el('strong',all?`「全部」的搜索结果`:`「${groups[0].name}」的搜索结果`),el('span',`${all?totalCount:groups[0].count} 个 · ${xsearch.done}/${xsearch.total} 个源已返回${xsearch.running?' · 搜索中…':''}`,'tv-cluster-label'));
-    container.append(head);
-    let any=false;
-    for(const group of groups){
-      const hits=group.sites.filter(e=>e.list.length);
-      if(!hits.length)continue;
-      any=true;
-      const p=db.profiles.find(x=>x.id===group.profileId)||profile();
-      if(all){
-        // 仓与仓之间用紧凑小标题区分（不占整行高度）
-        const gh=el('div',undefined,'tv-xsearch-profile');
-        gh.append(el('strong',group.name),el('span',`${group.count} 个`));
-        container.append(gh);
-      }
-      // 同一个仓的所有源结果合并为一个连续网格（不按源换行分段），按标题去重
-      const grid=el('div',undefined,'tv-grid');
-      const seen=new Set();
-      for(const entry of hits){
-        for(const v of entry.list){
-          const name=normalizeTitle(v&&v.vod_name);
-          if(name&&seen.has(name))continue;
-          if(name)seen.add(name);
-          grid.append(movieCard(v,entry.site,p));
-        }
-      }
-      container.append(grid);
+    const container=$('results');
+    // 首次进入搜索视图只建一次骨架（头部），卡片直接参与 #tv-results 自身的网格，之后仅增量更新
+    if(!container.dataset.xsearchBuilt){
+      container.replaceChildren();
+      const head=el('div',undefined,'tv-xsearch-head');head.append(el('strong',''),el('span','','tv-cluster-label'));
+      container.append(head);
+      container.dataset.xsearchBuilt='1';
     }
-    if(!any)container.append(el('div',xsearch.running?'正在搜索…':'没有找到相关影片','tv-empty'));
+    const head=container.querySelector('.tv-xsearch-head');
+    if(!head)return;
+    const all=xsearch.current==='__all__';
+    const groups=all?xsearch.groups:xsearch.groups.filter(g=>g.key===xsearch.current);
+    const totalCount=xsearch.groups.reduce((n,g)=>n+g.count,0);
+    head.querySelector('strong').textContent=all?`「${xsearch.word}」的全部结果`:`「${groups[0]?groups[0].name:''}」的搜索结果`;
+    head.querySelector('span').textContent=`${all?totalCount:(groups[0]?groups[0].count:0)} 个 · ${xsearch.done}/${xsearch.total} 个源已返回${xsearch.running?' · 搜索中…':''}`;
+    // 切源：移除不在当前视图的组（源数据已缓存，切回时重建该组即可）
+    const wanted=new Set(groups.map(g=>g.key));
+    for(const child of [...container.children]){
+      if(child.dataset&&child.dataset.key&&!wanted.has(child.dataset.key))child.remove();
+    }
+    // 增量：新完成的源直接追加组（组用 display:contents，卡片直接参与外层网格；按完成顺序 = 结果出来顺序）
+    const p=profile();
+    for(const group of groups){
+      if(!group.list.length)continue;
+      let groupEl=null;
+      for(const child of container.children){if(child.dataset&&child.dataset.key===group.key){groupEl=child;break;}}
+      if(!groupEl){
+        groupEl=el('div',undefined,'tv-xsearch-group');
+        groupEl.style.display='contents';
+        groupEl.dataset.key=group.key;
+        container.append(groupEl);
+      }
+      if(!groupEl.dataset.rendered){
+        for(const v of group.list)groupEl.append(movieCard(v,group.site,p));
+        groupEl.dataset.rendered='1';
+      }
+    }
+    // 空状态
+    let empty=container.querySelector('.tv-empty');
+    if(!container.querySelector('.tv-xsearch-group')){
+      if(!empty)container.append(el('div',xsearch.running?'正在搜索…':'没有找到相关影片','tv-empty'));
+      else empty.textContent=xsearch.running?'正在搜索…':'没有找到相关影片';
+    }else if(empty)empty.remove();
   }
   function movieKey(v,s,p){return `${p.id}:${s.key||s.api}:${v.vod_id}`;}
   async function detail(id,s,p=profile(),resumeContext=null,movie=null) {
@@ -689,7 +715,7 @@
     if(!v){
       // 片单展示源（如豆瓣推荐）：不提供播放详情。自动拿片名去其他片源搜索，闭环到可播放的源
       const name=String(movie?.vod_name||'').trim();
-      if(name){status(`「${s.name}」为片单推荐源，已为你跨仓搜索「${name}」`);await searchProfiles(name);return;}
+      if(name){status(`「${s.name}」为片单推荐源，正在当前仓搜索「${name}」`);await searchWarehouse(name);return;}
       throw Error('该片源仅提供片单推荐，暂无可播放详情');
     }
     const choices=C.lines(v),container=$('detail');container.replaceChildren();$('epg').replaceChildren();
@@ -707,7 +733,7 @@
     const chips=el('div',undefined,'tv-line-chips');info.append(chips,el('h4','选集','tv-episodes-title'));
     const row=el('div',undefined,'tv-episodes');info.append(row);
     function renderLine(lineIndex){row.replaceChildren();chips.querySelectorAll('button').forEach((chip,i)=>chip.classList.toggle('is-selected',i===lineIndex));const line=choices[lineIndex];line.episodes.forEach((ep,i)=>{
-      const context={profileId:p.id,siteKey:s.key||s.api,vodId:String(v.vod_id),vodName:v.vod_name,line:lineIndex,index:i,flag:line.name};
+      const context={profileId:p.id,siteKey:s.key||s.api,vodId:String(v.vod_id),vodName:v.vod_name,line:lineIndex,index:i,flag:line.name,poster:v.vod_pic||''};
       const b=button(ep.name,()=>playEpisode({episodes:line.episodes,index:i,site:s,profile:p,context,choices,lineIndex}));
       if(db.history.some(h=>h.context?.profileId===p.id&&h.context?.vodId===String(v.vod_id)&&h.context?.line===lineIndex&&h.context?.index===i))b.classList.add('tv-watched');row.append(b);
     });}
@@ -893,7 +919,7 @@
     }
     renderStageSide(meta.channel);
     if(!live){
-      const record={...old,key:recordKey,name,url,raw,sniffPage:meta.sniffPage,headers:meta.headers||{},local:!!meta.local,context:meta.context,position:start,duration:old?.duration||0,time:Date.now()};
+      const record={...old,key:recordKey,name,url,raw,sniffPage:meta.sniffPage,headers:meta.headers||{},local:!!meta.local,context:meta.context,cover:meta.context?.poster||old?.cover||'',position:start,duration:old?.duration||0,time:Date.now()};
       db.history=[record,...db.history.filter(h=>h.key!==recordKey&&(h.key||h.url!==url))].slice(0,100);persist();
     }
     $('now').textContent=name;
@@ -972,7 +998,19 @@
     switchView('history');$('results').replaceChildren();$('prev').disabled=$('next').disabled=true;
     const keep=db.history.filter(h=>!isLiveRecord(h));
     if(keep.length!==db.history.length){db.history=keep;persist();}
-    for(const h of db.history){const wrapper=el('div',undefined,'tv-record'),b=button(h.name,()=>replay(h));wrapper.append(b,el('small',`${time(h.position)} / ${time(h.duration)} · ${new Date(h.time||Date.now()).toLocaleString()}`));wrapper.append(button('移除',()=>{db.history=db.history.filter(item=>item!==h);persist();historyItems();}));$('results').append(wrapper);}
+    // 与搜索结果一致的宫格：海报 + 单行标题 + 小字（进度/时长 · 站点），角标显示已看百分比
+    const p=profile();
+    for(const h of db.history){
+      const percent=h.duration>0?Math.min(99,Math.max(1,Math.round((Number(h.position)||0)/h.duration*100))):0;
+      let siteName='直链';
+      if(h.context){
+        const owner=db.profiles.find(x=>x.id===h.context.profileId);
+        const site=(owner?.config?.sites||[]).find(s=>(s.key||s.api)===h.context.siteKey);
+        siteName=site?.name||'片源';
+      }
+      const v={vod_id:h.context?.vodId||h.key||h.url,vod_name:h.name||'未命名',vod_pic:h.cover||'',vod_year:`${time(h.position)} / ${time(h.duration)}`,vod_area:'',vod_remarks:percent?`${percent}%`:''};
+      $('results').append(movieCard(v,{name:siteName},p,()=>replay(h)));
+    }
     if(!db.history.length)$('results').append(el('div','暂无观看记录，播放过的影片会自动出现在这里','tv-empty'));
     status(`${db.history.length} 条观看记录`);
   }
@@ -1142,30 +1180,72 @@
   $('import').onclick=()=>run(async()=>{const path=await dialog.open({multiple:false,filters:[{name:'TVBox 配置 / 直播',extensions:['json','m3u','m3u8','txt']}]});if(path){const local=new URL('file:///');local.pathname='/'+path.replace(/\\/g,'/');await importConfig((await invoke('read_text_file',{path})).content,local.href,path.split(/[\\/]/).pop());}});
   $('export').onclick=()=>run(async()=>{const path=await dialog.save({defaultPath:'tvbox-config.json',filters:[{name:'TVBox 配置',extensions:['json']}]});if(path){await invoke('write_text_file',{path,content:JSON.stringify(config(),null,2)});status('配置已导出');}});
   $('apply-config').onclick=()=>run(async()=>{const conf=C.json($('config-editor').value);if(!Array.isArray(conf.sites)&&!Array.isArray(conf.lives))throw Error('配置需包含 sites 或 lives');if(!profile().id)return importConfig($('config-editor').value);profile().config=conf;await persist(true);setup();});
-  $('profile').onchange=()=>run(async()=>{const stay=view==='settings';db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);await loadCollectionProfile(p);setup();if(!stay&&sites().some(C.supported))await browse(true);}if(stay)openSettings();});
+  $('profile').onchange=()=>run(async()=>{const stay=view==='settings';db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);const done=warnAfter(30000,'切换仓较慢（已超过 30 秒），请稍候…');try{await loadCollectionProfile(p);setup();if(!stay&&sites().some(C.supported))await browse(true);}finally{done();}}if(stay)openSettings();});
   $('rename').onclick=()=>{const stay=view==='settings';const name=$('profile-name').value.trim();if(profile().id&&name){profile().name=name;persist();setup();if(stay)openSettings();}};
   $('delete-profile').onclick=()=>run(async()=>{const stay=view==='settings';if(!profile().id)return;if(!await window.showConfirm('删除当前片源配置？收藏和观看记录将保留。'))return;db.profiles=db.profiles.filter(p=>p.id!==db.profileId);db.profileId=db.profiles[0]?.id||'';await persist(true);setup();if(stay)openSettings();});
   $('home').onclick=()=>run(()=>goHome());$('live').onclick=()=>run(()=>loadLive(view==='live'));$('favorites').onclick=favorites;$('history').onclick=historyItems;
-  $('site-filter').oninput=()=>{const count=renderSiteOptions($('site-filter').value);status(count?`找到 ${count} 个片源 · 从右侧列表选择`: '没有匹配的片源，试试其他关键词');};
-  $('site-filter').onkeydown=e=>{if(e.key==='Enter'&&$('site').options.length)run(()=>browse(true));};
+  $('site').addEventListener('pointerdown',()=>{siteUserTouched=Date.now();});
+  $('site').addEventListener('keydown',()=>{siteUserTouched=Date.now();});
   $('site').onchange=()=>{
     if(siteProgrammatic)return;
-    run(async()=>{const s=sites()[Number($('site').value)];if(!s)return;if(s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite)return;db.selectedSite=s.key||s.api||s.name;persist();await browse(true);});
+    if(Date.now()-siteUserTouched>800)return; // 程序化（非用户）触发的 change 忽略
+    run(async()=>{const s=sites()[Number($('site').value)];if(!s)return;if(s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite)return;db.selectedSite=s.key||s.api||s.name;persist();const done=warnAfter(30000,'切换源较慢（已超过 30 秒，JAR 源首次加载需转换），请稍候…');try{await browse(true);}finally{done();}});
   };$('category').onchange=()=>run(()=>{page=1;keyword='';filters={};filterPanelOpen=false;return browse();});
+  // 卡片标题 / 左侧源名称 / 详情选集 / 播放侧栏项：最多一行，放不下时 hover 跑马灯滚动显示全名
+  function attachMarquee(container,selector){
+    if(!container)return;
+    const pick=event=>event.target.closest?event.target.closest(selector):null;
+    container.addEventListener('mouseover',event=>{
+      const node=pick(event);
+      if(!node||node.classList.contains('is-marquee'))return;
+      // 详情/播放侧栏按钮是纯文本：首次 hover 时动态包 span（跑马灯需要内层可移动元素）
+      let inner=node.querySelector(':scope > span');
+      if(!inner){
+        const text=node.textContent;
+        if(!text)return;
+        inner=document.createElement('span');inner.textContent=text;node.textContent='';node.append(inner);node.title=text;
+      }
+      const style=getComputedStyle(node);
+      const pad=(parseFloat(style.paddingLeft)||0)+(parseFloat(style.paddingRight)||0);
+      const overflow=inner.scrollWidth-(node.clientWidth-pad);
+      if(overflow<=2)return;
+      node.style.setProperty('--tv-marquee-shift',`-${overflow}px`);
+      node.style.setProperty('--tv-marquee-duration',`${Math.max(3,Math.round(overflow/30))}s`);
+      node.classList.add('is-marquee');
+    });
+    container.addEventListener('mouseout',event=>{
+      const node=pick(event);
+      if(node)node.classList.remove('is-marquee');
+    });
+  }
+  attachMarquee($('results'),'.tv-card strong,.tv-nav-col button');
+  attachMarquee($('sidenav'),'.tv-card strong,.tv-nav-col button');
+  attachMarquee($('detail'),'.tv-episodes button,.tv-line-chips button');
+  attachMarquee($('stage-side'),'button');
+  // 搜索面板：点击空白处收起（点结果区空白则恢复列表；点导航/源交给各自逻辑）
+  document.addEventListener('pointerdown',event=>{
+    if(!searchPanelOpen)return;
+    const target=event.target;
+    if(target.closest&&(target.closest('#tv-searchbar')||target.closest('.tv-search-panel')))return;
+    searchPanelOpen=false;
+    if(target.closest&&target.closest('#tv-results'))run(()=>goHome());
+  },true);
   $('search').onclick=()=>run(()=>{
     if(view==='live')return renderLive();
     const word=$('keyword').value.trim();
     if(!word){renderSearchPanel();$('keyword').focus();return;}
     return startSearch(word);
   });
-  $('search-all').onclick=()=>run(()=>{
-    const word=$('keyword').value.trim();
-    if(!word){renderSearchPanel();$('keyword').focus();return;}
-    return startSearch(word,true);
-  });
   $('keyword').oninput=()=>{if(searchPanelOpen)renderSearchPanel();};
   $('keyword').onkeydown=e=>{if(e.key==='Enter')$('search').click();};$('prev').onclick=()=>run(()=>{if(page>1)page--;return browse();});$('next').onclick=()=>run(()=>{page++;return browse();});
   $('clear-history').onclick=()=>run(async()=>{if(await window.showConfirm('清空全部观看记录与续播进度？')){db.history=[];persist();historyItems();}});
+  // 云盘登录（与安卓端一致：打开登录窗口扫码/账号登录，cookie 写入后网盘源自动鉴权）
+  for(const [id,site] of [['cloud-quark','quark'],['cloud-uc','uc'],['cloud-baidu','baidu'],['cloud-alipan','alipan']]){
+    const node=$(id);
+    if(node)node.onclick=()=>run(async()=>{await invoke('tvbox_cloud_login',{site});status('已打开云盘登录窗口：会自动弹出扫码登录，扫码确认后窗口自动关闭即登录成功');});
+  }
+  // 登录成功（Rust 检测到关键 Cookie 后自动关闭窗口并通知）
+  if(window.__TAURI__&&window.__TAURI__.event)window.__TAURI__.event.listen('cloud-login-done',()=>{status('云盘登录成功：登录态已保存，播放网盘源时自动使用');});
   $('local').onclick=()=>run(async()=>{const paths=await dialog.open({multiple:true,filters:[{name:'视频',extensions:['mp4','mkv','mov','avi','ts','webm','m4v','flv','m2ts']}]});if(!paths)return;const list=(Array.isArray(paths)?paths:[paths]).map(path=>({name:path.split(/[\\/]/).pop(),url:path}));if(!list.length)return;queue={episodes:list,index:0,local:true};await play(list[0].url,list[0].name,{local:true,localQueue:true});});
   $('play').onclick=()=>run(()=>play($('direct').value.trim(),'网络视频'));
   $('sniff').onclick=()=>run(()=>sniff($('direct').value.trim(),'网页视频',{}));
@@ -1201,7 +1281,7 @@
       const live=!!current?.meta?.live&&!current?.manualStop;
       endPlayLoading();
       if(live){status(data.error<0?'直播源连接失败，尝试换源…':'直播流中断，尝试换源…');run(()=>liveSwitchNext());}
-      else if(data.error<0)status(`播放失败（内核 ${data.error}），请切换线路或检查片源`);
+      else if(data.error<0)status(`播放失败（内核 ${data.error}），请切换线路或检查片源（网盘源请先在设置中登录云盘）`);
       else if(data.reason===0)completed();
     }
   }).catch(()=>{});

@@ -786,7 +786,7 @@
       <header class="tv-topbar">
         <div class="tv-brand"><span class="tv-brand-icon" aria-hidden="true">▶</span><strong>TVBOX</strong></div>
         <nav class="tv-nav" aria-label="TVBOX 导航"><button id="tv-home" class="is-selected">影视</button><button id="tv-find">搜索</button><button id="tv-live">直播</button><button id="tv-favorites">收藏</button><button id="tv-history">历史</button><button id="tv-settings-tab" class="tv-nav-right">设置</button></nav>
-        <div class="tv-topbar-sources"><span class="tv-cluster-label">片源</span><input id="tv-site-filter" placeholder="筛选" aria-label="筛选片源" title="按名称筛选片源列表"><select id="tv-site" aria-label="片源" title="点播片源"></select></div>
+        <div class="tv-topbar-sources"><span class="tv-cluster-label">片源</span><select id="tv-site" aria-label="片源" title="点播片源"></select></div>
       </header>
 
       <p id="tv-status" role="status" aria-live="polite">欢迎使用 TVBOX；在「设置」中添加配置网址即可开始。</p>
@@ -809,17 +809,19 @@
 
         <details class="tv-settings"><summary>播放设置</summary><div class="tv-toolbar"><label><input id="tv-resume" type="checkbox" checked>自动续播</label><label><input id="tv-auto-next" type="checkbox" checked>自动下一集</label><label>跳过片头 <input id="tv-skip-intro" type="number" min="0" max="600" value="0"> 秒</label><label>跳过片尾 <input id="tv-skip-outro" type="number" min="0" max="600" value="0"> 秒</label><select id="tv-hwdec" aria-label="解码方式"><option value="auto-safe">自动硬件解码</option><option value="no">软件解码</option></select></div><div class="tv-toolbar"><label title="默认使用内置本地爬虫（毫秒级打开）；暂未适配的站点会记录到待适配清单，后续版本适配。勾选后允许回退到片源自带的 JAR / 脚本爬虫（首次加载较慢）"><input id="tv-self-parser" type="checkbox">源自带解析兼容</label><label title="直播源超过该时间无画面就自动换源（同频道下一个源 → 下一个频道）">直播换源超时 <input id="tv-live-timeout" type="number" min="5" max="30" value="15"> 秒</label><span class="tv-cluster-label" id="tv-health-info">源健康：正常</span><button id="tv-reset-health" title="清除所有源的冷却状态，重新参与搜索">恢复源健康</button><span class="tv-cluster-label" id="tv-unmatched">本地解析：加载中…</span></div></details>
 
+        <details class="tv-settings"><summary>云盘登录（播放网盘源前登录一次）</summary><div class="tv-toolbar"><button id="tv-cloud-quark">夸克网盘</button><button id="tv-cloud-uc">UC 网盘</button><button id="tv-cloud-baidu">百度网盘</button><button id="tv-cloud-alipan">阿里云盘</button><span class="tv-cluster-label">打开后自动弹出扫码登录（与安卓一致），手机扫码确认后窗口自动关闭即登录成功；如未自动关闭，手动关闭窗口也会保存</span></div></details>
+
         <details class="tv-settings"><summary>高级：编辑与导出配置</summary><textarea id="tv-config-editor" aria-label="配置 JSON 编辑器" spellcheck="false" placeholder="粘贴或编辑 TVBox JSON 配置"></textarea><div class="tv-toolbar"><button id="tv-apply-config">应用 JSON</button><button id="tv-export">导出当前配置</button></div></details>
 
         <details class="tv-settings tv-direct-settings"><summary>播放本地或网络视频</summary><div class="tv-toolbar"><input id="tv-direct" placeholder="粘贴 HTTP(S) 视频直链" aria-label="视频地址"><button id="tv-play">播放地址</button><button id="tv-local">选择本地视频</button><select id="tv-engine" aria-label="播放方式"><option value="mpv">内置 libmpv · 硬件解码</option><option value="web">WebView · 系统支持格式</option></select></div></details>
       </div>
 
       <div id="tv-library">
+        <div class="tv-viewbar"><button id="tv-detail-back" class="tv-back hidden" title="返回列表">‹ 返回</button><h3 id="tv-section-title">影视</h3><div class="tv-searchbar" id="tv-searchbar"><input id="tv-keyword" placeholder="输入片名搜索…" aria-label="搜索片名"><button id="tv-search" class="tv-primary" title="搜索当前仓的所有源">搜索</button></div><button id="tv-clear-history" class="tv-back hidden" title="清空全部观看记录与续播进度">清空记录</button></div>
+        <div id="tv-library-row">
         <aside id="tv-sidenav" aria-label="分组导航"></aside>
         <div id="tv-main">
         <div id="tv-onboarding" class="tv-onboarding hidden"><span class="tv-eyebrow">欢迎使用 TVBOX</span><h3>先添加片源，接着就能选影片播放</h3><p>已有 TVBox 配置？直接粘贴网址或用手机扫码。也可以先打开本地视频试播。</p><div class="tv-onboarding-actions"><button id="tv-onboard-config" class="tv-primary">添加配置网址</button><button id="tv-onboard-phone">手机扫码配置</button><button id="tv-onboard-local">打开本地视频</button></div></div>
-
-        <div class="tv-viewbar"><button id="tv-detail-back" class="tv-back hidden" title="返回列表">‹ 返回</button><h3 id="tv-section-title">影视</h3><div class="tv-searchbar" id="tv-searchbar"><input id="tv-keyword" placeholder="输入片名搜索…" aria-label="搜索片名"><button id="tv-search" class="tv-primary" title="搜索当前片源">搜索</button><button id="tv-search-all" title="在所有可搜索的片源中查找">全源搜索</button></div><button id="tv-clear-history" class="tv-back hidden" title="清空全部观看记录与续播进度">清空记录</button></div>
 
         <select id="tv-category" aria-label="分类" class="tv-offscreen"></select>
         <div id="tv-categories" class="tv-category-tabs" aria-label="影片分类"></div>
@@ -831,6 +833,7 @@
         <div id="tv-epg"></div>
         <div class="tv-toolbar tv-pagination" id="tv-pager"><button id="tv-prev">上一页</button><span id="tv-page">第 1 页</span><button id="tv-next">下一页</button></div>
         <div id="tv-sentinel" class="tv-sentinel" aria-hidden="true"></div>
+        </div>
         </div>
       </div>
 

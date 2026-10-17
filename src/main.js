@@ -78,6 +78,13 @@
     appLoadingEl.classList.add('hidden');
   };
 
+  // 点击加载遮罩空白处（非加载框内部）可隐藏加载框：加载继续在后台进行，完成后正常展示
+  if (appLoadingEl) {
+    appLoadingEl.addEventListener('click', function (event) {
+      if (event.target === appLoadingEl) window.hideLoading();
+    });
+  }
+
   // ---------- 通用确认弹窗（替代原生 confirm，两者均安全可靠） ----------
   window.showConfirm = function (message, opts) {
     opts = opts || {};

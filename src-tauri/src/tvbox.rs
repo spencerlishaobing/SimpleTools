@@ -1,5 +1,6 @@
 use base64::Engine as _;
 use std::time::Duration;
+use tauri::{Emitter, Manager};
 
 const MAX_BODY: usize = 32 * 1024 * 1024;
 /// 大多数 TVBox 源站按 OkHttp 客户端（TVBox/影视仓均为 OkHttp）返回内容，
@@ -353,6 +354,123 @@ pub async fn tvbox_hot_list(id: String) -> Result<serde_json::Value, String> {
         }
     }
     Err("热榜获取失败".into())
+}
+
+/// 云盘登录：打开登录窗口（夸克/UC/百度/阿里），登录后后台每秒把 cookies 同步到
+/// JVM 工作目录 cloud-cookies.txt（android.webkit.CookieManager 兼容层从这里读取，供网盘 JAR 鉴权使用）
+#[tauri::command]
+pub async fn tvbox_cloud_login(app: tauri::AppHandle, site: String) -> Result<String, String> {
+    let (url, title) = match site.as_str() {
+        "quark" => ("https://pan.quark.cn/", "夸克网盘登录（扫码或账号登录，登录后关闭窗口即可保存）"),
+        "uc" => ("https://drive.uc.cn/", "UC 网盘登录（扫码或账号登录，登录后关闭窗口即可保存）"),
+        "baidu" => ("https://pan.baidu.com/", "百度网盘登录（扫码或账号登录，登录后关闭窗口即可保存）"),
+        "alipan" => ("https://www.alipan.com/", "阿里云盘登录（扫码或账号登录，登录后关闭窗口即可保存）"),
+        _ => return Err("未知网盘".into()),
+    };
+    let label = format!("cloud-login-{site}");
+    let parsed: tauri::Url = url.parse().map_err(|_| "网址无效".to_string())?;
+    if let Some(window) = app.get_webview_window(&label) {
+        // 已存在：销毁后重建（登录页重新加载；WebView2 持久化登录态不丢），避免停留在已关闭的空白页
+        let _ = window.destroy();
+        std::thread::sleep(Duration::from_millis(300));
+    }
+    let window = tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(parsed))
+        .title(title)
+        .inner_size(1000.0, 780.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    let _ = window.set_focus();
+    // 与安卓端一致：打开后自动点页面里的「登录」，让扫码二维码直接弹出（每个页面只尝试一次）
+    let auto_handle = app.clone();
+    let auto_label = label.clone();
+    std::thread::spawn(move || {
+        const SCRIPT: &str = r#"(() => {
+            if (window.__stAutoLogin) return false;
+            window.__stAutoLogin = true;
+            const click = () => {
+                const nodes = [...document.querySelectorAll('a,button,[role=button]')];
+                const target = nodes.find(n => {
+                    const text = (n.textContent || '').trim();
+                    const rect = n.getBoundingClientRect();
+                    return (text === '登录' || text === '立即登录' || text === '登录/注册' || text === '登录 / 注册') && rect.width > 0 && rect.width < 320 && rect.height > 0 && rect.height < 80;
+                });
+                if (target) { target.click(); return true; }
+                return false;
+            };
+            if (!click()) { let tries = 0; const timer = setInterval(() => { tries++; if (click() || tries > 16) clearInterval(timer); }, 500); }
+            return true;
+        })()"#;
+        for _ in 0..3 {
+            std::thread::sleep(Duration::from_millis(1500));
+            let Some(win) = auto_handle.get_webview_window(&auto_label) else { return };
+            let _ = win.eval(SCRIPT);
+        }
+    });
+    // 登录检测：扫码确认后（关键 Cookie 出现）保存登录态并自动关闭窗口（等同安卓端扫码成功弹窗消失）
+    let handle = app.clone();
+    let thread_label = label.clone();
+    let site_key = site.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(1));
+        let Some(win) = handle.get_webview_window(&thread_label) else { break; };
+        sync_cloud_cookies(&handle, &win);
+        if cloud_logged_in(&win, &site_key) {
+            sync_cloud_cookies(&handle, &win);
+            let _ = win.close();
+            let _ = handle.emit("cloud-login-done", thread_label.clone());
+            break;
+        }
+    });
+    Ok(label)
+}
+
+/// 登录成功判定：关键登录 Cookie 出现（百度 BDUSS / 夸克·UC __puus）
+/// 注意：b-user-id 是匿名访客也有的 cookie，不能用作判定
+fn cloud_logged_in(window: &tauri::WebviewWindow, site: &str) -> bool {
+    let Ok(cookies) = window.cookies() else { return false; };
+    let names: Vec<String> = cookies.iter().map(|c| c.name().to_string()).collect();
+    match site {
+        "baidu" => names.iter().any(|n| n == "BDUSS"),
+        "quark" | "uc" => names.iter().any(|n| n == "__puus"),
+        // 阿里云盘登录态主要在 localStorage，不做自动关闭，用户手动关闭窗口也会保存
+        _ => false,
+    }
+}
+
+/// 把登录窗口的 cookies 按域名聚合写入 JVM 工作目录（cloud-cookies.txt，每行 domain\tname=value; ...）
+fn sync_cloud_cookies(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    let Ok(cookies) = window.cookies() else { return; };
+    let Ok(dir) = crate::datadir::data_dir(app) else { return; };
+    let folder = dir.join("tvbox-java");
+    let _ = std::fs::create_dir_all(&folder);
+    let mut groups: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    for cookie in cookies {
+        let domain = cookie.domain().unwrap_or("").trim_start_matches('.').to_lowercase();
+        if domain.is_empty() {
+            continue;
+        }
+        groups
+            .entry(domain)
+            .or_default()
+            .push(format!("{}={}", cookie.name(), cookie.value()));
+    }
+    const KEEP: [&str; 6] = ["quark.cn", "uc.cn", "baidu.com", "alipan.com", "aliyundrive.com", "douban.com"];
+    let mut text = String::from("# SimpleTools 云盘登录 Cookie（自动生成，登录窗口打开期间每秒更新）\n");
+    let mut count = 0;
+    for (domain, values) in groups {
+        if values.is_empty() {
+            continue;
+        }
+        if !KEEP.iter().any(|k| domain == *k || domain.ends_with(&format!(".{k}"))) {
+            continue;
+        }
+        text.push_str(&format!("{domain}\t{}\n", values.join("; ")));
+        count += 1;
+    }
+    if count == 0 {
+        return; // 还没登录：不覆盖已有文件
+    }
+    let _ = std::fs::write(folder.join("cloud-cookies.txt"), text);
 }
 
 #[cfg(test)]

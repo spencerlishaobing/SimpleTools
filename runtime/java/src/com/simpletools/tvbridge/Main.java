@@ -152,6 +152,8 @@ public final class Main {
             // spider 的 Init.init 会把传入对象强转为 android.app.Application（桌面兼容层实现），
             // 因此这里传入 Application 实例而不是裸 Context。
             Context context=new android.app.Application(new File(folder,"context"));
+            // 部分 spider 通过 ActivityThread.currentActivityThread().getApplication() 取上下文
+            try{android.app.ActivityThread.setApplication((android.app.Application)context);}catch(Throwable ignored){}
             final Context initContext=context;
             // Init / InitOrigin 带超时执行：部分源（如网盘系 Pan）的初始化可能陷入死循环，
             // 不能让它阻塞同一 JAR 的其他源和后续请求
@@ -261,7 +263,7 @@ public final class Main {
         // 注册 PKCS7Padding 兼容 Provider（Android/Conscrypt 的转换名 → 标准 JCE 的 PKCS5Padding 委托）
         try{java.security.Security.addProvider(new Pkcs7Provider());}catch(Throwable ignored){}
         token=args[0];HttpServer server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),16);port=server.getAddress().getPort();
-        server.createContext("/",Main::serve);server.setExecutor(Executors.newFixedThreadPool(8));server.start();
+        server.createContext("/",Main::serve);server.setExecutor(Executors.newFixedThreadPool(16));server.start();
         System.out.println(new JSONObject().put("port",port));System.out.flush();
         // Keep protocol output separate from arbitrary plugin logging.
         System.setOut(System.err);

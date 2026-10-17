@@ -1,19 +1,20 @@
 /* TVBOX 面板（tvbox 分支）：交互对齐 TVBox 桌面化 —— 顶部导航 + 视图切换 + 海报网格 + 详情页 */
+/* 颜色全部跟随应用主题（浅色/深色/卡其/混合），不再硬编码深色 */
 #panel-tvbox {
-  --tv-bg: #070b12;
-  --tv-surface: #0f1826;
-  --tv-surface-2: #16233a;
-  --tv-line: #24395a;
-  --tv-text: #eef4ff;
-  --tv-muted: #93a5c0;
-  --tv-accent: #5ea1ff;
-  --tv-accent-deep: #1f3c66;
+  --tv-bg: var(--bg);
+  --tv-surface: var(--panel-bg);
+  --tv-surface-2: var(--hover-bg);
+  --tv-line: var(--border);
+  --tv-text: var(--text);
+  --tv-muted: var(--text-dim);
+  --tv-accent: var(--primary);
+  --tv-accent-deep: var(--primary-soft);
   display: none;
   overflow-y: auto;
   padding: 0 26px 26px;
-  background: radial-gradient(circle at 82% -18%, #16304f 0, transparent 46%), var(--tv-bg);
+  background: radial-gradient(circle at 82% -18%, var(--primary-soft) 0, transparent 46%), var(--tv-bg);
   color: var(--tv-text);
-  scrollbar-color: #3c556f transparent;
+  scrollbar-color: var(--scrollbar) transparent;
 }
 #panel-tvbox.active { display: block; }
 #panel-tvbox .hidden { display: none !important; }
@@ -36,9 +37,9 @@
   outline: 2px solid var(--tv-accent);
   outline-offset: 2px;
 }
-#panel-tvbox input::placeholder { color: #7d8fa9; }
-#panel-tvbox .tv-primary { background: #2f66c4; border-color: #4a83e2; color: #fff; font-weight: 650; }
-#panel-tvbox .tv-primary:hover { background: #3f7ce0; border-color: #8fb9ff; }
+#panel-tvbox input::placeholder { color: var(--tv-muted); }
+#panel-tvbox .tv-primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 650; }
+#panel-tvbox .tv-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 #panel-tvbox .tv-offscreen { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* 顶部导航（TVBox 式） */
@@ -52,7 +53,7 @@
   flex-wrap: wrap;
   padding: 13px 0 11px;
   border-bottom: 1px solid var(--tv-line);
-  background: #090f1bcc;
+  background: var(--panel-bg);
   backdrop-filter: blur(14px);
 }
 .tv-brand { display: flex; align-items: center; gap: 10px; }
@@ -68,19 +69,18 @@
   border-radius: 9px; padding: 8px 16px; font-size: 13.5px; font-weight: 650;
 }
 #panel-tvbox .tv-nav button:hover { background: var(--tv-surface-2); color: var(--tv-text); }
-#panel-tvbox .tv-nav button.is-selected { background: var(--tv-accent-deep); color: #eaf3ff; }
+#panel-tvbox .tv-nav button.is-selected { background: var(--tv-accent-deep); color: var(--tv-text); }
 .tv-nav .tv-nav-right { margin-left: auto; }
 .tv-topbar-sources { display: flex; align-items: center; gap: 8px; }
 .tv-cluster-label { color: var(--tv-muted); font-size: 12px; white-space: nowrap; }
-#tv-site-filter { width: 96px; }
 #tv-site { max-width: min(260px, 32vw); }
 #tv-profile { max-width: min(300px, 40vw); }
 
 /* 状态提示（成功类消息自动淡出；错误/进行中保留） */
 #tv-status {
   margin: 14px 0 6px; padding: 10px 14px;
-  border: 1px solid #223c5e; border-left: 3px solid var(--tv-accent);
-  border-radius: 9px; background: #0f1e33; color: #c3d7f1;
+  border: 1px solid var(--tv-line); border-left: 3px solid var(--tv-accent);
+  border-radius: 9px; background: var(--tv-surface); color: var(--tv-text);
   font-size: 12px; line-height: 1.55; overflow-wrap: anywhere;
 }
 #tv-status.is-idle { display: none; }
@@ -97,14 +97,19 @@
 .tv-searchbar { display: flex; gap: 9px; }
 .tv-searchbar input { flex: 1; min-width: 160px; }
 
-/* 左右分组导航（v0.58.5）：左列分组 + 右侧资源宫格；多层分组多列（如直播源列 + 分组列） */
-#tv-library { display: flex; gap: 18px; align-items: flex-start; }
+/* 左右分组导航（v0.58.5）：搜索框/标题行全宽在最上，下面才是左列分组 + 右侧内容 */
+#tv-library { display: flex; flex-direction: column; gap: 0; align-items: stretch; }
+#tv-library-row { display: flex; gap: 18px; align-items: flex-start; }
 #tv-sidenav { flex: 0 0 auto; display: flex; gap: 6px; position: sticky; top: 64px; max-height: calc(100vh - 150px); }
 #tv-sidenav:empty { display: none; }
 .tv-nav-col { display: flex; flex-direction: column; gap: 7px; width: 142px; max-height: calc(100vh - 150px); overflow-y: auto; }
 #panel-tvbox .tv-nav-col button { text-align: left; min-height: 38px; padding: 7px 14px; font-size: 12.5px; border-radius: 10px; color: var(--tv-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#panel-tvbox .tv-nav-col button span { display: inline-block; }
+/* 源/分组名称放不下时，hover 跑马灯滚动显示全名 */
+#panel-tvbox .tv-nav-col button.is-marquee { text-overflow: clip; }
+#panel-tvbox .tv-nav-col button.is-marquee span { animation: tv-marquee var(--tv-marquee-duration, 4s) linear infinite alternate; }
 #panel-tvbox .tv-nav-col button:hover { color: var(--tv-text); }
-#panel-tvbox .tv-nav-col button.is-selected { background: var(--tv-accent-deep); color: #eaf3ff; border-color: #3f6fae; }
+#panel-tvbox .tv-nav-col button.is-selected { background: var(--tv-accent-deep); color: var(--tv-text); border-color: var(--tv-accent); }
 #tv-main { flex: 1 1 auto; min-width: 0; }
 /* 筛选区为空时隐藏（影视页保持上下布局：分类胶囊 + 筛选 + 宫格） */
 #tv-filters:empty { display: none; }
@@ -114,7 +119,7 @@
 #panel-tvbox[data-view="history"] #tv-sidenav,
 #panel-tvbox[data-view="settings"] #tv-sidenav { display: none; }
 @media (max-width: 980px) {
-  #tv-library { flex-direction: column; }
+  #tv-library-row { flex-direction: column; }
   #tv-sidenav { position: static; max-height: none; width: 100%; overflow-x: auto; }
   .tv-nav-col { flex-direction: row; width: auto; max-height: none; }
 }
@@ -123,21 +128,21 @@
 .tv-category-tabs { display: flex; gap: 8px; padding: 14px 0 6px; overflow-x: auto; }
 #panel-tvbox .tv-category-tabs button {
   flex: none; white-space: nowrap; min-height: 33px; border-radius: 999px;
-  background: #131f31; color: var(--tv-muted); font-size: 12.5px; padding: 6px 15px;
+  background: var(--tv-surface-2); color: var(--tv-muted); font-size: 12.5px; padding: 6px 15px;
 }
-#panel-tvbox .tv-category-tabs button.is-selected { color: #fff; background: #2c558e; border-color: #5b93db; }
+#panel-tvbox .tv-category-tabs button.is-selected { color: var(--tv-text); background: var(--tv-accent-deep); border-color: var(--tv-accent); }
 .tv-filters { margin: 10px 0 12px; }
 /* 筛选（来源配置，平铺按钮组；收起态显示已选摘要） */
 .tv-filter-head { display: flex; align-items: center; gap: 12px; }
 #panel-tvbox .tv-filter-toggle { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 12.5px; color: var(--tv-muted); }
 #panel-tvbox .tv-filter-toggle:hover { color: var(--tv-text); }
 .tv-filter-summary { color: var(--tv-muted); font-size: 12px; }
-.tv-filter-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0 2px; border-top: 1px dashed #24395a66; margin-top: 8px; }
+.tv-filter-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0 2px; border-top: 1px dashed var(--tv-line); margin-top: 8px; }
 .tv-filter-name { flex: none; width: 84px; color: var(--tv-muted); font-size: 12px; line-height: 32px; }
 .tv-filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
-#panel-tvbox .tv-filter-opt { min-height: 30px; padding: 3px 12px; border-radius: 999px; font-size: 12px; background: #0f1826; color: var(--tv-muted); }
+#panel-tvbox .tv-filter-opt { min-height: 30px; padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--tv-surface); color: var(--tv-muted); }
 #panel-tvbox .tv-filter-opt:hover { color: var(--tv-text); }
-#panel-tvbox .tv-filter-opt.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
+#panel-tvbox .tv-filter-opt.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); }
 
 /* 海报网格 */
 .tv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 22px 18px; margin: 18px 0 30px; }
@@ -148,11 +153,11 @@
 #panel-tvbox button.tv-card:hover { background: transparent; transform: translateY(-3px); }
 .tv-poster {
   position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 2/3;
-  overflow: hidden; border-radius: 11px; box-shadow: 0 9px 20px #0006;
-  background: linear-gradient(145deg, #234473, #131f33 58%, #1c3250);
+  overflow: hidden; border-radius: 11px; box-shadow: 0 9px 20px rgba(0,0,0,.25);
+  background: linear-gradient(145deg, var(--tv-surface-2), var(--tv-surface));
 }
-.tv-poster::after { content: ''; position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, #070b12aa); pointer-events: none; }
-.tv-poster-fallback { color: #9dbfeb; font-weight: 800; font-size: 26px; letter-spacing: .14em; opacity: .5; }
+.tv-poster::after { content: ''; position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, color-mix(in srgb, var(--tv-bg) 68%, transparent)); pointer-events: none; }
+.tv-poster-fallback { color: var(--tv-muted); font-weight: 800; font-size: 26px; letter-spacing: .14em; opacity: .5; }
 .tv-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0; transition: opacity .25s ease; }
 .tv-poster img.is-loaded { opacity: 1; }
 .tv-sentinel { height: 2px; }
@@ -161,7 +166,12 @@
   padding: 3px 8px; border-radius: 7px; background: #0c1524d9; color: #ffd98a;
   font-size: 11px; font-weight: 650; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.tv-card strong { font-size: 13px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tv-card strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; line-height: 1.5; }
+.tv-card strong span { display: inline-block; }
+/* 标题最多一行；hover 时超出部分跑马灯滚动显示全名 */
+.tv-card strong.is-marquee { text-overflow: clip; }
+.tv-card strong.is-marquee span { animation: tv-marquee var(--tv-marquee-duration, 4s) linear infinite alternate; }
+@keyframes tv-marquee { from { transform: translateX(0); } to { transform: translateX(var(--tv-marquee-shift, 0px)); } }
 .tv-card small { color: var(--tv-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 空状态 */
@@ -179,26 +189,35 @@
 .tv-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .tv-detail-heading h3 { margin: 0; font-size: 22px; }
 .tv-detail-body { display: flex; gap: 22px; margin-top: 14px; }
-.tv-detail-poster { position: relative; flex: none; width: 178px; aspect-ratio: 2/3; overflow: hidden; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(145deg, #234473, #131f33 58%, #1c3250); }
+.tv-detail-poster { position: relative; flex: none; width: 178px; aspect-ratio: 2/3; overflow: hidden; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(145deg, var(--tv-surface-2), var(--tv-surface)); }
 .tv-detail-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .tv-detail-info { flex: 1; min-width: 0; }
 .tv-detail-meta { color: var(--tv-muted); font-size: 12.5px; margin: 0 0 10px; }
-.tv-synopsis { color: #c4d3e8; font-size: 13px; line-height: 1.75; margin: 0; max-height: 168px; overflow: auto; white-space: pre-wrap; }
+.tv-synopsis { color: var(--tv-muted); font-size: 13px; line-height: 1.75; margin: 0; max-height: 168px; overflow: auto; white-space: pre-wrap; }
 .tv-line-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
 .tv-episodes-title { margin: 14px 0 0; font-size: 14px; color: var(--tv-muted); font-weight: 650; }
 /* 选集网格（v0.58.5）：按容器宽度最大 3 列，不够降 2 列 / 1 列 —— 按钮更大更好点 */
 #tv-detail { container-type: inline-size; }
 .tv-episodes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0 2px; }
 #panel-tvbox .tv-episodes button { min-height: 40px; padding: 8px 14px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 详情选集/线路：名称放不下时 hover 跑马灯（内层 span 由脚本首次 hover 时包裹） */
+#panel-tvbox .tv-episodes button span,
+#panel-tvbox .tv-line-chips button span,
+#tv-stage-side button span { display: inline-block; }
+#panel-tvbox .tv-episodes button.is-marquee,
+#panel-tvbox .tv-line-chips button.is-marquee { text-overflow: clip; }
+#panel-tvbox .tv-episodes button.is-marquee span,
+#panel-tvbox .tv-line-chips button.is-marquee span,
+#tv-stage-side button.is-marquee span { animation: tv-marquee var(--tv-marquee-duration, 4s) linear infinite alternate; }
 @container (max-width: 640px) {
   #panel-tvbox .tv-episodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @container (max-width: 400px) {
   #panel-tvbox .tv-episodes { grid-template-columns: minmax(0, 1fr); }
 }
-#panel-tvbox .tv-watched { color: #9bc6ff; border-color: #4674ad; background: #1d3a5f; }
+#panel-tvbox .tv-watched { color: var(--tv-accent); border-color: var(--tv-accent); background: var(--tv-accent-deep); }
 #panel-tvbox .tv-line-chip { border-radius: 999px; font-size: 12.5px; min-height: 32px; padding: 5px 14px; color: var(--tv-muted); }
-#panel-tvbox .tv-line-chip.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
+#panel-tvbox .tv-line-chip.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); }
 
 /* 详情模式：聚焦内容，隐藏列表工具 */
 #panel-tvbox.tv-detail-mode .tv-searchbar,
@@ -220,7 +239,7 @@
 .tv-channel strong { font-size: 13px; }
 .tv-channel small { color: var(--tv-muted); }
 .tv-program { padding: 10px 12px; border-bottom: 1px solid var(--tv-line); font-size: 12px; }
-.tv-program.is-selected { background: #1d3a5f; border-left: 3px solid var(--tv-accent); }
+.tv-program.is-selected { background: var(--tv-accent-deep); border-left: 3px solid var(--tv-accent); }
 
 /* 搜索页（参考 Android）：搜索历史 / 热门搜索 / 猜你想搜 */
 .tv-search-panel { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 24px; padding: 10px 0 28px; }
@@ -230,10 +249,10 @@
 #panel-tvbox .tv-search-head .tv-search-clear { min-height: 26px; padding: 2px 10px; font-size: 11.5px; border-radius: 7px; color: var(--tv-muted); }
 .tv-search-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .tv-search-chip-wrap { display: inline-flex; align-items: stretch; }
-#panel-tvbox .tv-search-chip { min-height: 34px; padding: 6px 15px; font-size: 12.5px; border-radius: 999px; background: #131f31; color: var(--tv-text); }
-#panel-tvbox .tv-search-chip:hover { background: #1c2f4a; }
+#panel-tvbox .tv-search-chip { min-height: 34px; padding: 6px 15px; font-size: 12.5px; border-radius: 999px; background: var(--tv-surface-2); color: var(--tv-text); }
+#panel-tvbox .tv-search-chip:hover { background: var(--active-item-bg); }
 #panel-tvbox .tv-search-chip-wrap .tv-search-del { min-height: 32px; padding: 0 9px; margin-left: -5px; border-radius: 0 999px 999px 0; font-size: 12px; color: var(--tv-muted); }
-#panel-tvbox .tv-search-chip-wrap .tv-search-del:hover { color: #ff9b9b; }
+#panel-tvbox .tv-search-chip-wrap .tv-search-del:hover { color: var(--danger); }
 
 /* 跨仓搜索结果（参考 Android）：左列仓 + 右侧该仓结果（按源分组） */
 .tv-xsearch-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; padding: 2px 0 8px; }
@@ -255,11 +274,11 @@
 .tv-settings-card-title small { display: block; color: var(--tv-muted); font-size: 11px; margin-top: 3px; }
 .tv-settings-links { margin-top: -2px; }
 .tv-settings-links button { font-size: 12.5px; min-height: 32px; color: var(--tv-muted); }
-.tv-settings { margin: 14px 0; padding: 15px 18px; border: 1px solid var(--tv-line); border-radius: 13px; background: #0f182699; }
+.tv-settings { margin: 14px 0; padding: 15px 18px; border: 1px solid var(--tv-line); border-radius: 13px; background: var(--tv-surface); }
 .tv-settings summary { cursor: pointer; font-weight: 650; font-size: 13px; }
 .tv-settings[open] summary { margin-bottom: 13px; }
-#panel-tvbox textarea { display: block; width: 100%; min-height: 150px; max-height: 400px; resize: vertical; padding: 12px; margin: 12px 0; border: 1px solid var(--tv-line); border-radius: 10px; background: #0a1321; color: var(--tv-text); font: 12px/1.6 Consolas, monospace; }
-.tv-phone { display: flex; flex-wrap: wrap; gap: 16px; padding: 14px; border: 1px solid var(--tv-line); border-radius: 10px; background: #0c1625; }
+#panel-tvbox textarea { display: block; width: 100%; min-height: 150px; max-height: 400px; resize: vertical; padding: 12px; margin: 12px 0; border: 1px solid var(--tv-line); border-radius: 10px; background: var(--input-bg); color: var(--tv-text); font: 12px/1.6 Consolas, monospace; }
+.tv-phone { display: flex; flex-wrap: wrap; gap: 16px; padding: 14px; border: 1px solid var(--tv-line); border-radius: 10px; background: var(--tv-surface); }
 .tv-phone > p { width: 100%; margin: 0; }
 .tv-phone img { width: 168px; height: 168px; background: #fff; border-radius: 8px; }
 .tv-phone p { font-size: 12px; overflow-wrap: anywhere; }
@@ -299,12 +318,14 @@
 #panel-tvbox.tv-stage-full #tv-surface { border: 0; border-radius: 0; height: auto; }
 #panel-tvbox.tv-stage-full #tv-controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5001; margin: 0; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; }
 #tv-stage-side button { min-height: 28px; padding: 3px 8px; font-size: 12px; border-radius: 7px; }
-#tv-stage-side button.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
+#tv-stage-side .tv-side-chips button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tv-stage-side .tv-side-chips button.is-marquee { text-overflow: clip; }
+#tv-stage-side button.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); }
 
 /* 播放控制条（默认一行主控制，次要项收在「更多」） */
-.tv-player-controls { margin: 14px 0; padding: 10px 14px; border: 1px solid #31517a; border-radius: 14px; background: #11233c; }
+.tv-player-controls { margin: 14px 0; padding: 10px 14px; border: 1px solid var(--tv-line); border-radius: 14px; background: var(--tv-surface); }
 /* 起播加载转圈（控制条标题旁，mpv 子窗口遮挡不到这里） */
-.tv-buffer { display: inline-block; width: 14px; height: 14px; border: 2px solid #5ea1ff44; border-top-color: #5ea1ff; border-radius: 50%; animation: tv-buffer-spin .8s linear infinite; vertical-align: -2px; }
+.tv-buffer { display: inline-block; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, var(--tv-accent) 27%, transparent); border-top-color: var(--tv-accent); border-radius: 50%; animation: tv-buffer-spin .8s linear infinite; vertical-align: -2px; }
 @keyframes tv-buffer-spin { to { transform: rotate(360deg); } }
 /* 视频区内的起播提示：加载时隐藏 mpv 子窗口让提示可见，不影响下方频道/直播源切换 */
 #tv-surface .tv-surface-loading { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; gap: 10px; background: #05080f; color: #cfe2ff; font-size: 13px; letter-spacing: .02em; }
@@ -331,15 +352,15 @@
 .tv-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 11px 0; }
 .tv-toolbar > input:not([type=checkbox]):not([type=range]):not([type=number]) { flex: 1 1 220px; min-width: 160px; }
 .tv-eyebrow { display: block; color: var(--tv-accent); font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 6px; }
-.tv-note { border-top: 1px solid var(--tv-line); padding: 14px 0 2px; color: #7f92a9; font-size: 11px; line-height: 1.6; }
+.tv-note { border-top: 1px solid var(--tv-line); padding: 14px 0 2px; color: var(--tv-muted); font-size: 11px; line-height: 1.6; }
 
 /* 引导卡片 */
 .tv-onboarding {
-  padding: 32px 34px; margin: 18px 0 22px; border: 1px solid #2f527c; border-radius: 18px;
-  background: radial-gradient(circle at 90% 0, #2f5f9a66, transparent 44%), linear-gradient(110deg, #16294361, #0f1a2b8c);
+  padding: 32px 34px; margin: 18px 0 22px; border: 1px solid var(--tv-line); border-radius: 18px;
+  background: radial-gradient(circle at 90% 0, var(--primary-soft), transparent 44%), var(--tv-surface);
 }
 .tv-onboarding h3 { font-size: clamp(20px, 3vw, 28px); margin-bottom: 9px; line-height: 1.3; }
-.tv-onboarding p { max-width: 560px; color: #b8c8de; font-size: 14px; line-height: 1.7; }
+.tv-onboarding p { max-width: 560px; color: var(--tv-muted); font-size: 14px; line-height: 1.7; }
 .tv-onboarding-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
 
 /* 视图可见性（data-view 驱动） */
@@ -363,7 +384,6 @@
 @media (max-width: 980px) {
   #panel-tvbox { padding: 0 16px 22px; }
   .tv-topbar-sources { width: 100%; }
-  #tv-site-filter { flex: 1; width: auto; }
   #tv-site { flex: 1; max-width: none; }
   .tv-viewbar { flex-wrap: wrap; }
   .tv-viewbar .tv-searchbar { flex: 1 1 100%; max-width: none; order: 3; }

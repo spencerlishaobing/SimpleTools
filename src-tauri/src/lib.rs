@@ -129,6 +129,7 @@ pub fn run() {
                 tvbox::tvbox_save,
                 tvbox::tvbox_image,
                 tvbox::tvbox_hot_list,
+                tvbox::tvbox_cloud_login,
                 tvspider::tvbox_spider,
                 tvsniff::tvbox_sniff,
                 tvplayer::tvplayer_play,
