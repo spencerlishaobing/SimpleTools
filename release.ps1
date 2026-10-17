@@ -123,7 +123,7 @@ if ($Tvbox) {
   # TVBOX 版附带便携包（exe + resources，免安装用户使用）：不存在则自动生成
   $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_${flavor}_portable.zip"
   if (-not (Test-Path -LiteralPath $portableZipPath)) {
-    $resourcesDir = Join-Path $RepoDir 'src-tauri\target\release\resources'
+    $resourcesDir = Join-Path $RepoDir 'src-tauri\resources'
     if (Test-Path -LiteralPath $resourcesDir) {
       $stage = Join-Path $env:TEMP "st-portable-$v"
       Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
