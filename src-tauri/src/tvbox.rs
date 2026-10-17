@@ -473,6 +473,137 @@ fn sync_cloud_cookies(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
     let _ = std::fs::write(folder.join("cloud-cookies.txt"), text);
 }
 
+/// 在线字幕条目
+#[derive(serde::Serialize)]
+pub struct SubtitleItem {
+    title: String,
+    lang: String,
+    url: String,
+}
+
+/// 下载在线字幕到临时目录（mpv sub-add 加载），返回本地路径
+#[tauri::command]
+pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
+    let parsed: tauri::Url = url.parse().map_err(|_| "字幕地址无效".to_string())?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("字幕地址需为 http(s)".into());
+    }
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(20))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let response = client
+        .get(parsed.clone())
+        .header("User-Agent", TVBOX_UA)
+        .send()
+        .await
+        .map_err(|e| format!("字幕下载失败：{e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("字幕下载失败：HTTP {}", response.status()));
+    }
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.len() > 8 * 1024 * 1024 {
+        return Err("字幕文件过大".into());
+    }
+    if bytes.is_empty() {
+        return Err("字幕内容为空".into());
+    }
+    let path = parsed.path().to_lowercase();
+    let ext = ["srt", "ass", "ssa", "vtt", "sub"]
+        .iter()
+        .find(|e| path.ends_with(&format!(".{e}")))
+        .copied()
+        .unwrap_or("srt");
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    url.hash(&mut hasher);
+    let folder = std::env::temp_dir().join("simpletools-subs");
+    std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+    let file = folder.join(format!("sub-{:x}.{}", hasher.finish(), ext));
+    std::fs::write(&file, &bytes).map_err(|e| e.to_string())?;
+    Ok(file.to_string_lossy().to_string())
+}
+
+/// 用配置里的字幕接口搜索在线字幕（宽松兼容标准数组 / subtitles / Subs 等返回格式）
+#[tauri::command]
+pub async fn tvbox_subtitle_search(apis: Vec<String>, name: String) -> Result<Vec<SubtitleItem>, String> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("缺少影片名".into());
+    }
+    let encoded = encode_component(&name);
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut items: Vec<SubtitleItem> = Vec::new();
+    for api in apis.iter().filter(|a| !a.trim().is_empty()).take(6) {
+        let url = if api.contains("{name}") {
+            api.replace("{name}", &encoded)
+        } else {
+            format!("{}{}name={}", api, if api.contains('?') { '&' } else { '?' }, encoded)
+        };
+        let Ok(response) = client.get(&url).header("User-Agent", TVBOX_UA).send().await else { continue };
+        let Ok(bytes) = response.bytes().await else { continue };
+        let Ok(text) = String::from_utf8(bytes.to_vec()) else { continue };
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
+            collect_subtitles(&value, &mut items);
+        }
+        if items.len() >= 60 {
+            break;
+        }
+    }
+    Ok(items)
+}
+
+fn collect_subtitles(value: &serde_json::Value, out: &mut Vec<SubtitleItem>) {
+    match value {
+        serde_json::Value::Array(list) => {
+            for item in list {
+                collect_subtitles(item, out);
+            }
+        }
+        serde_json::Value::Object(map) => {
+            let url = ["url", "sub_url", "download_url", "download"].iter().find_map(|key| {
+                map.get(*key).and_then(|v| v.as_str()).filter(|s| s.starts_with("http"))
+            });
+            if let Some(url) = url {
+                let title = ["title", "native_name", "name", "filename", "sub_name"]
+                    .iter()
+                    .find_map(|key| map.get(*key).and_then(|v| v.as_str()))
+                    .unwrap_or("字幕");
+                let lang = map
+                    .get("lang")
+                    .map(|v| v.as_str().map(|s| s.to_string()).unwrap_or_else(|| v.to_string()))
+                    .unwrap_or_default();
+                if !out.iter().any(|item| item.url == url) {
+                    out.push(SubtitleItem {
+                        title: title.chars().take(80).collect(),
+                        lang: lang.chars().take(20).collect(),
+                        url: url.to_string(),
+                    });
+                }
+                return;
+            }
+            for child in map.values() {
+                collect_subtitles(child, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn encode_component(value: &str) -> String {
+    let mut out = String::new();
+    for byte in value.as_bytes() {
+        match *byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(*byte as char),
+            _ => out.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

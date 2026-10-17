@@ -320,6 +320,12 @@
 #tv-stage-side button { min-height: 28px; padding: 3px 8px; font-size: 12px; border-radius: 7px; }
 #tv-stage-side .tv-side-chips button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #tv-stage-side .tv-side-chips button.is-marquee { text-overflow: clip; }
+
+/* 在线字幕（配置字幕接口搜索结果，点击加载） */
+.tv-sub-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.tv-sub-list:empty { display: none; }
+#panel-tvbox .tv-sub-item { min-height: 30px; padding: 3px 12px; font-size: 12px; border-radius: 999px; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tv-muted); background: var(--tv-surface-2); }
+#panel-tvbox .tv-sub-item:hover { color: var(--tv-text); }
 #tv-stage-side button.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); }
 
 /* 播放控制条（默认一行主控制，次要项收在「更多」） */

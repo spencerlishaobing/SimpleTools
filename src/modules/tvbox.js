@@ -790,7 +790,14 @@
   async function playEpisode(next) {
     queue=next;const ep=next.episodes[next.index];if(!ep)throw Error('没有下一集');
     const context={...next.context,index:next.index,line:next.lineIndex??next.context?.line};queue.context=context;
-    await play(ep.url,`${context.vodName||'视频'} · ${ep.name}`,{site:next.site,profile:next.profile,context,live:!!next.live,channel:ep.channel});
+    try{
+      await play(ep.url,`${context.vodName||'视频'} · ${ep.name}`,{site:next.site,profile:next.profile,context,live:!!next.live,channel:ep.channel});
+    }catch(error){
+      // 片源解析失败（JAR 超时/异常等）：自动拿片名搜当前仓其他可播源，不让用户卡死
+      const name=String(context.vodName||'').trim();
+      if(name&&!next.live){status(`「${name}」在该源解析失败（${error&&error.message?error.message:'未知错误'}），正在搜索其他可播源…`);await searchWarehouse(name);return;}
+      throw error;
+    }
     renderStageSide();
   }
   async function nextEpisode(delta=1) {
@@ -1255,6 +1262,33 @@
   for(const [id,action]of [['speed','speed'],['volume','volume'],['sub-delay','sub-delay'],['audio','aid'],['subtitles','sid'],['aspect','aspect']])$(id).onchange=()=>run(async()=>{const value=['speed','volume','sub-delay'].includes(id)?Number($(id).value):$(id).value;if(id==='speed'||id==='volume'){db.prefs[id]=value;persist();}if(current)await control(action,value);});
   $('seek').onchange=()=>run(()=>control('seek',Number($('seek').value)));
   $('subtitle-file').onclick=()=>run(async()=>{const path=await dialog.open({multiple:false,filters:[{name:'字幕',extensions:['srt','ass','ssa','vtt','sub']}]});if(path)await control('subtitle',path);});
+  // 在线字幕（参考 Android）：用配置里的字幕接口搜索，或直接粘贴字幕链接加载
+  function subtitleApis(){
+    const list=profile().config.subtitles;
+    if(!Array.isArray(list))return [];
+    return list.map(item=>typeof item==='string'?item:(item&&(item.api||item.url))||'').filter(Boolean);
+  }
+  async function loadSubtitleUrl(url){
+    const path=await invoke('tvbox_subtitle_load',{url});
+    await control('subtitle',path);
+    status('字幕已加载');
+  }
+  $('sub-online').onclick=()=>run(async()=>{
+    const apis=subtitleApis();
+    const list=$('sub-list');list.replaceChildren();
+    const name=String(current?.meta?.context?.vodName||queue?.context?.vodName||current?.name||'').trim();
+    if(!apis.length){$('sub-hint').textContent='当前配置未提供字幕接口，可粘贴字幕链接加载';return;}
+    if(!name){$('sub-hint').textContent='请先播放影片再搜索字幕';return;}
+    $('sub-hint').textContent='正在搜索字幕…';
+    const items=await invoke('tvbox_subtitle_search',{apis,name});
+    $('sub-hint').textContent=items.length?`找到 ${items.length} 条字幕，点击加载`:'没有找到字幕';
+    for(const item of items.slice(0,30)){
+      const b=button(`${item.title}${item.lang?` · ${item.lang}`:''}`,()=>run(async()=>{try{await loadSubtitleUrl(item.url);$('sub-hint').textContent='字幕已加载';}catch(error){status('字幕加载失败：'+(error&&error.message?error.message:'下载失败'));}}),'tv-sub-item');
+      b.title=item.title;
+      list.append(b);
+    }
+  });
+  $('sub-load').onclick=()=>run(async()=>{const url=$('sub-url').value.trim();if(!url)throw Error('请粘贴字幕链接');$('sub-hint').textContent='正在加载字幕…';await loadSubtitleUrl(url);$('sub-hint').textContent='字幕已加载';});
   for(const [id,key]of [['resume','resume'],['auto-next','autoNext'],['skip-intro','skipIntro'],['skip-outro','skipOutro'],['hwdec','hwdec']])$(id).onchange=()=>{db.prefs[key]=['resume','autoNext'].includes(key)?$(id).checked:key==='hwdec'?$(id).value:Math.max(0,Math.min(600,Number($(id).value)||0));persist();};
   $('self-parser').onchange=()=>{db.prefs.selfParser=$('self-parser').checked;persist();updateUnmatchedInfo();status(db.prefs.selfParser?'已开启源自带解析兼容：未适配站点将回退到片源自带爬虫':'已切换为纯本地解析：未适配站点会提示并记录到待适配清单');};
   $('live-timeout').onchange=()=>{db.prefs.liveTimeout=Math.max(5,Math.min(30,Number($('live-timeout').value)||15));$('live-timeout').value=String(db.prefs.liveTimeout);persist();status(`直播换源超时：${db.prefs.liveTimeout} 秒`);};

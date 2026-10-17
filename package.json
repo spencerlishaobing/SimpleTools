@@ -1,7 +1,7 @@
 {
   "name": "simple-tools",
   "private": true,
-  "version": "0.58.6",
+  "version": "0.58.7",
   "description": "SimpleTools - 常用工具合集",
   "scripts": {
     "dev": "tauri dev",

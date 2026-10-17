@@ -65,6 +65,24 @@ if (-not $Notes -and $NotesFile) {
   if (-not (Test-Path -LiteralPath $NotesFile)) { Fail "notes file not found: $NotesFile" }
   $Notes = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $NotesFile).Path, [System.Text.Encoding]::UTF8).Trim()
 }
+# 未显式提供说明时，自动从 README 提取当前版本段落（以后每次发布都带改动点）
+if (-not $Notes) {
+  $readmePath = Join-Path $RepoDir 'README.md'
+  if (Test-Path -LiteralPath $readmePath) {
+    $readmeLines = @(Get-Content -LiteralPath $readmePath -Encoding UTF8)
+    $start = -1
+    for ($i = 0; $i -lt $readmeLines.Count; $i++) {
+      if ($readmeLines[$i] -match ('^###\s*v' + [regex]::Escape($v) + '(?!\d)')) { $start = $i + 1; break }
+    }
+    if ($start -ge 0) {
+      $end = $readmeLines.Count
+      for ($i = $start; $i -lt $readmeLines.Count; $i++) { if ($readmeLines[$i] -match '^###\s') { $end = $i; break } }
+      $Notes = (($readmeLines[$start..($end - 1)] -join "`n").Trim())
+    }
+  }
+  if (-not $Notes) { $Notes = '详见仓库 README 与提交记录。' }
+  Write-Output "STEP release notes: README v$v section ($($Notes.Length) chars)"
+}
 
 # ---------- 发布产物定位与指纹（NSIS 安装包 + 免安装 exe） ----------
 if (-not $Installer) {
@@ -72,6 +90,11 @@ if (-not $Installer) {
 }
 if (-not $PortableExe) {
   $PortableExe = Join-Path $RepoDir 'src-tauri\target\release\SimpleTools.exe'
+}
+# 免安装 exe：tauri 产物名为 simpletools.exe，自动复制为 SimpleTools.exe（避免每次手动）
+if (-not (Test-Path -LiteralPath $PortableExe)) {
+  $builtExe = Join-Path $RepoDir 'src-tauri\target\release\simpletools.exe'
+  if (Test-Path -LiteralPath $builtExe) { Copy-Item -LiteralPath $builtExe -Destination $PortableExe -Force }
 }
 if (-not (Test-Path -LiteralPath $Installer)) { Fail "installer not found: $Installer" }
 if (-not (Test-Path -LiteralPath $PortableExe)) { Fail "portable exe not found: $PortableExe" }
@@ -94,8 +117,21 @@ $assets = @(
   @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
 )
 if ($Tvbox) {
-  # TVBOX 版附带便携包（exe + resources，免安装用户使用）；存在才上传
+  # TVBOX 版附带便携包（exe + resources，免安装用户使用）：不存在则自动生成
   $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_tvbox_portable.zip"
+  if (-not (Test-Path -LiteralPath $portableZipPath)) {
+    $resourcesDir = Join-Path $RepoDir 'src-tauri\target\release\resources'
+    if (Test-Path -LiteralPath $resourcesDir) {
+      $stage = Join-Path $env:TEMP "st-portable-$v"
+      Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+      New-Item -ItemType Directory -Path $stage | Out-Null
+      Copy-Item -LiteralPath $PortableExe -Destination (Join-Path $stage 'SimpleTools.exe') -Force
+      Copy-Item -LiteralPath $resourcesDir -Destination (Join-Path $stage 'resources') -Recurse
+      Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $portableZipPath -CompressionLevel Optimal -Force
+      Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+      Write-Output "STEP portable zip created: $portableZipPath"
+    }
+  }
   if (Test-Path -LiteralPath $portableZipPath) {
     $zipItem = Get-Item -LiteralPath $portableZipPath
     $assets += @{ Name = $zipItem.Name; File = $portableZipPath; MB = [math]::Round($zipItem.Length / 1MB, 2); Sha = (Get-FileHash -LiteralPath $portableZipPath -Algorithm SHA256).Hash }
@@ -250,6 +286,10 @@ if (-not $release) {
     prerelease = $false
   }
   Write-Output "STEP release created: #$($release.id)"
+} else {
+  # 续跑：同步发布说明（保证每次发布都带改动点）
+  $release = Api 'PATCH' "$ApiBase/releases/$($release.id)" @{ body = $releaseNotes }
+  Write-Output "STEP release body updated: #$($release.id)"
 }
 
 # ---------- 3) 上传资产（安装包 + 免安装 exe，各自幂等跳过） ----------
