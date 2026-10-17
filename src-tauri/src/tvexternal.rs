@@ -114,8 +114,41 @@ fn token() -> Result<String, String> {
     getrandom::fill(&mut bytes).map_err(|e| e.to_string())?;
     Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
+
+// ---------- 请求取消（切仓/切源/取消弹窗时中止挂起的 JAR/Python 请求） ----------
+static CANCELS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<()>>>> = std::sync::OnceLock::new();
+
+fn cancel_map() -> &'static std::sync::Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<()>>> {
+    CANCELS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn register_cancel(token: &str) -> tokio::sync::oneshot::Receiver<()> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    if let Ok(mut map) = cancel_map().lock() {
+        map.insert(token.to_string(), tx);
+    }
+    rx
+}
+
+fn drop_cancel(token: &Option<String>) {
+    if let Some(token) = token.as_deref() {
+        if let Ok(mut map) = cancel_map().lock() {
+            map.remove(token);
+        }
+    }
+}
+
+/// 取消指定 token 的挂起请求（前端在切仓/切源/取消弹窗时调用）
+#[tauri::command]
+pub fn tvbox_cancel(token: String) {
+    if let Ok(mut map) = cancel_map().lock() {
+        if let Some(tx) = map.remove(&token) {
+            let _ = tx.send(());
+        }
+    }
+}
 fn client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
+    crate::tvbox::apply_dns(reqwest::Client::builder())
         .no_proxy()
         .timeout(Duration::from_secs(45))
         .build()
@@ -338,7 +371,7 @@ async fn read_source_uncached(url: &str, max: usize) -> Result<Vec<u8>, String> 
     if !matches!(parsed.scheme(), "http" | "https") {
         return Err("片源只支持 HTTP(S) 或本地文件".into());
     }
-    let mut response = reqwest::Client::builder()
+    let mut response = crate::tvbox::apply_dns(reqwest::Client::builder())
         .user_agent(crate::tvbox::TVBOX_UA)
         .timeout(Duration::from_secs(40))
         .build()
@@ -398,6 +431,7 @@ pub async fn tvbox_external(
     ext: Value,
     action: String,
     args: Value,
+    cancel_token: Option<String>,
 ) -> Result<Value, String> {
     let is_python = api
         .split(['?', '#'])
@@ -469,12 +503,29 @@ pub async fn tvbox_external(
             data["jarData"] = Value::Null;
         }
     }
-    let response = client()?
-        .post(format!("{}/call", worker.url))
-        .header("X-TVBOX-Token", &worker.token)
-        .json(&data)
-        .send()
-        .await;
+    let response = {
+        let request = client()?
+            .post(format!("{}/call", worker.url))
+            .header("X-TVBOX-Token", &worker.token)
+            .json(&data)
+            .send();
+        // 支持前端取消（切仓/切源/取消弹窗时中止挂起请求，避免阻塞与旧数据回写）
+        match cancel_token.as_deref().map(register_cancel) {
+            Some(rx) => {
+                tokio::select! {
+                    r = request => r,
+                    _ = rx => {
+                        drop_cancel(&cancel_token);
+                        return Err("请求已取消".into());
+                    }
+                }
+            }
+            None => request.await,
+        }
+    };
+    if cancel_token.is_some() {
+        drop_cancel(&cancel_token);
+    }
     let response = match response {
         Ok(r) => r,
         Err(e) => {

@@ -132,17 +132,18 @@
 }
 #panel-tvbox .tv-category-tabs button.is-selected { color: var(--tv-text); background: var(--tv-accent-deep); border-color: var(--tv-accent); }
 .tv-filters { margin: 10px 0 12px; }
-/* 筛选（来源配置，平铺按钮组；收起态显示已选摘要） */
-.tv-filter-head { display: flex; align-items: center; gap: 12px; }
+/* 筛选面板（对齐 Android）：每行「条件名 + 全部/选项按钮组」，默认选中「全部」，选中项高亮 */
+.tv-filter-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 #panel-tvbox .tv-filter-toggle { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 12.5px; color: var(--tv-muted); }
+#panel-tvbox .tv-filter-toggle.is-open { color: var(--tv-text); border-color: var(--tv-accent); }
 #panel-tvbox .tv-filter-toggle:hover { color: var(--tv-text); }
-.tv-filter-summary { color: var(--tv-muted); font-size: 12px; }
-.tv-filter-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0 2px; border-top: 1px dashed var(--tv-line); margin-top: 8px; }
-.tv-filter-name { flex: none; width: 84px; color: var(--tv-muted); font-size: 12px; line-height: 32px; }
-.tv-filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
-#panel-tvbox .tv-filter-opt { min-height: 30px; padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--tv-surface); color: var(--tv-muted); }
+.tv-filter-summary { color: var(--tv-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(70%, 720px); }
+.tv-filter-row { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0 8px; border-top: 1px dashed var(--tv-line); margin-top: 8px; }
+.tv-filter-name { flex: none; width: 96px; color: var(--tv-muted); font-size: 12.5px; line-height: 32px; }
+.tv-filter-options { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; min-width: 0; }
+#panel-tvbox .tv-filter-opt { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 12.5px; background: var(--tv-surface); color: var(--tv-muted); }
 #panel-tvbox .tv-filter-opt:hover { color: var(--tv-text); }
-#panel-tvbox .tv-filter-opt.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); }
+#panel-tvbox .tv-filter-opt.is-selected { background: var(--tv-accent-deep); border-color: var(--tv-accent); color: var(--tv-text); font-weight: 650; }
 
 /* 海报网格 */
 .tv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 22px 18px; margin: 18px 0 30px; }

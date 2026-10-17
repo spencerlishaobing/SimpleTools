@@ -7,6 +7,81 @@ const MAX_BODY: usize = 32 * 1024 * 1024;
 /// 缺省 UA 与安卓端保持一致，避免源站返回导航页或拒绝响应。
 pub(crate) const TVBOX_UA: &str = "okhttp/3.15";
 
+// ---------- 安全 DNS（DoH，参考 Android TVBox 的安全 DNS） ----------
+// 0=关闭 1=阿里 2=腾讯 3=Cloudflare；对所有 Rust 出站 HTTP 请求生效（JVM/JAR 内部 DNS 不受影响）
+static DNS_MODE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+fn dns_endpoint(mode: u8) -> Option<&'static str> {
+    match mode {
+        1 => Some("https://dns.alidns.com/resolve"),
+        2 => Some("https://doh.pub/dns-query"),
+        3 => Some("https://cloudflare-dns.com/dns-query"),
+        _ => None,
+    }
+}
+
+struct DohResolver {
+    endpoint: &'static str,
+}
+
+impl reqwest::dns::Resolve for DohResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let host = name.as_str().to_string();
+        let endpoint = self.endpoint;
+        Box::pin(async move {
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(6))
+                .build()
+                .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+            let url = format!("{endpoint}?name={host}&type=A");
+            let json: serde_json::Value = client
+                .get(&url)
+                .header("Accept", "application/dns-json")
+                .send()
+                .await
+                .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?
+                .json()
+                .await
+                .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+            let mut addrs: Vec<std::net::SocketAddr> = Vec::new();
+            if let Some(answers) = json["Answer"].as_array() {
+                for answer in answers {
+                    if answer["type"].as_u64() == Some(1) {
+                        if let Some(ip) = answer["data"].as_str().and_then(|v| v.parse::<std::net::IpAddr>().ok()) {
+                            addrs.push(std::net::SocketAddr::new(ip, 0));
+                        }
+                    }
+                }
+            }
+            if addrs.is_empty() {
+                return Err("DoH 无解析结果".into());
+            }
+            Ok(Box::new(addrs.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
+
+/// 给 reqwest 客户端注入安全 DNS（开启时）
+pub(crate) fn apply_dns(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    let mode = DNS_MODE.load(std::sync::atomic::Ordering::Relaxed);
+    match dns_endpoint(mode) {
+        Some(endpoint) => builder.dns_resolver(std::sync::Arc::new(DohResolver { endpoint })),
+        None => builder,
+    }
+}
+
+/// 设置安全 DNS 模式（off/ali/tencent/cloudflare）
+#[tauri::command]
+pub fn tvbox_dns_set(mode: String) {
+    let value = match mode.as_str() {
+        "ali" => 1,
+        "tencent" => 2,
+        "cloudflare" => 3,
+        _ => 0,
+    };
+    DNS_MODE.store(value, std::sync::atomic::Ordering::Relaxed);
+}
+
 fn http_url(value: &str) -> Result<reqwest::Url, String> {
     let url = reqwest::Url::parse(value).map_err(|_| "网址无效".to_string())?;
     if !matches!(url.scheme(), "http" | "https") {
@@ -159,7 +234,7 @@ pub async fn tvbox_fetch(
     headers: Option<serde_json::Value>,
 ) -> Result<String, String> {
     let url = http_url(&url)?;
-    let client = reqwest::Client::builder()
+    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
         .timeout(Duration::from_secs(25))
         .build()
         .map_err(|e| e.to_string())?;
@@ -280,7 +355,7 @@ pub async fn tvbox_image(url: String, referer: Option<String>, user_agent: Optio
             return Ok(data.clone());
         }
     }
-    let mut request = reqwest::Client::builder()
+    let mut request = crate::tvbox::apply_dns(reqwest::Client::builder())
         .user_agent(ua.as_deref().unwrap_or(TVBOX_UA))
         .timeout(Duration::from_secs(12))
         .build()
@@ -334,7 +409,7 @@ pub async fn tvbox_hot_list(id: String) -> Result<serde_json::Value, String> {
         _ => return Err("未知榜单".into()),
     };
     let bases = ["https://60s.crystelf.top", "https://60s.viki.moe"];
-    let client = reqwest::Client::builder()
+    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
         .user_agent("SimpleTools-TVBox")
         .timeout(Duration::from_secs(8))
         .build()
@@ -488,7 +563,7 @@ pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
     if parsed.scheme() != "http" && parsed.scheme() != "https" {
         return Err("字幕地址需为 http(s)".into());
     }
-    let client = reqwest::Client::builder()
+    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
         .timeout(Duration::from_secs(20))
         .build()
         .map_err(|e| e.to_string())?;
@@ -532,7 +607,7 @@ pub async fn tvbox_subtitle_search(apis: Vec<String>, name: String) -> Result<Ve
         return Err("缺少影片名".into());
     }
     let encoded = encode_component(&name);
-    let client = reqwest::Client::builder()
+    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
         .timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| e.to_string())?;

@@ -3,7 +3,7 @@
   const C=window.TVBoxCore, $=id=>document.getElementById('tv-'+id);
   const invoke=window.__TAURI__?.core?.invoke, dialog=window.__TAURI__?.dialog;
   const OLD_KEY='simpletools-tvbox';
-  let db={profiles:[],profileId:'',history:[],favorites:[],unmatched:{},searchHistory:[],sourceHealth:{},prefs:{resume:true,autoNext:true,speed:1,volume:100,skipIntro:0,skipOutro:0,hwdec:'auto-safe',selfParser:false,liveTimeout:15}};
+  let db={profiles:[],profileId:'',history:[],favorites:[],unmatched:{},searchHistory:[],sourceHealth:{},prefs:{resume:true,autoNext:true,speed:1,volume:100,skipIntro:0,skipOutro:0,hwdec:'auto',selfParser:false,liveTimeout:15,secureDns:'off'}};
   let page=1,keyword='',filters={},homeData={},homeSeed={site:'',data:null},view='home',generation=0,playGeneration=0,saveTimer,saveQueue=Promise.resolve();
   let liveChannels=[],liveView=[],liveSources=null,liveCurrent='',liveGroup='',current=null,queue=null,sniffPending=null,lastSave=0,trackSignature='',busyPoll=false;
   let searchPanelOpen=false;
@@ -118,7 +118,16 @@
     const n=Object.keys(db.unmatched||{}).length;
     node.textContent=n?`未适配站点：${n} 个（已记录，将在后续版本适配）`:`本地解析：全部已适配 ✓`;
   }
-  async function apiRaw(s,action,args={},p=profile()) {
+  // 请求取消：切仓/切源/取消弹窗时中止挂起的 JAR/Python 请求（避免阻塞与旧数据回写）
+  const pendingRequests=new Set();
+  let requestSeq=0;
+  function cancelPendingTVBox(){
+    const list=[...pendingRequests];pendingRequests.clear();
+    for(const token of list)invoke('tvbox_cancel',{token}).catch(()=>{});
+  }
+  // 弹窗被取消：中止挂起的片源请求（用户取消弹窗 = 放弃当前操作）
+  window.addEventListener('st-confirm-cancel',()=>cancelPendingTVBox());
+  async function apiRaw(s,action,args={},p=profile(),cancelToken=null) {
     if(Number(s.type)===3) {
       let ext=s.ext ?? '';if(typeof ext==='string'&&/^[{[]/.test(ext.trim())){try{ext=C.json(ext);}catch(_){/* plain extension */}}
       if(typeof ext==='string'&&/^\.\.?\//.test(ext))ext=address(ext,p.base);
@@ -141,13 +150,13 @@
       if(jar){const parts=jar.split(';md5;');parts[0]=address(parts[0],p.base);jar=parts.join(';md5;');}
       if(isPy){
         status('正在运行 Python 片源…');
-        return invoke('tvbox_external',{api:address(sourceApi,p.base),jar:jar||null,key:s.key||s.name||'source',ext,action,args:{...args,flags:p.config.flags||[]}});
+        return invoke('tvbox_external',{api:address(sourceApi,p.base),jar:jar||null,key:s.key||s.name||'source',ext,action,args:{...args,flags:p.config.flags||[]},cancelToken});
       }
       // 3) JAR 自带解析（慢）：未适配站点先记录；默认策略下提示可开启自带解析
       noteUnmatched(s);
       if(!db.prefs.selfParser)throw Error(`「${s.name||'该站点'}」暂未适配本地解析（已记录到待适配清单）；可在设置中勾选「源自带解析兼容」使用片源自带爬虫`);
       status('正在加载 JAR 片源（同一 JAR 仅首次转换，之后所有源共享缓存）…');
-      return invoke('tvbox_external',{api:sourceApi,jar:jar||null,key:s.key||s.name||'source',ext,action,args:{...args,flags:p.config.flags||[]}});
+      return invoke('tvbox_external',{api:sourceApi,jar:jar||null,key:s.key||s.name||'source',ext,action,args:{...args,flags:p.config.flags||[]},cancelToken});
     }
     const data=await fetchText(C.request(s,action,args,p.base),s.header||s.headers||{});
     return action==='play'?C.json(data):C.response(data,s.type);
@@ -187,11 +196,16 @@
   // 请求包装：统一记录源健康度（本地未适配/配置问题不计入网络失败）
   async function api(s,action,args={},p=profile()) {
     const key=sourceKey(s,p);
-    try{const result=await apiRaw(s,action,args,p);recordSourceResult(key,true);return result;}
-    catch(error){const message=String(error&&error.message||error);if(!/暂未适配/.test(message))recordSourceResult(key,false);throw error;}
+    const cancelToken=`r${++requestSeq}-${Date.now()}`;
+    pendingRequests.add(cancelToken);
+    try{const result=await apiRaw(s,action,args,p,cancelToken);recordSourceResult(key,true);return result;}
+    catch(error){const message=String(error&&error.message||error);if(!/暂未适配|已取消/.test(message))recordSourceResult(key,false);throw error;}
+    finally{pendingRequests.delete(cancelToken);}
   }
   function switchView(next) {
     const prev=view;view=next;generation++;
+    // 切换视图：取消上个视图尚未完成的片源请求，释放后台资源
+    cancelPendingTVBox();
     searchPanelOpen=false;
     const panel=document.getElementById('panel-tvbox');panel.dataset.view=next;panel.classList.remove('tv-detail-mode');
     // 集成式播放区域（v0.58.4）：播放中切换导航不再退出视频区，视频继续在列表上方播放，
@@ -241,7 +255,7 @@
   }
   function applyPreferences() {
     for(const [id,key] of [['resume','resume'],['auto-next','autoNext']])$(id).checked=db.prefs[key]!==false;
-    for(const [id,key] of [['speed','speed'],['volume','volume'],['skip-intro','skipIntro'],['skip-outro','skipOutro'],['hwdec','hwdec']])$(id).value=String(db.prefs[key]??'');
+    for(const [id,key] of [['speed','speed'],['volume','volume'],['skip-intro','skipIntro'],['skip-outro','skipOutro'],['hwdec','hwdec'],['secure-dns','secureDns']])$(id).value=String(db.prefs[key]??'');
     $('self-parser').checked=db.prefs.selfParser===true;
     $('live-timeout').value=String(db.prefs.liveTimeout??15);
     updateHealthInfo();
@@ -251,7 +265,7 @@
     if(hasSources(p.config))return;
     beginLoading(`正在加载「${p.name}」配置…`);
     try{
-      const clean=String(await fetchText(p.base)).replace(/^\uFEFF/,'').trim();
+      const clean=String(await withTimeout(fetchText(p.base),30000,'配置加载超时（30 秒），请检查网络后重试')).replace(/^\uFEFF/,'').trim();
       if(!clean.startsWith('{'))throw Error(`「${p.name}」没有返回 TVBox JSON 配置`);
       const conf=C.json(clean);
       if(!hasSources(conf))throw Error(`「${p.name}」配置缺少 sites 或 lives 数组`);
@@ -310,30 +324,37 @@
   let filterPanelOpen=false;
   function renderFilters() {
     const box=$('filters');box.replaceChildren();
-    // 筛选条件完全来自源配置（home 返回的 filters），按分类索引；首页（空分类）回退到第一个分类的筛选
+    // 筛选条件完全跟随当前分类（来自源配置 filters[type_id]）：不同分类有各自的筛选，
+    // 当前分类没有配置筛选时不显示（不回退到其他分类，避免显示不相关条件）
     let groups=homeData.filters?.[$('category').value];
-    if(!groups&&homeData.class&&homeData.class.length)groups=homeData.filters?.[homeData.class[0].type_id];
     groups=groups||[];
     if(!groups.length){filterPanelOpen=false;return;}
-    // 收起态：摘要行（已选条件）+ 展开/收起（参考 Android 筛选面板，平铺按钮组而非下拉）
-    const summary=groups.map(group=>{
-      const current=filters[group.key]??'';
-      const opt=(group.value||[]).find(o=>String(o.v)===String(current)&&String(o.v)!=='');
-      return opt?`${group.name}=${opt.n}`:'';
-    }).filter(Boolean).join(' · ');
+    // 已选条件（参考 Android）：每个条件默认选中「全部」；已选条数显示在筛选按钮上
+    const chosen=groups.map(group=>{
+      const current=String(filters[group.key]??'');
+      if(current==='')return null;
+      const opt=(group.value||[]).find(o=>String(o.v)===current);
+      return opt?`${group.name}=${opt.n}`:null;
+    }).filter(Boolean);
     const head=el('div',undefined,'tv-filter-head');
-    const toggle=button(filterPanelOpen?'收起 ⌃':'筛选 ⌄',()=>{filterPanelOpen=!filterPanelOpen;renderFilters();},'tv-filter-toggle');
-    head.append(toggle,el('span',summary||'全部','tv-filter-summary'));
+    const toggle=button(`${filterPanelOpen?'收起 ⌃':'筛选 ⌄'}${chosen.length?` (${chosen.length})`:''}`,()=>{filterPanelOpen=!filterPanelOpen;renderFilters();},'tv-filter-toggle');
+    if(filterPanelOpen)toggle.classList.add('is-open');
+    head.append(toggle,el('span',chosen.length?chosen.join(' · '):'全部','tv-filter-summary'));
     box.append(head);
     if(!filterPanelOpen)return;
     for(const group of groups){
       const row=el('div',undefined,'tv-filter-row');
       row.append(el('span',group.name||group.key,'tv-filter-name'));
       const opts=el('div',undefined,'tv-filter-options');
-      const current=filters[group.key]??'';
+      const current=String(filters[group.key]??'');
+      // 「全部」选项（默认选中）——对齐 Android 每行筛选的「全部」项
+      const allChip=button('全部',()=>{delete filters[group.key];page=1;run(()=>browse());},'tv-filter-opt');
+      if(current==='')allChip.classList.add('is-selected');
+      opts.append(allChip);
       for(const opt of (group.value||[])){
+        if(String(opt.v)==='')continue; // 配置里的空值统一由「全部」承担
         const chip=button(opt.n,()=>{filters[group.key]=opt.v;page=1;run(()=>browse());},'tv-filter-opt');
-        if(String(opt.v)===String(current))chip.classList.add('is-selected');
+        if(String(opt.v)===current)chip.classList.add('is-selected');
         opts.append(chip);
       }
       row.append(opts);box.append(row);
@@ -708,8 +729,11 @@
   function movieKey(v,s,p){return `${p.id}:${s.key||s.api}:${v.vod_id}`;}
   async function detail(id,s,p=profile(),resumeContext=null,movie=null) {
     const token=++generation;status('正在加载影片详情…');
-    let data;beginLoading('正在加载影片详情…');
-    try{data=await api(s,'detail',{id},p);}finally{endLoading();}
+    // 详情不弹全局遮罩：详情区先占位，避免慢源阻塞整个界面（对齐 Android 页面内加载）
+    $('detail').replaceChildren(el('div','正在加载影片详情…','tv-empty'));
+    let data;
+    try{data=await withTimeout(api(s,'detail',{id},p),30000,'详情加载超时（30 秒），该源响应过慢');}
+    catch(error){if(token===generation)$('detail').replaceChildren(el('div',`加载失败：${error&&error.message?error.message:error}`,'tv-empty'));throw error;}
     if(token!==generation)return;
     const v=data.list?.[0];
     if(!v){
@@ -746,10 +770,20 @@
   async function resolveEpisode(raw,s,p,flag) {
     let result={url:raw,parse:0};
     if(s&&(Number(s.type)===4||Number(s.type)===3))result=await api(s,'play',{id:raw,flag},p);
-    if(!result?.url)throw Error('播放接口没有返回地址');
-    if(typeof result.header==='string'){try{result.header=C.json(result.header);}catch(_){throw Error('播放接口请求头格式无效');}}
-    let target=result.url;if(Array.isArray(target))target=target.find(v=>typeof v==='string'&&/^(https?|rtsp|rtmp):/.test(v));
-    if(typeof target!=='string')throw Error('播放地址格式不兼容');
+    if(!result)throw Error('播放接口没有返回内容');
+    // JAR 明确的错误信息优先展示（如「需登录」「解析失败」）
+    if(result.error)throw Error(String(result.error).slice(0,120));
+    let rawUrl=result.url;
+    // JAR 可能返回 JSON 字符串或数组（多地址）：宽松兼容
+    if(typeof rawUrl==='string'&&/^[\[{]/.test(rawUrl.trim())){try{rawUrl=C.json(rawUrl);}catch(_){/* keep raw */}}
+    if(rawUrl===undefined||rawUrl===null||rawUrl==='')throw Error('播放接口没有返回地址');
+    if(typeof result.header==='string'){try{result.header=C.json(result.header);}catch(_){/* ignore */}}
+    let target=rawUrl;
+    if(Array.isArray(target)){
+      const strings=target.filter(v=>typeof v==='string'&&v.trim());
+      target=strings.find(v=>/^(https?|rtsp|rtmp|ftp):/.test(v))||strings[0];
+    }
+    if(typeof target!=='string'||!target.trim())throw Error('播放地址格式不兼容');
     if(result.playUrl)target=result.playUrl+target;
     const parsed=C.media(target);result={...result,...parsed,headers:{...s?.headers,...s?.header,...result.header,...parsed.headers}};
     if(result.url.startsWith('proxy://go=SuperParse&')){
@@ -775,7 +809,9 @@
       const pattern=address(String(selected.url),p.base);
       return {url:pattern.includes('{url}')?pattern.replace('{url}',encodeURIComponent(sourceUrl)):pattern+encodeURIComponent(sourceUrl),headers:result.headers,sniff:true};
     }
-    if(/^(magnet:\?|thunder:\/\/)/i.test(result.url)||/\.torrent(?:[?#]|$)/i.test(result.url))return result;
+    if(/^(magnet:\?|thunder:\/\/|ed2k:\/\/)/i.test(result.url)||/\.torrent(?:[?#]|$)/i.test(result.url))return result;
+    // 已经是媒体直链（m3u8/mp4/flv/ts 等）时忽略 parse 标记，直接播放（很多 JAR 误标 parse=1）
+    if(/\.(?:m3u8|mp4|flv|mkv|ts|mov|m4v|webm|mp3|m4a|aac)(?:[?#]|$)/i.test(result.url))return result;
     const selection=$('parser').value||'auto',need=result.parse===1||result.parse==='1'||result.jx===1||Boolean(s?.playerUrl);
     if(selection==='direct'||(selection==='auto'&&!need))return result;
     const parsers=p.config.parses||[],parser=selection==='auto'?parsers[0]:parsers[Number(selection)];
@@ -808,6 +844,7 @@
   // ===== 集成式视频区（v0.58.4）：视频嵌入列表上方（mpv 渲染到主窗口内的原生子窗口），
   // 播放中下方列表/详情保持可见 —— 选集、换线路、换频道都在同一界面完成，没有独立播放界面 =====
   function enterStage(name,live){
+    $('skip-intro-btn').classList.add('hidden');$('skip-outro-btn').classList.add('hidden');
     const panel=document.getElementById('panel-tvbox');
     // 从设置页直接播放（直链 / 本地视频）时收起设置、回到列表，视频区与列表同屏
     if(view==='settings'){
@@ -940,7 +977,7 @@
     const p=meta.profile||profile();let result;
     if(meta.local)result={url:raw,headers:meta.headers||{}};
     else if(meta.resolved)result={url:raw,headers:meta.headers||{}};
-    else result=await withLoading(()=>resolveEpisode(raw,meta.site,p,meta.context?.flag||''),'正在解析播放地址…');
+    else {status('正在解析播放地址…');result=await withTimeout(resolveEpisode(raw,meta.site,p,meta.context?.flag||''),30000,'解析播放地址超时（30 秒），该源响应过慢');}
     if(token!==playGeneration)return;
     if(result.sniff){await sniff(result.url,name,{...meta,raw,headers:result.headers},token);return;}
     let url=result.url;
@@ -966,6 +1003,7 @@
     if(!current||snapshot.session!==current.session)return;
     const mediaInfo=[snapshot.width?`${snapshot.width} × ${snapshot.height}`:'',snapshot.hwdec&&snapshot.hwdec!=='no'?`硬解 ${snapshot.hwdec}`:'软件解码',snapshot.codec||'',snapshot.buffer?`缓存 ${Math.round(snapshot.buffer)} 秒`:''].filter(Boolean).join(' · ');
     if(current.meta?.live){
+    $('skip-intro-btn').classList.add('hidden');$('skip-outro-btn').classList.add('hidden');
       // 直播：mpv 的 FILE_LOADED 只代表打开了输入流（坏源也会触发），
       // 只有拿到真实视频尺寸或进度前进才判为播放成功（结束加载提示、重置失败计数）
       if(playLoading&&(Number(snapshot.width)>0||Number(snapshot.position)>0.5)){
@@ -976,6 +1014,9 @@
     const h=db.history.find(h=>h.key===current.key);if(!h)return;
     const position=Number(snapshot.position)||0,duration=Number(snapshot.duration)||0;
     if(position>0)h.position=position;if(duration>0)h.duration=duration;
+    const introSec=Number(db.prefs.skipIntro)||0,outroSec=Number(db.prefs.skipOutro)||0;
+    $('skip-intro-btn').classList.toggle('hidden',!(introSec>0&&position<introSec-1));
+    $('skip-outro-btn').classList.toggle('hidden',!(outroSec>0&&duration>outroSec+10&&position>=duration-outroSec-1));
     $('time').textContent=`${time(position)} / ${time(duration)}`;$('seek').max=String(duration||100);$('seek').value=String(position);
     $('info').textContent=[snapshot.width?`${snapshot.width} × ${snapshot.height}`:'',snapshot.hwdec&&snapshot.hwdec!=='no'?`硬解 ${snapshot.hwdec}`:'软件解码',snapshot.codec||'',snapshot.buffer?`缓存 ${Math.round(snapshot.buffer)} 秒`:''].filter(Boolean).join(' · ');
     if(Array.isArray(snapshot.tracks))renderTracks(snapshot.tracks);
@@ -1067,7 +1108,7 @@
     if(!force&&liveCurrent===source.id&&liveChannels.length){renderLive();return;}
     const token=++generation;liveCurrent=source.id;liveGroup='';
     status(source.builtin?'正在加载内置直播源…':`正在加载「${source.name}」…`);
-    beginLoading(source.builtin?'正在加载内置直播源…':`正在加载「${source.name}」…`);
+    $('results').replaceChildren(el('div','正在加载直播源…','tv-empty'));
     try{
       let channels=[];
       if(source.builtin){
@@ -1081,7 +1122,7 @@
         if(item.channels||item.urls){items=C.liveItems([item],profile().base);}
         else{
           const remote=item.remote||address(item.url,profile().base);
-          const text=await fetchText(remote,item.headers||{});
+          const text=await withTimeout(fetchText(remote,item.headers||{}),30000,'直播源加载超时（30 秒）');
           items=text.trim().startsWith('{')?C.liveItems(C.json(text).lives||[],remote):C.playlist(text,remote);
           items=items.map(c=>({...c,group:c.group||item.group||'',epg:c.epg||item.epg,headers:{...item.headers,...c.headers}}));
         }
@@ -1096,8 +1137,7 @@
       if(token!==generation)return;
       liveChannels=[];renderLive();
       status(`「${source.name}」加载失败：${e?.message||e}${source.builtin?'':'（可切回内置源）'}`);
-    }finally{endLoading();}
-  }
+    }}
   async function loadLive(force=false){switchView('live');ensureLiveSources();await loadLiveSource(liveCurrent,force);}
   function renderLive() {
     $('results').replaceChildren();$('prev').disabled=$('next').disabled=true;
@@ -1170,9 +1210,11 @@
   window.__TAURI__?.event?.listen('tvbox-phone-config',event=>run(async()=>{const text=String(event.payload).trim();status('正在加载手机发送的配置…');if(text.startsWith('{'))await importConfig(text,'','手机配置');else{const url=address(text);await importConfig(await fetchText(url),url);}})).catch(()=>{});
   // Configuration and navigation.
   function closeDetail(){
+    cancelPendingTVBox(); // 关闭详情：取消未完成的详情请求
     const panel=document.getElementById('panel-tvbox');panel.classList.remove('tv-detail-mode');
     $('detail').replaceChildren();$('epg').replaceChildren();$('detail-back').classList.add('hidden');
-    $('section-title').textContent=({home:'影视',live:'电视直播',favorites:'我的收藏',history:'观看记录',settings:'配置与设置'})[view]||'影视';
+    // 返回时恢复进入详情前的页面标题（搜索页返回仍显示「搜索」，保留搜索结果与源列表）
+    $('section-title').textContent=({home:'影视',live:'电视直播',favorites:'我的收藏',history:'观看记录',settings:'配置与设置',xsearch:'搜索'})[view]||'影视';
   }
   // 「影视」导航：回到主页列表——已有分类与封面时直接展示缓存（不重新请求），避免每次回来都等片源加载
   function goHome(){
@@ -1187,7 +1229,7 @@
   $('import').onclick=()=>run(async()=>{const path=await dialog.open({multiple:false,filters:[{name:'TVBox 配置 / 直播',extensions:['json','m3u','m3u8','txt']}]});if(path){const local=new URL('file:///');local.pathname='/'+path.replace(/\\/g,'/');await importConfig((await invoke('read_text_file',{path})).content,local.href,path.split(/[\\/]/).pop());}});
   $('export').onclick=()=>run(async()=>{const path=await dialog.save({defaultPath:'tvbox-config.json',filters:[{name:'TVBox 配置',extensions:['json']}]});if(path){await invoke('write_text_file',{path,content:JSON.stringify(config(),null,2)});status('配置已导出');}});
   $('apply-config').onclick=()=>run(async()=>{const conf=C.json($('config-editor').value);if(!Array.isArray(conf.sites)&&!Array.isArray(conf.lives))throw Error('配置需包含 sites 或 lives');if(!profile().id)return importConfig($('config-editor').value);profile().config=conf;await persist(true);setup();});
-  $('profile').onchange=()=>run(async()=>{const stay=view==='settings';db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);const done=warnAfter(30000,'切换仓较慢（已超过 30 秒），请稍候…');try{await loadCollectionProfile(p);setup();if(!stay&&sites().some(C.supported))await browse(true);}finally{done();}}if(stay)openSettings();});
+  $('profile').onchange=()=>run(async()=>{const stay=view==='settings';cancelPendingTVBox();db.profileId=$('profile').value;const p=profile();persist();setup();if(p.collectionBase){status(`正在加载「${p.name}」…`);const done=warnAfter(30000,'切换仓较慢（已超过 30 秒），请稍候…');try{await loadCollectionProfile(p);setup();if(!stay&&sites().some(C.supported))await browse(true);}finally{done();}}if(stay)openSettings();});
   $('rename').onclick=()=>{const stay=view==='settings';const name=$('profile-name').value.trim();if(profile().id&&name){profile().name=name;persist();setup();if(stay)openSettings();}};
   $('delete-profile').onclick=()=>run(async()=>{const stay=view==='settings';if(!profile().id)return;if(!await window.showConfirm('删除当前片源配置？收藏和观看记录将保留。'))return;db.profiles=db.profiles.filter(p=>p.id!==db.profileId);db.profileId=db.profiles[0]?.id||'';await persist(true);setup();if(stay)openSettings();});
   $('home').onclick=()=>run(()=>goHome());$('live').onclick=()=>run(()=>loadLive(view==='live'));$('favorites').onclick=favorites;$('history').onclick=historyItems;
@@ -1196,7 +1238,7 @@
   $('site').onchange=()=>{
     if(siteProgrammatic)return;
     if(Date.now()-siteUserTouched>800)return; // 程序化（非用户）触发的 change 忽略
-    run(async()=>{const s=sites()[Number($('site').value)];if(!s)return;if(s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite)return;db.selectedSite=s.key||s.api||s.name;persist();const done=warnAfter(30000,'切换源较慢（已超过 30 秒，JAR 源首次加载需转换），请稍候…');try{await browse(true);}finally{done();}});
+    run(async()=>{const s=sites()[Number($('site').value)];if(!s)return;if(s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite)return;cancelPendingTVBox();db.selectedSite=s.key||s.api||s.name;persist();const done=warnAfter(30000,'切换源较慢（已超过 30 秒，JAR 源首次加载需转换），请稍候…');try{await browse(true);}finally{done();}});
   };$('category').onchange=()=>run(()=>{page=1;keyword='';filters={};filterPanelOpen=false;return browse();});
   // 卡片标题 / 左侧源名称 / 详情选集 / 播放侧栏项：最多一行，放不下时 hover 跑马灯滚动显示全名
   function attachMarquee(container,selector){
@@ -1217,7 +1259,8 @@
       const overflow=inner.scrollWidth-(node.clientWidth-pad);
       if(overflow<=2)return;
       node.style.setProperty('--tv-marquee-shift',`-${overflow}px`);
-      node.style.setProperty('--tv-marquee-duration',`${Math.max(3,Math.round(overflow/30))}s`);
+      // 跑马灯速度：约 80px/秒（之前 30px/秒太慢），最短 1.6 秒
+      node.style.setProperty('--tv-marquee-duration',`${Math.max(1.6,Math.round(overflow/80*10)/10)}s`);
       node.classList.add('is-marquee');
     });
     container.addEventListener('mouseout',event=>{
@@ -1244,6 +1287,8 @@
     return startSearch(word);
   });
   $('keyword').oninput=()=>{if(searchPanelOpen)renderSearchPanel();};
+  // 点搜索框即显示搜索面板（热门/历史/联想，参考 Android 搜索页）
+  $('keyword').addEventListener('focus',()=>{if(view==='home'&&!searchPanelOpen&&!$('keyword').value.trim())renderSearchPanel();});
   $('keyword').onkeydown=e=>{if(e.key==='Enter')$('search').click();};$('prev').onclick=()=>run(()=>{if(page>1)page--;return browse();});$('next').onclick=()=>run(()=>{page++;return browse();});
   $('clear-history').onclick=()=>run(async()=>{if(await window.showConfirm('清空全部观看记录与续播进度？')){db.history=[];persist();historyItems();}});
   // 云盘登录（与安卓端一致：打开登录窗口扫码/账号登录，cookie 写入后网盘源自动鉴权）
@@ -1262,6 +1307,9 @@
   for(const [id,action]of [['speed','speed'],['volume','volume'],['sub-delay','sub-delay'],['audio','aid'],['subtitles','sid'],['aspect','aspect']])$(id).onchange=()=>run(async()=>{const value=['speed','volume','sub-delay'].includes(id)?Number($(id).value):$(id).value;if(id==='speed'||id==='volume'){db.prefs[id]=value;persist();}if(current)await control(action,value);});
   $('seek').onchange=()=>run(()=>control('seek',Number($('seek').value)));
   $('subtitle-file').onclick=()=>run(async()=>{const path=await dialog.open({multiple:false,filters:[{name:'字幕',extensions:['srt','ass','ssa','vtt','sub']}]});if(path)await control('subtitle',path);});
+  // 跳过片头/片尾（对齐 Android：片头跳到设定秒数，片尾直接下一集）
+  $('skip-intro-btn').onclick=()=>run(()=>control('seek',Math.max(0,Number(db.prefs.skipIntro)||0)));
+  $('skip-outro-btn').onclick=()=>run(()=>{if(queue&&Array.isArray(queue.episodes)&&queue.index<queue.episodes.length-1)return nextEpisode(1);return stopStage('已跳过片尾');});
   // 在线字幕（参考 Android）：用配置里的字幕接口搜索，或直接粘贴字幕链接加载
   function subtitleApis(){
     const list=profile().config.subtitles;
@@ -1292,6 +1340,8 @@
   for(const [id,key]of [['resume','resume'],['auto-next','autoNext'],['skip-intro','skipIntro'],['skip-outro','skipOutro'],['hwdec','hwdec']])$(id).onchange=()=>{db.prefs[key]=['resume','autoNext'].includes(key)?$(id).checked:key==='hwdec'?$(id).value:Math.max(0,Math.min(600,Number($(id).value)||0));persist();};
   $('self-parser').onchange=()=>{db.prefs.selfParser=$('self-parser').checked;persist();updateUnmatchedInfo();status(db.prefs.selfParser?'已开启源自带解析兼容：未适配站点将回退到片源自带爬虫':'已切换为纯本地解析：未适配站点会提示并记录到待适配清单');};
   $('live-timeout').onchange=()=>{db.prefs.liveTimeout=Math.max(5,Math.min(30,Number($('live-timeout').value)||15));$('live-timeout').value=String(db.prefs.liveTimeout);persist();status(`直播换源超时：${db.prefs.liveTimeout} 秒`);};
+  // 安全 DNS（DoH，参考 Android）：作用于应用自身网络请求
+  $('secure-dns').onchange=()=>{db.prefs.secureDns=$('secure-dns').value||'off';persist();invoke('tvbox_dns_set',{mode:db.prefs.secureDns}).catch(()=>{});status(db.prefs.secureDns==='off'?'安全 DNS 已关闭（使用系统 DNS）':'安全 DNS 已开启：'+$('secure-dns').selectedOptions[0].textContent+'（应用自身网络请求生效）');};
   $('reset-health').onclick=()=>resetSourceHealth();
   $('video').onerror=()=>{const live=!!current?.meta?.live&&!current?.manualStop;endPlayLoading();if(live){status('直播源播放失败，尝试换源…');run(()=>liveSwitchNext());}else status('WebView 无法播放此编码或地址，请使用内置 libmpv');};$('video').onended=completed;
   $('video').ontimeupdate=()=>{if(current&&$('engine').value==='web')updateProgress({session:current.session,position:$('video').currentTime,duration:$('video').duration,width:$('video').videoWidth,height:$('video').videoHeight});};
@@ -1319,13 +1369,20 @@
       else if(data.reason===0)completed();
     }
   }).catch(()=>{});
-  window.__TAURI__?.event?.listen('tvbox-sniff-result',event=>{const data=event.payload,p=sniffPending;if(!p||p.session!==data.session||p.token!==playGeneration||p.seen.has(data.url))return;p.seen.add(data.url);const b=button(`播放识别结果 ${p.seen.size} · ${data.url.slice(0,100)}`,()=>launch(data.url,p.name,{...p.meta,headers:{...p.meta.headers,Referer:data.referer,'User-Agent':data.ua}},p.token));$('sniff-results').append(b);status(`已识别 ${p.seen.size} 个媒体地址，请选择播放（可能包含广告）`);}).catch(()=>{});
-  setInterval(async()=>{if(!current||busyPoll||$('engine').value!=='mpv')return;busyPoll=true;try{const state=await invoke('tvplayer_status');if(state)updateProgress(state);}catch(_){/* next poll retries */}finally{busyPoll=false;}},2000);
-  window.TVBOXReady=(async()=>{
+  
+  
+  let tvboxStarted=false;
+  async function startTVBox(){
+    if(tvboxStarted)return;tvboxStarted=true;window.__tvboxStarted=true;
+    setInterval(async()=>{if(!current||busyPoll||$('engine').value!=='mpv')return;busyPoll=true;try{const state=await invoke('tvplayer_status');if(state)updateProgress(state);}catch(_){/* next poll retries */}finally{busyPoll=false;}},2000);
+window.__TAURI__?.event?.listen('tvbox-sniff-result',event=>{const data=event.payload,p=sniffPending;if(!p||p.session!==data.session||p.token!==playGeneration||p.seen.has(data.url))return;p.seen.add(data.url);const b=button(`播放识别结果 ${p.seen.size} · ${data.url.slice(0,100)}`,()=>launch(data.url,p.name,{...p.meta,headers:{...p.meta.headers,Referer:data.referer,'User-Agent':data.ua}},p.token));$('sniff-results').append(b);status(`已识别 ${p.seen.size} 个媒体地址，请选择播放（可能包含广告）`);}).catch(()=>{});
+
     let data=null;if(invoke){try{data=await invoke('tvbox_load');}catch(e){status(String(e));}}
     if(!data){try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||'null');if(old?.profiles)data=old;else if(old?.config)data={profiles:[{id:'migrated',name:'原配置',base:old.base||'',config:old.config}],profileId:'migrated',history:old.history||[]};}catch(_){/* no legacy data */}}
-    if(data){db={...db,...data,prefs:{...db.prefs,...data.prefs}};db.profiles=Array.isArray(db.profiles)?db.profiles:[];db.history=Array.isArray(db.history)?db.history.filter(h=>!isLiveRecord(h)):[];db.favorites=Array.isArray(db.favorites)?db.favorites:[];db.unmatched=db.unmatched&&typeof db.unmatched==='object'?db.unmatched:{};db.searchHistory=Array.isArray(db.searchHistory)?db.searchHistory:[];db.sourceHealth=db.sourceHealth&&typeof db.sourceHealth==='object'?db.sourceHealth:{}};
+    if(data){db={...db,...data,prefs:{...db.prefs,...data.prefs}};if(db.prefs.hwdec==='auto-safe')db.prefs.hwdec='auto';/* 默认硬解：旧配置迁移到优先硬解 */db.profiles=Array.isArray(db.profiles)?db.profiles:[];db.history=Array.isArray(db.history)?db.history.filter(h=>!isLiveRecord(h)):[];db.favorites=Array.isArray(db.favorites)?db.favorites:[];db.unmatched=db.unmatched&&typeof db.unmatched==='object'?db.unmatched:{};db.searchHistory=Array.isArray(db.searchHistory)?db.searchHistory:[];db.sourceHealth=db.sourceHealth&&typeof db.sourceHealth==='object'?db.sourceHealth:{}};
     applyPreferences();setup();if(data)await persist(true);if(profile().collectionBase&&!hasSources(config()))await run(async()=>{await loadCollectionProfile(profile());setup();});
+    // 应用安全 DNS 设置（在首次网络请求前生效）
+    if(db.prefs.secureDns&&db.prefs.secureDns!=='off')invoke('tvbox_dns_set',{mode:db.prefs.secureDns}).catch(()=>{});
     // 有 JAR 源时后台预热内置 JVM（首次点开片源时不再等进程启动）；延迟启动避免抢启动资源
     if(invoke&&sites().some(s=>/^(?:csp_|com\.github\.catvod\.spider\.)/.test(String(s.api||''))))setTimeout(()=>invoke('tvbox_external_warm').catch(()=>{}),3000);
     // 预取豆瓣热榜（热门搜索数据源），打开搜索面板时即可展示
@@ -1344,5 +1401,10 @@
       }
       await run(()=>browse(true));
     }
-  })();
+  }
+  // 首次切到 TVBOX 时才初始化（应用启动不加载 TVBOX 数据，节省资源）
+  window.TVBOXActivate=()=>startTVBox().catch(error=>console.error('TVBOX 初始化失败',error));
+  window.TVBOXReady=()=>startTVBox().catch(error=>console.error('TVBOX 初始化失败',error));
+  // 离开 TVBOX 面板：取消所有挂起请求（释放后台资源，避免无意义执行）
+  window.TVBOXDeactivate=()=>cancelPendingTVBox();
 })();

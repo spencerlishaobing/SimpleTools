@@ -1,6 +1,6 @@
 [package]
 name = "simpletools"
-version = "0.58.7"
+version = "0.58.8"
 description = "SimpleTools - 常用工具合集"
 authors = ["SimpleTools"]
 edition = "2021"

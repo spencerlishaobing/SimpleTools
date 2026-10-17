@@ -108,6 +108,8 @@
         okBtn.removeEventListener('click', onOk);
         cancelBtn.removeEventListener('click', onCancel);
         mask.removeEventListener('click', onMask);
+        // 取消弹窗：通知进行中的异步操作中止挂起请求（避免旧请求继续执行）
+        if (!result) window.dispatchEvent(new CustomEvent('st-confirm-cancel'));
         resolve(result);
       }
       function onOk() { cleanup(true); }
@@ -160,6 +162,10 @@
     // 面板由隐藏变为可见后通知（供在隐藏状态下无法测量的模块重算布局，如账号备注高度）
     const panel = document.getElementById('panel-' + target);
     if (panel && panel.classList.contains('active')) panel.dispatchEvent(new CustomEvent('panel-shown'));
+    // TVBOX 惰性初始化：应用启动不加载 TVBOX，首次切换到该 tab 时才初始化（只执行一次）
+    if (target === 'tvbox') window.TVBOXActivate?.();
+    // 离开 TVBOX：取消所有挂起请求，释放后台资源
+    else window.TVBOXDeactivate?.();
   }
 
   navItems.forEach((btn) => {

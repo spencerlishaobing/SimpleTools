@@ -46,11 +46,14 @@ $v = $Version.Trim().TrimStart('v', 'V')
 if ($v -notmatch '^\d+\.\d+\.\d+$') { Fail "bad version '$Version' (expect X.Y.Z)" }
 $tag = "v$v"
 
-# ---------- 分支与 TVBOX 版本（防止把 TVBOX 构建当成标准版发布，或反之） ----------
+# ---------- 分支与版本（tvbox / copy_fantaiying 两个 TVBOX 变体） ----------
 $branch = (git -C $RepoDir rev-parse --abbrev-ref HEAD).Trim()
-if ($Tvbox -and $branch -ne 'tvbox') { Fail "-Tvbox requires the tvbox branch (current: $branch)" }
-if (-not $Tvbox -and $branch -eq 'tvbox') { Fail "on tvbox branch use -Tvbox (refusing to publish the TVBOX build as a standard release)" }
-if ($Tvbox) { $tag = "v$v-tvbox" }
+$isTvboxBranch = $branch -eq 'tvbox'
+$isFantaiyingBranch = $branch -eq 'copy_fantaiying'
+$flavor = if ($isFantaiyingBranch) { 'fantaiying' } else { 'tvbox' }
+if ($Tvbox -and -not ($isTvboxBranch -or $isFantaiyingBranch)) { Fail "-Tvbox requires branch tvbox or copy_fantaiying (current: $branch)" }
+if (-not $Tvbox -and ($isTvboxBranch -or $isFantaiyingBranch)) { Fail "on $branch branch use -Tvbox (refusing to publish the TVBOX build as a standard release)" }
+if ($Tvbox) { $tag = "v$v-$flavor" }
 
 # ---------- 版本号一致校验（tauri.conf.json / package.json / Cargo.toml） ----------
 $confVer = (Get-Content (Join-Path $RepoDir 'src-tauri\tauri.conf.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
@@ -106,9 +109,9 @@ $portable = Get-Item -LiteralPath $PortableExe
 # 免安装 exe 上传时改用带版本名（原文件名固定为 SimpleTools.exe，多版本下载易混淆）
 $portableAssetName = "SimpleTools_${v}_x64-portable.exe"
 if ($Tvbox) {
-  # TVBOX 版：资产名带 tvbox 标识，避免与标准版混淆
-  $assetName = $assetName -replace '_x64-setup', '_tvbox_x64-setup'
-  $portableAssetName = "SimpleTools_${v}_x64-portable-tvbox.exe"
+  # TVBOX 变体：资产名带分支标识，避免与标准版/其他变体混淆
+  $assetName = $assetName -replace '_x64-setup', "_${flavor}_x64-setup"
+  $portableAssetName = "SimpleTools_${v}_x64-portable-${flavor}.exe"
 }
 $portableSha = (Get-FileHash -LiteralPath $PortableExe -Algorithm SHA256).Hash
 $portableMB = [math]::Round($portable.Length / 1MB, 2)
@@ -118,7 +121,7 @@ $assets = @(
 )
 if ($Tvbox) {
   # TVBOX 版附带便携包（exe + resources，免安装用户使用）：不存在则自动生成
-  $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_tvbox_portable.zip"
+  $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_${flavor}_portable.zip"
   if (-not (Test-Path -LiteralPath $portableZipPath)) {
     $resourcesDir = Join-Path $RepoDir 'src-tauri\target\release\resources'
     if (Test-Path -LiteralPath $resourcesDir) {
@@ -250,7 +253,7 @@ else { Write-Output "STEP remote tag exists, skip push" }
 
 # ---------- 2) Release ----------
 $zipSection = ''
-foreach ($a in $assets) { if ($a.Name -like '*tvbox_portable.zip') { $zipSection = "`nWindows x64 便携包（免安装，完整解压后使用，请保持 resources 目录与 EXE 同目录）：`n`n- 便携包：$($a.Name)（$($a.MB) MB）`n- SHA256：``$($a.Sha)``" } }
+foreach ($a in $assets) { if ($a.Name -like '*_portable.zip') { $zipSection = "`nWindows x64 便携包（免安装，完整解压后使用，请保持 resources 目录与 EXE 同目录）：`n`n- 便携包：$($a.Name)（$($a.MB) MB）`n- SHA256：``$($a.Sha)``" } }
 $releaseNotes = @"
 ## SimpleTools $tag
 
@@ -280,7 +283,7 @@ try {
 if (-not $release) {
   $release = Api 'POST' "$ApiBase/releases" @{
     tag_name   = $tag
-    name       = $(if ($Tvbox) { "SimpleTools $v · TVBOX 版" } else { "SimpleTools $tag" })
+    name       = $(if ($Tvbox) { "SimpleTools $v · $(if ($isFantaiyingBranch) { '饭太硬复刻版（无 JAR）' } else { 'TVBOX 版' })" } else { "SimpleTools $tag" })
     body       = $releaseNotes
     draft      = $false
     prerelease = $false
