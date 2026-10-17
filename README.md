@@ -149,7 +149,7 @@ npm run build
 
 构建产物：
 
-- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.2_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
+- 安装包：`src-tauri/target/release/bundle/nsis/SimpleTools_0.58.3_x64-setup.exe`（中文安装向导 + 品牌图片 + 卸载时可选同步删除本地数据（默认保留））
 - 免安装运行：`src-tauri/target/release/SimpleTools.exe`，须同时携带完整 `resources` 运行时目录。
 
 > 首次构建约需几分钟（Rust 编译）；前端为静态资源，修改 `src/` 后需重新执行 `npm run build` 才生效。TVBOX 版的构建会在编译前自动执行 `scripts/prepare-tvbox-all.ps1` 准备 libmpv / Python / JRE / dex2jar 运行时（固定版本 + SHA256 校验，首次需联网）。
@@ -233,6 +233,11 @@ SimpleTools/
 ```
 
 ## 更新日志
+
+### v0.58.3（2026-10-17）
+
+- 内置 Java 片源（ftyguard 加壳源）兼容层增强：`csp_XxxGuard` 类自动回退加载解壳后的真实类（存根代理仅供安卓宿主）；新增 PKCS7Padding JCE Provider（AES/CBC 等，对应 Android Conscrypt 转换名）；android.os.Build 补齐 SERIAL / BOARD / TIME 等字段；Context 新增 getContentResolver；SQLiteDatabase 空游标。
+- 对饭太硬完整配置（49 源）做逐一真实加载整体测试：43 通过（多数返回真实分类 / 滤镜数据），3 个为个源数据或独立依赖问题，3 个 JS 源由 JS 引擎链路处理。
 
 ### v0.58.2（2026-10-17）
 

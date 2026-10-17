@@ -23,6 +23,8 @@ public class Context {
     public Context(){this(new File("context"));}
     public Context(File root){this.root=root;root.mkdirs();}
     private File folder(String name){File f=new File(root,name);f.mkdirs();return f;}
+    /** 部分片源（如瓜子）在初始化时读取系统内容提供者，返回空实现避免 NoSuchMethodError。 */
+    public ContentResolver getContentResolver(){return new ContentResolver();}
     public Context getApplicationContext(){return this;}
     public File getCacheDir(){return folder("cache");}public File getCodeCacheDir(){return folder("code");}
     public File getFilesDir(){return folder("files");}public File getExternalFilesDir(String type){return folder("external/"+(type==null?"":safe(type)));}

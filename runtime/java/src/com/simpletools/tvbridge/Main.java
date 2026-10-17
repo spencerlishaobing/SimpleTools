@@ -152,7 +152,17 @@ public final class Main {
                 for(java.lang.reflect.Field field:origin.getDeclaredFields())if(field.getType()==android.app.Application.class&&!java.lang.reflect.Modifier.isStatic(field.getModifiers())){field.setAccessible(true);field.set(instance,context);}
             }catch(Throwable ignored){}
             String cls=data.getString("api");if(cls.startsWith("csp_"))cls="com.github.catvod.spider."+cls.substring(4);
-            entry.spider=(Spider)entry.loader.loadClass(cls).getDeclaredConstructor().newInstance();
+            // ftyguard 存根代理类（如 csp_DouDouGuard）仅供安卓宿主使用：它的构造器会调用
+            // Init.getSpider 交给 native 解密后再实例化真实类。桌面端解壳后的 jar 里就是真实类
+            // （命名约定：去掉 Guard 后缀，如 csp_DouDou），优先直接加载真实类，存根作为回退。
+            Class<?> type;
+            try{
+                type=entry.loader.loadClass(cls);
+            }catch(ClassNotFoundException missing){
+                if(!cls.endsWith("Guard"))throw missing;
+                type=entry.loader.loadClass(cls.substring(0,cls.length()-5));
+            }
+            entry.spider=(Spider)type.getDeclaredConstructor().newInstance();
             entry.spider.siteKey=data.getString("key");entry.spider.initApi(new SpiderApi());entry.spider.init(context,data.optString("ext",""));
             if(entries.size()>=32){String first=entries.keySet().iterator().next();try{entries.remove(first).close();}catch(Exception ignored){}}
             entries.put(identity,entry);return entry;
@@ -211,6 +221,8 @@ public final class Main {
     }
     private static byte[] readLimited(InputStream input,int max)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[65536];int n;while((n=input.read(buffer))!=-1){if(out.size()+n>max)throw new IOException("Request exceeds size limit");out.write(buffer,0,n);}return out.toByteArray();}
     public static void main(String[] args)throws Exception {
+        // 注册 PKCS7Padding 兼容 Provider（Android/Conscrypt 的转换名 → 标准 JCE 的 PKCS5Padding 委托）
+        try{java.security.Security.addProvider(new Pkcs7Provider());}catch(Throwable ignored){}
         token=args[0];HttpServer server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),16);port=server.getAddress().getPort();
         server.createContext("/",Main::serve);server.setExecutor(Executors.newFixedThreadPool(8));server.start();
         System.out.println(new JSONObject().put("port",port));System.out.flush();
