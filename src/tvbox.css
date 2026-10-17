@@ -127,7 +127,17 @@
 }
 #panel-tvbox .tv-category-tabs button.is-selected { color: #fff; background: #2c558e; border-color: #5b93db; }
 .tv-filters { margin: 10px 0 12px; }
-.tv-filters label { color: var(--tv-muted); font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+/* 筛选（来源配置，平铺按钮组；收起态显示已选摘要） */
+.tv-filter-head { display: flex; align-items: center; gap: 12px; }
+#panel-tvbox .tv-filter-toggle { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 12.5px; color: var(--tv-muted); }
+#panel-tvbox .tv-filter-toggle:hover { color: var(--tv-text); }
+.tv-filter-summary { color: var(--tv-muted); font-size: 12px; }
+.tv-filter-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0 2px; border-top: 1px dashed #24395a66; margin-top: 8px; }
+.tv-filter-name { flex: none; width: 84px; color: var(--tv-muted); font-size: 12px; line-height: 32px; }
+.tv-filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+#panel-tvbox .tv-filter-opt { min-height: 30px; padding: 3px 12px; border-radius: 999px; font-size: 12px; background: #0f1826; color: var(--tv-muted); }
+#panel-tvbox .tv-filter-opt:hover { color: var(--tv-text); }
+#panel-tvbox .tv-filter-opt.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
 
 /* 海报网格 */
 .tv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 22px 18px; margin: 18px 0 30px; }
@@ -228,7 +238,9 @@
 /* 跨仓搜索结果（参考 Android）：左列仓 + 右侧该仓结果（按源分组） */
 .tv-xsearch-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; padding: 2px 0 8px; }
 .tv-xsearch-head strong { font-size: 14px; }
-.tv-xsearch-profile { grid-column: 1 / -1; margin: 16px 0 2px; padding-top: 12px; border-top: 1px solid var(--tv-line); font-size: 13.5px; color: var(--tv-text); font-weight: 700; }
+.tv-xsearch-profile { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 18px 0 2px; padding-top: 12px; border-top: 1px solid var(--tv-line); font-size: 13px; font-weight: 700; }
+.tv-xsearch-profile span { color: var(--tv-muted); font-weight: 400; font-size: 12px; }
+.tv-xsearch-profile:first-of-type { border-top: 0; padding-top: 0; margin-top: 6px; }
 .tv-xsearch-site { grid-column: 1 / -1; margin-bottom: 20px; }
 .tv-xsearch-site h4 { margin: 6px 0 10px; font-size: 12.5px; color: var(--tv-muted); font-weight: 650; }
 .tv-xsearch-site .tv-grid { margin: 0; }

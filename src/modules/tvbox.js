@@ -300,12 +300,36 @@
       if(sites().some(C.supported))await browse(true);
     }finally{endLoading();}
   }
+  let filterPanelOpen=false;
   function renderFilters() {
-    $('filters').replaceChildren();const groups=homeData.filters?.[$('category').value]||[];
-    for(const group of groups) {
-      const label=el('label',group.name||group.key),select=el('select');select.setAttribute('aria-label',group.name||group.key);
-      (group.value||[]).forEach(v=>option(select,v.v,v.n));select.value=filters[group.key]??group.init??'';
-      select.onchange=()=>run(()=>{filters[group.key]=select.value;page=1;return browse();});label.append(select);$('filters').append(label);
+    const box=$('filters');box.replaceChildren();
+    // 筛选条件完全来自源配置（home 返回的 filters），按分类索引；首页（空分类）回退到第一个分类的筛选
+    let groups=homeData.filters?.[$('category').value];
+    if(!groups&&homeData.class&&homeData.class.length)groups=homeData.filters?.[homeData.class[0].type_id];
+    groups=groups||[];
+    if(!groups.length){filterPanelOpen=false;return;}
+    // 收起态：摘要行（已选条件）+ 展开/收起（参考 Android 筛选面板，平铺按钮组而非下拉）
+    const summary=groups.map(group=>{
+      const current=filters[group.key]??'';
+      const opt=(group.value||[]).find(o=>String(o.v)===String(current)&&String(o.v)!=='');
+      return opt?`${group.name}=${opt.n}`:'';
+    }).filter(Boolean).join(' · ');
+    const head=el('div',undefined,'tv-filter-head');
+    const toggle=button(filterPanelOpen?'收起 ⌃':'筛选 ⌄',()=>{filterPanelOpen=!filterPanelOpen;renderFilters();},'tv-filter-toggle');
+    head.append(toggle,el('span',summary||'全部','tv-filter-summary'));
+    box.append(head);
+    if(!filterPanelOpen)return;
+    for(const group of groups){
+      const row=el('div',undefined,'tv-filter-row');
+      row.append(el('span',group.name||group.key,'tv-filter-name'));
+      const opts=el('div',undefined,'tv-filter-options');
+      const current=filters[group.key]??'';
+      for(const opt of (group.value||[])){
+        const chip=button(opt.n,()=>{filters[group.key]=opt.v;page=1;run(()=>browse());},'tv-filter-opt');
+        if(String(opt.v)===String(current))chip.classList.add('is-selected');
+        opts.append(chip);
+      }
+      row.append(opts);box.append(row);
     }
   }
   // 左侧分组导航（左右布局）：影视 = 分类列；直播 = 直播源列 + 分组列（多层分组多列）
@@ -633,15 +657,25 @@
       const hits=group.sites.filter(e=>e.list.length);
       if(!hits.length)continue;
       any=true;
-      if(all)container.append(el('h3',`${group.name} · ${group.count}`,'tv-xsearch-profile'));
       const p=db.profiles.find(x=>x.id===group.profileId)||profile();
-      for(const entry of hits){
-        const wrap=el('div',undefined,'tv-xsearch-site');
-        wrap.append(el('h4',`${entry.site.name||entry.site.key||'片源'} · ${entry.list.length}`));
-        const grid=el('div',undefined,'tv-grid');
-        for(const v of entry.list)grid.append(movieCard(v,entry.site,p));
-        wrap.append(grid);container.append(wrap);
+      if(all){
+        // 仓与仓之间用紧凑小标题区分（不占整行高度）
+        const gh=el('div',undefined,'tv-xsearch-profile');
+        gh.append(el('strong',group.name),el('span',`${group.count} 个`));
+        container.append(gh);
       }
+      // 同一个仓的所有源结果合并为一个连续网格（不按源换行分段），按标题去重
+      const grid=el('div',undefined,'tv-grid');
+      const seen=new Set();
+      for(const entry of hits){
+        for(const v of entry.list){
+          const name=normalizeTitle(v&&v.vod_name);
+          if(name&&seen.has(name))continue;
+          if(name)seen.add(name);
+          grid.append(movieCard(v,entry.site,p));
+        }
+      }
+      container.append(grid);
     }
     if(!any)container.append(el('div',xsearch.running?'正在搜索…':'没有找到相关影片','tv-empty'));
   }
@@ -1117,7 +1151,7 @@
   $('site').onchange=()=>{
     if(siteProgrammatic)return;
     run(async()=>{const s=sites()[Number($('site').value)];if(!s)return;if(s.key===db.selectedSite||s.api===db.selectedSite||s.name===db.selectedSite)return;db.selectedSite=s.key||s.api||s.name;persist();await browse(true);});
-  };$('category').onchange=()=>run(()=>{page=1;keyword='';filters={};return browse();});
+  };$('category').onchange=()=>run(()=>{page=1;keyword='';filters={};filterPanelOpen=false;return browse();});
   $('search').onclick=()=>run(()=>{
     if(view==='live')return renderLive();
     const word=$('keyword').value.trim();
