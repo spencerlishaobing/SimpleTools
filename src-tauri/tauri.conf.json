@@ -26,14 +26,31 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
+        "scope": [
+          "**"
+        ]
       }
     }
   },
   "bundle": {
-    "resources": ["resources/mpv/libmpv-2.dll", "resources/mpv/provenance.json", "resources/mpv/COPYING.txt", "resources/mpv/Copyright.txt", "resources/aria2/aria2c.exe", "resources/aria2/COPYING", "resources/aria2/LICENSE.OpenSSL", "resources/aria2/provenance.json", "resources/python/", "resources/tvpython/", "resources/java/jre/", "resources/java/lib/", "resources/java/dex-runtime/", "resources/java/host.jar", "resources/java/jre-provenance.json", "resources/java/dependencies.json", "resources/tvspiders/", "resources/live/"],
+    "resources": [
+      "resources/mpv/libmpv-2.dll",
+      "resources/mpv/provenance.json",
+      "resources/mpv/COPYING.txt",
+      "resources/mpv/Copyright.txt",
+      "resources/aria2/aria2c.exe",
+      "resources/aria2/COPYING",
+      "resources/aria2/LICENSE.OpenSSL",
+      "resources/aria2/provenance.json",
+      "resources/python/",
+      "resources/tvpython/",
+      "resources/tvspiders/",
+      "resources/live/"
+    ],
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -43,7 +60,9 @@
     ],
     "windows": {
       "nsis": {
-        "languages": ["SimpChinese"],
+        "languages": [
+          "SimpChinese"
+        ],
         "displayLanguageSelector": false,
         "template": "nsis/installer.nsi",
         "installerIcon": "icons/icon.ico",

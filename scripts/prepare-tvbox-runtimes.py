@@ -21,6 +21,7 @@ if not (python/'Lib/site-packages/requests').exists():
     if sys.version_info[:2]!=(3,13):raise RuntimeError('Build dependencies need Python 3.13 (runtime users do not need Python installed)')
     subprocess.run([sys.executable,'-m','pip','install','--target',python/'Lib/site-packages','-r',root/'runtime/python/requirements.txt'],check=True)
 shutil.copytree(root/'runtime/python',resources/'tvpython',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
-subprocess.run([sys.executable,root/'scripts/build-tvbox-java.py'],check=True)
+# copy_fantaiying 分支：不准备 JAR/JVM 资源（不解析 JAR，包更小）
+# subprocess.run([sys.executable,root/'scripts/build-tvbox-java.py'],check=True)
 subprocess.run([python/'python.exe','-c','import requests,lxml,Crypto,bs4,pyquery,jsonpath,ujson,cachetools'],check=True)
 print('TVBox Python and Java/DEX loader resources prepared.')
