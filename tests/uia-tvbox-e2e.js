@@ -7,7 +7,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const VER = process.argv[2] || '0.58.0';
+const VER = process.argv[2] || '0.58.4';
 const PORT = Number(process.env.CDP_PORT || 9222);
 const ROOT = path.join(__dirname, '..');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -100,6 +100,8 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
       topbarSelects: panel.querySelectorAll('.tv-topbar-sources select').length,
       profileInSettings: !!document.getElementById('tv-settings-panel').querySelector('#tv-profile'),
       moreHidden: document.getElementById('tv-controls-more').classList.contains('hidden'),
+      controlsHidden: document.getElementById('tv-controls').classList.contains('hidden'),
+      stopLabel: document.getElementById('tv-stop').textContent.trim(),
     });
   })()`));
   T('panel active', ui.active === true, ui.view + '/' + ui.topbar);
@@ -108,6 +110,35 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
   T('compact topbar (label + filter + one site select)', ui.clusterLabel === true && ui.topbarSelects === 1, 'label=' + ui.clusterLabel + ' selects=' + ui.topbarSelects);
   T('profile select moved into settings', ui.profileInSettings === true, String(ui.profileInSettings));
   T('player extras collapsed by default', ui.moreHidden === true, String(ui.moreHidden));
+  T('player controls hidden outside playback', ui.controlsHidden === true, String(ui.controlsHidden));
+  T('stop button closes video area (integrated mode)', ui.stopLabel === '关闭视频区', ui.stopLabel);
+
+  // 1.5) 集成式播放布局：播放态下视频区在列表上方、列表保持可见可滚动（不进入独立播放界面）
+  const integration = JSON.parse(await evaluate(ws, `(() => {
+    const panel = document.getElementById('panel-tvbox');
+    const stage = document.getElementById('tv-stage');
+    const controls = document.getElementById('tv-controls');
+    const library = document.getElementById('tv-library');
+    panel.classList.add('tv-player-mode');
+    stage.classList.remove('hidden');
+    controls.classList.remove('hidden');
+    const libraryVisible = getComputedStyle(library).display !== 'none';
+    const stageRect = stage.getBoundingClientRect();
+    const libraryRect = library.getBoundingClientRect();
+    const libraryScrollable = getComputedStyle(library).overflowY === 'auto';
+    // 还原为非播放态
+    stage.classList.add('hidden');
+    controls.classList.add('hidden');
+    panel.classList.remove('tv-player-mode');
+    return JSON.stringify({ libraryVisible, stageAbove: stageRect.top < libraryRect.top, libraryScrollable });
+  })()`));
+  T('integrated layout keeps library below video area', integration.libraryVisible === true && integration.stageAbove === true && integration.libraryScrollable === true, JSON.stringify(integration));
+
+  // 1.6) 「搜索」导航：空关键词时直接聚焦搜索框（不静默无响应）
+  await evaluate(ws, `(() => { const k = document.getElementById('tv-keyword'); k.value = ''; document.getElementById('tv-find').click(); return true; })()`);
+  await sleep(300);
+  const searchFocused = await evaluate(ws, `document.activeElement === document.getElementById('tv-keyword')`);
+  T('search nav focuses keyword input when empty', searchFocused === true, String(searchFocused));
 
   // 2) 真实拉取饭太硬加密配置（Rust 侧：IDN + okhttp UA + 图片外壳解密），并在页面内按 TVBoxCore 规则解析
   const conf = JSON.parse(await evaluate(ws, `window.__TAURI__.core.invoke('tvbox_fetch', { url: 'https://www.饭太硬.cc/tv' }).then(t => { try { const c = window.TVBoxCore.json(t); return JSON.stringify({ head: t.slice(0, 40), sites: (c.sites || []).length, lives: (c.lives || []).length, first: (c.sites || [])[0] && (c.sites[0].api || '') }); } catch (e) { return JSON.stringify({ head: t.slice(0, 60), error: String(e) }); } })`, 45000));
@@ -179,6 +210,21 @@ async function poll(ws, expression, timeoutMs, stepMs = 700) {
   })()`));
   T('settings view toggles cleanly', settings.view === 'settings' && settings.settingsShown && settings.libraryHidden && settings.sourcesHidden, JSON.stringify(settings));
   await shot(ws, `_uia-tvbox-settings-v${VER}.png`);
+
+  // 7) 直播视图：无分页器、非播放态不挂播放控制条（直播不依赖点播进度/历史控件）
+  await evaluate(ws, `document.getElementById('tv-live').click(); true`);
+  await sleep(600);
+  const liveUi = JSON.parse(await evaluate(ws, `(() => {
+    const panel = document.getElementById('panel-tvbox');
+    return JSON.stringify({
+      view: panel.dataset.view,
+      pagerHidden: getComputedStyle(document.getElementById('tv-pager')).display === 'none',
+      controlsHidden: document.getElementById('tv-controls').classList.contains('hidden'),
+      placeholder: document.getElementById('tv-keyword').placeholder.slice(0, 20),
+    });
+  })()`));
+  T('live view: no pager / no point-play controls, channel placeholder', liveUi.view === 'live' && liveUi.pagerHidden === true && liveUi.controlsHidden === true && liveUi.placeholder.includes('频道'), JSON.stringify(liveUi));
+  await shot(ws, `_uia-tvbox-live-v${VER}.png`);
 
   console.log('----');
   console.log('TOTAL=' + (fails.length === 0 ? 'ALL-PASS' : 'FAIL=' + fails.length) + '|' + fails.join(','));

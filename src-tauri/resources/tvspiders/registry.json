@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "note": "内置本地站点爬虫注册表。match 为站点特征（api/key/名称包含即命中），file 为 resources/tvspiders 下的 JS 爬虫（实现 TVBox Spider 接口）。未命中的站点由桌面端记录到 tvbox.json 的 unmatched 列表，后续版本逐步适配。",
+  "sites": [
+    {
+      "id": "auete",
+      "name": "奥特影视（Auete）",
+      "match": ["csp_Auete", "Auete", "奥特"],
+      "file": "auete.js",
+      "note": "www.aeete.com：首页/分类/详情/播放已适配；站内搜索有安全验证，暂不提供搜索"
+    },
+    {
+      "id": "douban",
+      "name": "豆瓣片单（本地）",
+      "match": ["csp_Douban", "Douban", "豆瓣"],
+      "file": "douban.js",
+      "note": "movie.douban.com：分类 + 类型/地区/年份/排序条件搜索、关键词联想；片单展示源（无播放详情，点击后自动跨仓搜索）"
+    }
+  ]
+}

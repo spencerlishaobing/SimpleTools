@@ -6,6 +6,11 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 
+/// 主窗口内的视频表面子窗口句柄（mpv 渲染目标）。方案：在应用主窗口上创建 WS_CHILD 子窗口，
+/// mpv 以该子窗口为 wid 渲染，把视频内嵌在应用界面中（而非弹出独立播放窗口）。
+#[derive(Default)]
+pub struct SurfaceState(Mutex<Option<isize>>);
+
 type Handle = *mut c_void;
 type Set = unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int;
 type Cmd = unsafe extern "C" fn(Handle, *const *const c_char) -> c_int;
@@ -46,6 +51,126 @@ impl Drop for Player {
 }
 #[derive(Default)]
 pub struct PlayerState(Mutex<Option<Player>>);
+
+#[cfg(windows)]
+pub(crate) mod surface_win {
+    use super::*;
+    use std::ffi::c_void;
+    use windows::core::w;
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        CreateWindowExW, SetWindowPos, ShowWindow, HWND_TOP, SWP_NOACTIVATE, SWP_SHOWWINDOW,
+        SW_HIDE, WINDOW_EX_STYLE, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE,
+    };
+
+    fn hwnd_of(app: &tauri::AppHandle) -> Result<HWND, String> {
+        let w = app.get_window("main").ok_or("主窗口不存在")?;
+        Ok(HWND(w.hwnd().map_err(|e| e.to_string())?.0 as *mut c_void))
+    }
+    #[allow(dead_code)]
+    pub fn parent_hwnd(app: &tauri::AppHandle) -> Result<HWND, String> {
+        hwnd_of(app)
+    }
+
+    pub fn ensure(app: &tauri::AppHandle, x: f64, y: f64, width: f64, height: f64) -> Result<HWND, String> {
+        let state = app.state::<SurfaceState>();
+        let existing = *state.0.lock().map_err(|_| "视频区域锁异常")?;
+        let (xi, yi, wi, hi) = (
+            x.round() as i32,
+            y.round() as i32,
+            width.round().max(2.0) as i32,
+            height.round().max(2.0) as i32,
+        );
+        // 原生窗口创建/移动必须在主线程执行：跨线程创建 WebView2 主窗口的子窗口会死锁。
+        let (tx, rx) = std::sync::mpsc::channel::<Result<isize, String>>();
+        let app2 = app.clone();
+        app.run_on_main_thread(move || {
+            let result = (|| -> Result<isize, String> {
+                let hwnd = match existing {
+                    Some(raw) => HWND(raw as *mut c_void),
+                    None => unsafe {
+                        let parent = {
+                            let w = app2.get_window("main").ok_or("主窗口不存在")?;
+                            HWND(w.hwnd().map_err(|e| e.to_string())?.0 as *mut c_void)
+                        };
+                        let instance = GetModuleHandleW(None).map_err(|e| e.to_string())?;
+                        CreateWindowExW(
+                            WINDOW_EX_STYLE(0),
+                            w!("static"),
+                            w!(""),
+                            WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+                            xi,
+                            yi,
+                            wi,
+                            hi,
+                            Some(parent),
+                            None,
+                            Some(instance.into()),
+                            None,
+                        )
+                        .map_err(|e| format!("视频区域创建失败：{e}"))?
+                    }
+                };
+                unsafe {
+                    let _ = SetWindowPos(hwnd, Some(HWND_TOP), xi, yi, wi, hi, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+                }
+                Ok(hwnd.0 as isize)
+            })();
+            let _ = tx.send(result);
+        })
+        .map_err(|e| e.to_string())?;
+        let raw = rx
+            .recv()
+            .map_err(|_| "视频区域创建失败（主线程未响应）".to_string())??;
+        if existing.is_none() {
+            let mut guard = state.0.lock().map_err(|_| "视频区域锁异常")?;
+            *guard = Some(raw);
+        }
+        Ok(HWND(raw as *mut c_void))
+    }
+
+    pub fn hide(app: &tauri::AppHandle) {
+        let state = app.state::<SurfaceState>();
+        let Ok(guard) = state.0.lock() else { return };
+        if let Some(raw) = *guard {
+            unsafe {
+                let _ = ShowWindow(HWND(raw as *mut c_void), SW_HIDE);
+            }
+        }
+    }
+
+    pub fn current(app: &tauri::AppHandle) -> Option<HWND> {
+        let state = app.state::<SurfaceState>();
+        let guard = state.0.lock().ok()?;
+        guard.map(|raw| HWND(raw as *mut c_void))
+    }
+}
+
+/// 设置播放视频区域的位置与尺寸（物理像素，相对主窗口客户区）。前端进入播放界面时调用。
+#[tauri::command]
+pub async fn tvplayer_surface(app: tauri::AppHandle, x: f64, y: f64, w: f64, h: f64) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        surface_win::ensure(&app, x, y, w, h)?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, x, y, w, h);
+        Err("内嵌播放仅支持 Windows".into())
+    }
+}
+
+/// 隐藏视频区域（退出播放界面或切换视图时调用，画面停止显示但播放会话保留）。
+#[tauri::command]
+pub async fn tvplayer_surface_hide(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(windows)]
+    surface_win::hide(&app);
+    #[cfg(not(windows))]
+    let _ = app;
+    Ok(())
+}
 fn c(value: &str) -> Result<CString, String> {
     CString::new(value).map_err(|_| "参数包含空字符".into())
 }
@@ -114,43 +239,29 @@ pub async fn tvplayer_play(
     } else if !std::path::Path::new(&target).is_file() {
         return Err("请选择本地视频或 HTTP(S) 直链".into());
     }
-    // Native window creation must run outside synchronous IPC on Windows.
-    let window = if let Some(w) = app.get_window("tvbox-player") {
-        w
-    } else {
-        let w = tauri::window::WindowBuilder::new(&app, "tvbox-player")
-            .title("TVBOX · SimpleTools")
-            .inner_size(1100.0, 680.0)
-            .min_inner_size(480.0, 270.0)
-            .center()
-            .build()
-            .map_err(|e| e.to_string())?;
-        let handle = app.clone();
-        #[cfg(windows)]
-        let closed_wid = w.hwnd().map_err(|e| e.to_string())?.0 as usize;
-        #[cfg(not(windows))]
-        let closed_wid = 0usize;
-        w.on_window_event(move |event| {
-            if matches!(event, tauri::WindowEvent::Destroyed) {
-                let app = handle.clone();
-                std::thread::spawn(move || {
-                    if let Ok(mut state) = app.state::<PlayerState>().0.lock() {
-                        if state.as_ref().is_some_and(|p| p.wid == closed_wid) {
-                            if let Some(player) = state.as_ref() {
-                                let mut snapshot = player.snapshot();
-                                snapshot["kind"] = "closed".into();
-                                let _ = app.emit("tvbox-player-event", snapshot);
-                            }
-                            state.take();
-                        }
-                    }
-                });
-            }
-        });
-        w
-    };
+    // 渲染目标：主窗口内的视频表面子窗口（前端进入播放界面时已通过 tvplayer_surface 定位；
+    // 未准备时回退为覆盖主窗口中部的默认区域）。
     #[cfg(windows)]
-    let wid = window.hwnd().map_err(|e| e.to_string())?.0 as usize;
+    let wid = {
+        let surface = match surface_win::current(&app) {
+            Some(hwnd) => hwnd,
+            None => {
+                let size = app
+                    .get_window("main")
+                    .ok_or("主窗口不存在")?
+                    .inner_size()
+                    .map_err(|e| e.to_string())?;
+                surface_win::ensure(
+                    &app,
+                    0.0,
+                    88.0,
+                    size.width as f64,
+                    (size.height as f64 - 88.0).max(160.0),
+                )?
+            }
+        };
+        surface.0 as usize
+    };
     #[cfg(not(windows))]
     let wid = 0usize;
     let state = app.state::<PlayerState>();
@@ -325,11 +436,6 @@ pub async fn tvplayer_play(
     player.set("force-media-title", &title)?;
     player.command(&["loadfile", &target, "replace"])?;
     drop(guard);
-    window
-        .set_title(&format!("{title} · TVBOX"))
-        .map_err(|e| e.to_string())?;
-    let _ = window.show();
-    let _ = window.set_focus();
     Ok(())
 }
 
@@ -340,7 +446,7 @@ pub async fn tvplayer_control(
     value: Option<serde_json::Value>,
 ) -> Result<(), String> {
     if action == "fullscreen" {
-        let w = app.get_window("tvbox-player").ok_or("请先播放视频")?;
+        let w = app.get_window("main").ok_or("主窗口不存在")?;
         return w
             .set_fullscreen(!w.is_fullscreen().map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string());

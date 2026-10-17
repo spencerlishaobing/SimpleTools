@@ -261,6 +261,100 @@ pub fn tvbox_save(app: tauri::AppHandle, data: serde_json::Value) -> Result<(), 
     std::fs::rename(tmp, path).map_err(|e| e.to_string())
 }
 
+static IMAGE_CACHE: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, String)>>,
+> = std::sync::OnceLock::new();
+
+/// 图片代理：部分片源海报地址带防盗链（如豆瓣图床要求 Referer，无 Referer 直接返回 418），
+/// 地址用 `@Referer=...` / `@User-Agent=...` 后缀描述（安卓端图片加载器会解析）。桌面 `<img>` 无法自定义请求头，
+/// 这里由后台带 UA / Referer 拉取并返回 data URL（本地缓存 10 分钟）。
+#[tauri::command]
+pub async fn tvbox_image(url: String, referer: Option<String>, user_agent: Option<String>) -> Result<String, String> {
+    let parsed = http_url(&url)?;
+    let ua = user_agent.filter(|value| !value.trim().is_empty());
+    let key = format!("{url}|{}|{}", referer.as_deref().unwrap_or(""), ua.as_deref().unwrap_or(""));
+    let cache = IMAGE_CACHE.get_or_init(Default::default);
+    if let Some((when, data)) = cache.lock().map_err(|_| "缓存锁异常")?.get(&key) {
+        if when.elapsed() < Duration::from_secs(600) {
+            return Ok(data.clone());
+        }
+    }
+    let mut request = reqwest::Client::builder()
+        .user_agent(ua.as_deref().unwrap_or(TVBOX_UA))
+        .timeout(Duration::from_secs(12))
+        .build()
+        .map_err(|e| e.to_string())?
+        .get(parsed);
+    if let Some(referer) = referer.filter(|r| !r.is_empty()) {
+        request = request.header(reqwest::header::REFERER, referer);
+    }
+    let response = request
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/jpeg")
+        .to_string();
+    if !content_type.starts_with("image/") {
+        return Err(format!("不是图片：{content_type}"));
+    }
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.len() > 8 * 1024 * 1024 {
+        return Err("图片超过 8 MB".into());
+    }
+    let data = format!(
+        "data:{content_type};base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(&bytes)
+    );
+    let mut guard = cache.lock().map_err(|_| "缓存锁异常")?;
+    if guard.len() >= 128 {
+        guard.clear();
+    }
+    guard.insert(key, (std::time::Instant::now(), data.clone()));
+    Ok(data)
+}
+
+/// 影视热榜（借鉴 LibreTV：经 60s 公共 API，免 key）：豆瓣周榜 / 百度热播剧。
+/// 服务端转发，主实例失败自动回退官方实例；前端负责缓存与展示。
+#[tauri::command]
+pub async fn tvbox_hot_list(id: String) -> Result<serde_json::Value, String> {
+    let category = match id.as_str() {
+        "douban_movie_weekly" => "movie",
+        "douban_tv_chinese" => "tv_chinese",
+        "douban_tv_global" => "tv_global",
+        "douban_show_chinese" => "show_chinese",
+        "douban_show_global" => "show_global",
+        "baidu_teleplay" => "baidu",
+        _ => return Err("未知榜单".into()),
+    };
+    let bases = ["https://60s.crystelf.top", "https://60s.viki.moe"];
+    let client = reqwest::Client::builder()
+        .user_agent("SimpleTools-TVBox")
+        .timeout(Duration::from_secs(8))
+        .build()
+        .map_err(|e| e.to_string())?;
+    for base in bases {
+        let url = if category == "baidu" {
+            format!("{base}/v2/baidu/teleplay")
+        } else {
+            format!("{base}/v2/douban/weekly/{category}")
+        };
+        if let Ok(res) = client.get(url).send().await {
+            if res.status().is_success() {
+                if let Ok(json) = res.json::<serde_json::Value>().await {
+                    return Ok(json);
+                }
+            }
+        }
+    }
+    Err("热榜获取失败".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

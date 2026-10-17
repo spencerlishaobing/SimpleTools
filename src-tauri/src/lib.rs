@@ -37,6 +37,7 @@ pub fn run() {
         .manage(capture::CaptureState::default())
         .manage(mock::MockState::default())
         .manage(tvplayer::PlayerState::default())
+        .manage(tvplayer::SurfaceState::default())
         .manage(tvp2p::P2pState::default())
         .manage(tvremote::RemoteState::default())
         .manage(tvexternal::ExternalState::default())
@@ -120,12 +121,19 @@ pub fn run() {
                 tvremote::tvbox_remote_stop,
                 tvexternal::tvbox_external,
                 tvexternal::tvbox_external_stop,
+                tvexternal::tvbox_external_warm,
+                tvexternal::tvspiders_registry,
+                tvexternal::tvbox_live_builtin,
                 tvbox::tvbox_fetch,
                 tvbox::tvbox_load,
                 tvbox::tvbox_save,
+                tvbox::tvbox_image,
+                tvbox::tvbox_hot_list,
                 tvspider::tvbox_spider,
                 tvsniff::tvbox_sniff,
                 tvplayer::tvplayer_play,
+                tvplayer::tvplayer_surface,
+                tvplayer::tvplayer_surface_hide,
                 tvplayer::tvplayer_control,
                 tvplayer::tvplayer_status,
                 tvp2p::tvbox_prepare_media,

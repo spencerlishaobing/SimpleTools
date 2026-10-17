@@ -12,7 +12,7 @@ public class OkHttp {
     public static OkHttpClient client(boolean redirect,long timeout){return client(timeout).newBuilder().followRedirects(redirect).followSslRedirects(redirect).build();}
     public static OkHttpClient noRedirect(){return noRedirect(30000);}public static OkHttpClient noRedirect(long timeout){return client(false,timeout);}
     public static synchronized void reset(){client=null;dns=new OkDns();}public static synchronized void resetClient(){client=null;}
-    private static String read(Call call){try(Response response=call.execute()){return response.body()==null?"":response.body().string();}catch(Exception e){android.util.Log.e("OkHttp","Request failed",e);return "";}}
+    private static String read(Call call){try(Response response=call.execute()){String text=response.body()==null?"":response.body().string();android.util.Log.d("OkHttp",call.request().url()+" -> "+response.code()+" len="+text.length());return text;}catch(Exception e){android.util.Log.e("OkHttp","Request failed: "+call.request().url(),e);return "";}}
     public static String string(String url){return read(newCall(url));}public static String string(String url,long timeout){return read(newCall(client(timeout),url));}public static String string(String url,Map<String,String> headers){return read(newCall(url,headers));}
     private static Headers headers(Map<String,String> map){return map==null?new Headers.Builder().build():Headers.of(map);}
     public static Call newCall(String url){return newCall(client(),url);}public static Call newCall(String url,String tag){return newCall(client(),url,tag);}

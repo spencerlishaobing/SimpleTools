@@ -791,13 +791,6 @@
 
       <p id="tv-status" role="status" aria-live="polite">欢迎使用 TVBOX；在「设置」中添加配置网址即可开始。</p>
 
-      <div id="tv-controls" class="tv-player-controls hidden">
-        <div class="tv-player-head"><strong id="tv-now">尚未播放</strong><span id="tv-info"></span></div>
-        <div class="tv-player-main"><button id="tv-pause" title="播放 / 暂停（空格）">播放 / 暂停</button><button id="tv-backward" title="快退 10 秒（←）">−10</button><button id="tv-forward" title="快进 10 秒（→）">+10</button><input id="tv-seek" type="range" min="0" max="100" value="0" step="1" aria-label="播放进度"><span id="tv-time">00:00 / 00:00</span><button id="tv-episode-prev" title="上一集">上一集</button><button id="tv-episode-next" title="下一集（N）">下一集</button><button id="tv-fullscreen" title="全屏（F）">全屏</button><button id="tv-more-toggle" title="音量 / 音轨 / 字幕 / 倍速等">更多 ⌄</button><button id="tv-stop" title="停止播放并保存进度">停止</button></div>
-        <div id="tv-controls-more" class="hidden"><div class="tv-toolbar"><label title="音量">音量 <input id="tv-volume" type="range" min="0" max="150" value="100" aria-label="音量"></label><select id="tv-speed" aria-label="播放速度"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option></select><select id="tv-audio" aria-label="音轨"><option value="auto">自动音轨</option></select><select id="tv-subtitles" aria-label="字幕"><option value="auto">自动字幕</option></select><button id="tv-subtitle-file">加载字幕</button><select id="tv-aspect" aria-label="画面比例"><option value="-1">原始比例</option><option value="16:9">16:9</option><option value="4:3">4:3</option><option value="2.35:1">2.35:1</option></select><label>字幕延迟 <input id="tv-sub-delay" type="number" min="-60" max="60" step="0.1" value="0"> 秒</label></div><div class="tv-toolbar"><button id="tv-sniff">网页解析</button><label>解析线路 <select id="tv-parser" aria-label="解析线路"></select></label></div></div>
-      </div>
-      <video id="tv-video" controls class="hidden" playsinline></video>
-
       <div id="tv-settings-panel" class="hidden">
         <div class="tv-settings-intro"><h3>设置</h3><p>添加配置后即可在「影视」页观看；支持多仓合集与单仓地址。</p></div>
 
@@ -814,7 +807,7 @@
           <div class="tv-toolbar"><button id="tv-delete-profile">删除此配置</button><button id="tv-runtime-stop" title="释放 JAR / Python 片源占用，下次使用自动重启">停止片源后台</button></div>
         </div>
 
-        <details class="tv-settings"><summary>播放设置</summary><div class="tv-toolbar"><label><input id="tv-resume" type="checkbox" checked>自动续播</label><label><input id="tv-auto-next" type="checkbox" checked>自动下一集</label><label>跳过片头 <input id="tv-skip-intro" type="number" min="0" max="600" value="0"> 秒</label><label>跳过片尾 <input id="tv-skip-outro" type="number" min="0" max="600" value="0"> 秒</label><select id="tv-hwdec" aria-label="解码方式"><option value="auto-safe">自动硬件解码</option><option value="no">软件解码</option></select></div></details>
+        <details class="tv-settings"><summary>播放设置</summary><div class="tv-toolbar"><label><input id="tv-resume" type="checkbox" checked>自动续播</label><label><input id="tv-auto-next" type="checkbox" checked>自动下一集</label><label>跳过片头 <input id="tv-skip-intro" type="number" min="0" max="600" value="0"> 秒</label><label>跳过片尾 <input id="tv-skip-outro" type="number" min="0" max="600" value="0"> 秒</label><select id="tv-hwdec" aria-label="解码方式"><option value="auto-safe">自动硬件解码</option><option value="no">软件解码</option></select></div><div class="tv-toolbar"><label title="默认使用内置本地爬虫（毫秒级打开）；暂未适配的站点会记录到待适配清单，后续版本适配。勾选后允许回退到片源自带的 JAR / 脚本爬虫（首次加载较慢）"><input id="tv-self-parser" type="checkbox">源自带解析兼容</label><label title="直播源超过该时间无画面就自动换源（同频道下一个源 → 下一个频道）">直播换源超时 <input id="tv-live-timeout" type="number" min="5" max="30" value="15"> 秒</label><span class="tv-cluster-label" id="tv-health-info">源健康：正常</span><button id="tv-reset-health" title="清除所有源的冷却状态，重新参与搜索">恢复源健康</button><span class="tv-cluster-label" id="tv-unmatched">本地解析：加载中…</span></div></details>
 
         <details class="tv-settings"><summary>高级：编辑与导出配置</summary><textarea id="tv-config-editor" aria-label="配置 JSON 编辑器" spellcheck="false" placeholder="粘贴或编辑 TVBox JSON 配置"></textarea><div class="tv-toolbar"><button id="tv-apply-config">应用 JSON</button><button id="tv-export">导出当前配置</button></div></details>
 
@@ -822,6 +815,8 @@
       </div>
 
       <div id="tv-library">
+        <aside id="tv-sidenav" aria-label="分组导航"></aside>
+        <div id="tv-main">
         <div id="tv-onboarding" class="tv-onboarding hidden"><span class="tv-eyebrow">欢迎使用 TVBOX</span><h3>先添加片源，接着就能选影片播放</h3><p>已有 TVBox 配置？直接粘贴网址或用手机扫码。也可以先打开本地视频试播。</p><div class="tv-onboarding-actions"><button id="tv-onboard-config" class="tv-primary">添加配置网址</button><button id="tv-onboard-phone">手机扫码配置</button><button id="tv-onboard-local">打开本地视频</button></div></div>
 
         <div class="tv-viewbar"><button id="tv-detail-back" class="tv-back hidden" title="返回列表">‹ 返回</button><h3 id="tv-section-title">影视</h3><div class="tv-searchbar" id="tv-searchbar"><input id="tv-keyword" placeholder="输入片名搜索…" aria-label="搜索片名"><button id="tv-search" class="tv-primary" title="搜索当前片源">搜索</button><button id="tv-search-all" title="在所有可搜索的片源中查找">全源搜索</button></div><button id="tv-clear-history" class="tv-back hidden" title="清空全部观看记录与续播进度">清空记录</button></div>
@@ -835,8 +830,23 @@
         <div id="tv-detail"></div>
         <div id="tv-epg"></div>
         <div class="tv-toolbar tv-pagination" id="tv-pager"><button id="tv-prev">上一页</button><span id="tv-page">第 1 页</span><button id="tv-next">下一页</button></div>
+        <div id="tv-sentinel" class="tv-sentinel" aria-hidden="true"></div>
+        </div>
       </div>
-      <p class="tv-note">键盘：空格暂停 · ← → 快退快进 · F 全屏 · N 下一集；播放时点「更多」可选择音量、音轨、字幕与倍速。</p>
+
+      <div id="tv-stage" class="hidden">
+        <div id="tv-stage-main">
+          <div id="tv-surface"><div id="tv-surface-loading" class="tv-surface-loading hidden"><span class="tv-buffer"></span><span id="tv-surface-loading-text">正在加载视频…</span></div><video id="tv-video" controls class="hidden" playsinline></video></div>
+        </div>
+        <aside id="tv-stage-side" aria-label="线路与选集"></aside>
+      </div>
+
+      <div id="tv-controls" class="tv-player-controls hidden">
+        <div class="tv-player-head"><strong id="tv-now">尚未播放</strong><span id="tv-buffer" class="tv-buffer hidden" title="正在加载视频"></span><span id="tv-info"></span></div>
+        <div class="tv-player-main"><button id="tv-pause" title="播放 / 暂停（空格）">播放 / 暂停</button><button id="tv-backward" title="快退 10 秒（←）">−10</button><button id="tv-forward" title="快进 10 秒（→）">+10</button><input id="tv-seek" type="range" min="0" max="100" value="0" step="1" aria-label="播放进度"><span id="tv-time">00:00 / 00:00</span><button id="tv-episode-prev" title="上一集">上一集</button><button id="tv-episode-next" title="下一集（N）">下一集</button><button id="tv-fullscreen" title="全屏（F）">全屏</button><button id="tv-more-toggle" title="音量 / 音轨 / 字幕 / 倍速等">更多 ⌄</button><button id="tv-stop" title="停止播放、保存进度并关闭视频区">关闭视频区</button></div>
+        <div id="tv-controls-more" class="hidden"><div class="tv-toolbar"><label title="音量">音量 <input id="tv-volume" type="range" min="0" max="150" value="100" aria-label="音量"></label><select id="tv-speed" aria-label="播放速度"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option></select><select id="tv-audio" aria-label="音轨"><option value="auto">自动音轨</option></select><select id="tv-subtitles" aria-label="字幕"><option value="auto">自动字幕</option></select><button id="tv-subtitle-file">加载字幕</button><select id="tv-aspect" aria-label="画面比例"><option value="-1">原始比例</option><option value="16:9">16:9</option><option value="4:3">4:3</option><option value="2.35:1">2.35:1</option></select><label id="tv-sub-delay-wrap">字幕延迟 <input id="tv-sub-delay" type="number" min="-60" max="60" step="0.1" value="0"> 秒</label></div><div class="tv-toolbar"><button id="tv-sniff">网页解析</button><label>解析线路 <select id="tv-parser" aria-label="解析线路"></select></label></div></div>
+      </div>
+      <p class="tv-note">键盘：空格暂停 · ← → 快退快进 · F 全屏 · N 下一集；播放时视频区在列表上方，下方列表可直接选片、换集、换台，点「关闭视频区」回到纯列表。</p>
     </section>
   </main>
 

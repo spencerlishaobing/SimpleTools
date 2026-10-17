@@ -16,9 +16,18 @@ public final class Main {
     private static String token;
     private static int port;
     private static final LinkedHashMap<String,Entry> entries=new LinkedHashMap<>();
+    // 同一个 JAR（按内容哈希）的多个源共用一份解包/转换产物与类加载器：
+    // 手机端 TVBox 按 JAR 缓存 JarLoader，一次加载后所有源共享；
+    // 此前按 identity（含 api/key/ext）重复转换与初始化，是桌面端 JAR 源首次加载慢的根因。
+    private static final Map<String,Shared> shared=new HashMap<>();
+    // 初始化线程池 + 坏源标记：部分源的 init 会死循环（如网盘系 Pan.init 递归），
+    // 带超时执行并在超时后标记该源不可用，避免阻塞同一 JAR 的其他源和后续请求
+    private static final ExecutorService INIT_POOL=Executors.newCachedThreadPool(r->{Thread t=new Thread(r,"tvbox-init");t.setDaemon(true);return t;});
+    private static final Set<String> broken=Collections.synchronizedSet(new HashSet<>());
+    private static final class Shared { URLClassLoader loader;Context context; }
     private static final class Entry implements Closeable {
-        Spider spider;URLClassLoader loader;
-        public void close()throws IOException{try{spider.destroy();}finally{loader.close();}}
+        Spider spider;Shared shared;
+        public void close(){try{spider.destroy();}catch(Exception ignored){}}
     }
     private static JSONObject object(String text){return text==null||text.trim().isEmpty()?new JSONObject():new JSONObject(text);}
     private static HashMap<String,String> map(JSONObject obj){HashMap<String,String> out=new HashMap<>();if(obj!=null)for(String key:obj.keySet())out.put(key,obj.optString(key));return out;}
@@ -128,57 +137,85 @@ public final class Main {
             Files.move(repaired.toPath(),converted.toPath(),StandardCopyOption.REPLACE_EXISTING);return converted;
         }finally{if(process.isAlive())process.destroyForcibly();}
     }
-    private static Entry load(JSONObject data)throws Exception {
-        String identity=data.getString("identity");if(!identity.matches("[a-f0-9]{32}"))throw new IOException("Invalid source identity");
-        Entry cached=entries.get(identity);if(cached!=null)return cached;
-        File folder=new File("sources",identity).getAbsoluteFile();folder.mkdirs();File original=new File(folder,"source.jar");
+    private static Shared shared(JSONObject data)throws Exception {
+        String jarHash=data.optString("jarHash","");if(!jarHash.matches("[a-f0-9]{32}"))throw new IOException("Invalid source jar hash");
+        Shared cached=shared.get(jarHash);if(cached!=null)return cached;
+        File folder=new File("shared",jarHash).getAbsoluteFile();folder.mkdirs();File original=new File(folder,"source.jar");
         if(!original.isFile()){
-            byte[] bytes=Base64.getDecoder().decode(data.getString("jarData"));if(bytes.length>64*1024*1024)throw new IOException("JAR exceeds 64 MB");
+            String encoded=data.optString("jarData","");if(encoded.isEmpty())throw new IOException("Source JAR data missing");
+            byte[] bytes=Base64.getDecoder().decode(encoded);if(bytes.length>64*1024*1024)throw new IOException("JAR exceeds 64 MB");
             Path temporary=new File(folder,"source.tmp").toPath();Files.write(temporary,bytes);Files.move(temporary,original.toPath(),StandardCopyOption.REPLACE_EXISTING);
         }
         File executable=executableJar(original,folder);
-        Entry entry=new Entry();entry.loader=new URLClassLoader(new URL[]{executable.toURI().toURL(),original.toURI().toURL()},Main.class.getClassLoader());
+        URLClassLoader loader=new URLClassLoader(new URL[]{executable.toURI().toURL(),original.toURI().toURL()},Main.class.getClassLoader());
         try {
             // spider 的 Init.init 会把传入对象强转为 android.app.Application（桌面兼容层实现），
             // 因此这里传入 Application 实例而不是裸 Context。
             Context context=new android.app.Application(new File(folder,"context"));
-            try{entry.loader.loadClass("com.github.catvod.spider.Init").getMethod("init",Context.class).invoke(null,context);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
-            // 外置片源自带的 InitOrigin（网盘系爬虫的上下文持有者）也要初始化，
-            // 否则 InitOrigin.context() 返回 null，下游 getSharedPreferences 会抛 NPE。
-            try{entry.loader.loadClass("com.github.catvod.spider.InitOrigin").getMethod("init",Context.class).invoke(null,context);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
+            final Context initContext=context;
+            // Init / InitOrigin 带超时执行：部分源（如网盘系 Pan）的初始化可能陷入死循环，
+            // 不能让它阻塞同一 JAR 的其他源和后续请求
+            try{
+                Future<?> initTask=INIT_POOL.submit(()->{
+                    try{loader.loadClass("com.github.catvod.spider.Init").getMethod("init",Context.class).invoke(null,initContext);}catch(Throwable ignored){}
+                    try{loader.loadClass("com.github.catvod.spider.InitOrigin").getMethod("init",Context.class).invoke(null,initContext);}catch(Throwable ignored){}
+                });
+                initTask.get(25,TimeUnit.SECONDS);
+            }catch(TimeoutException timeout){android.util.Log.w("Main","shared init timeout: "+jarHash);}
+            catch(Exception ignored){}
             // 部分混淆版本的 InitOrigin.init 会因桌面缺失依赖中途失败，这里兜底：
             // 直接把 Application 反射写入 InitOrigin 单例的上下文字段，保证 InitOrigin.context() 非空。
-            try{Class<?> origin=entry.loader.loadClass("com.github.catvod.spider.InitOrigin");Object instance=origin.getMethod("get").invoke(null);
+            try{Class<?> origin=loader.loadClass("com.github.catvod.spider.InitOrigin");Object instance=origin.getMethod("get").invoke(null);
                 for(java.lang.reflect.Field field:origin.getDeclaredFields())if(field.getType()==android.app.Application.class&&!java.lang.reflect.Modifier.isStatic(field.getModifiers())){field.setAccessible(true);field.set(instance,context);}
             }catch(Throwable ignored){}
-            String cls=data.getString("api");if(cls.startsWith("csp_"))cls="com.github.catvod.spider."+cls.substring(4);
-            // ftyguard 存根代理类（如 csp_DouDouGuard）仅供安卓宿主使用：它的构造器会调用
-            // Init.getSpider 交给 native 解密后再实例化真实类。桌面端解壳后的 jar 里就是真实类
-            // （命名约定：去掉 Guard 后缀，如 csp_DouDou），优先直接加载真实类，存根作为回退。
-            Class<?> type;
-            try{
-                type=entry.loader.loadClass(cls);
-            }catch(ClassNotFoundException missing){
-                if(!cls.endsWith("Guard"))throw missing;
-                type=entry.loader.loadClass(cls.substring(0,cls.length()-5));
-            }
-            entry.spider=(Spider)type.getDeclaredConstructor().newInstance();
-            entry.spider.siteKey=data.getString("key");entry.spider.initApi(new SpiderApi());entry.spider.init(context,data.optString("ext",""));
-            if(entries.size()>=32){String first=entries.keySet().iterator().next();try{entries.remove(first).close();}catch(Exception ignored){}}
-            entries.put(identity,entry);return entry;
-        }catch(Throwable e){entry.loader.close();throw e;}
+            Shared created=new Shared();created.loader=loader;created.context=context;shared.put(jarHash,created);return created;
+        }catch(Throwable e){loader.close();throw e;}
     }
-    private static synchronized JSONObject call(JSONObject data)throws Exception {
-        Spider spider=load(data).spider;JSONObject args=data.optJSONObject("args");if(args==null)args=new JSONObject();String result;
-        switch(data.getString("action")){
-            case "home":JSONObject home=object(spider.homeContent(true));if(home.optJSONArray("list")==null||home.getJSONArray("list").length()==0)home.put("list",object(spider.homeVideoContent()).optJSONArray("list"));return home;
-            case "category":result=spider.categoryContent(args.optString("t"),args.optString("page","1"),true,map(args.optJSONObject("filters")));break;
-            case "detail":result=spider.detailContent(Collections.singletonList(String.valueOf(args.get("id"))));break;
-            case "search":result=spider.searchContent(args.getString("keyword"),false,args.optString("page","1"));break;
-            case "play":result=spider.playerContent(args.optString("flag"),String.valueOf(args.get("id")),list(args.optJSONArray("flags")));break;
-            default:throw new IOException("Unsupported action");
+    private static Entry load(JSONObject data)throws Exception {
+        String identity=data.getString("identity");if(!identity.matches("[a-f0-9]{32}"))throw new IOException("Invalid source identity");
+        Entry cached=entries.get(identity);if(cached!=null)return cached;
+        if(broken.contains(identity))throw new IOException("该源初始化失败（与桌面端不兼容），已跳过");
+        Shared sh=shared(data);
+        String cls=data.getString("api");if(cls.startsWith("csp_"))cls="com.github.catvod.spider."+cls.substring(4);
+        // ftyguard 存根代理类（如 csp_DouDouGuard）仅供安卓宿主使用：它的构造器会调用
+        // Init.getSpider 交给 native 解密后再实例化真实类。桌面端解壳后的 jar 里就是真实类
+        // （命名约定：去掉 Guard 后缀，如 csp_DouDou），优先直接加载真实类，存根作为回退。
+        Class<?> type;
+        try{
+            type=sh.loader.loadClass(cls);
+        }catch(ClassNotFoundException missing){
+            if(!cls.endsWith("Guard"))throw missing;
+            type=sh.loader.loadClass(cls.substring(0,cls.length()-5));
         }
-        return object(result);
+        Entry entry=new Entry();entry.shared=sh;
+        entry.spider=(Spider)type.getDeclaredConstructor().newInstance();
+        entry.spider.siteKey=data.getString("key");entry.spider.initApi(new SpiderApi());
+        // spider.init 带超时：网盘系源的 init 可能死循环（如 Pan.init 递归），超时/异常则标记不可用，避免卡死
+        final Spider spider=entry.spider;final Context initContext=sh.context;final String ext=data.optString("ext","");
+        try{
+            Future<?> initTask=INIT_POOL.submit(()->spider.init(initContext,ext));
+            initTask.get(15,TimeUnit.SECONDS);
+        }catch(TimeoutException timeout){broken.add(identity);throw new IOException("源初始化超时（该源可能与桌面端不兼容）");}
+        catch(ExecutionException failed){broken.add(identity);throw new IOException("源初始化失败："+String.valueOf(failed.getCause()));}
+        if(entries.size()>=64){String first=entries.keySet().iterator().next();try{entries.remove(first).close();}catch(Exception ignored){}}
+        entries.put(identity,entry);return entry;
+    }
+    // 按源分段锁：同一源的调用串行（spider 可能有静态状态），不同源之间并行——
+    // 之前 call 是全局 synchronized，一个网盘源的 init/请求卡死会把所有源的请求堵住
+    private static final Map<String,Object> callLocks=new java.util.concurrent.ConcurrentHashMap<>();
+    private static JSONObject call(JSONObject data)throws Exception {
+        synchronized(callLocks.computeIfAbsent(String.valueOf(data.optString("identity","")),key->new Object())){
+            Spider spider=load(data).spider;JSONObject args=data.optJSONObject("args");if(args==null)args=new JSONObject();String result;
+            switch(data.getString("action")){
+                case "home":JSONObject home=object(spider.homeContent(true));if(home.optJSONArray("list")==null||home.getJSONArray("list").length()==0)home.put("list",object(spider.homeVideoContent()).optJSONArray("list"));return home;
+                case "category":result=spider.categoryContent(args.optString("t"),args.optString("page","1"),true,map(args.optJSONObject("filters")));break;
+                case "detail":result=spider.detailContent(Collections.singletonList(String.valueOf(args.get("id"))));break;
+                case "search":result=spider.searchContent(args.getString("keyword"),false,args.optString("page","1"));break;
+                case "play":result=spider.playerContent(args.optString("flag"),String.valueOf(args.get("id")),list(args.optJSONArray("flags")));break;
+                default:throw new IOException("Unsupported action");
+            }
+            return object(result);
+        }
     }
     private static Map<String,String> query(String raw)throws Exception {
         Map<String,String> out=new HashMap<>();if(raw!=null)for(String pair:raw.split("&")){String[] parts=pair.split("=",2);out.put(URLDecoder.decode(parts[0],"UTF-8"),parts.length>1?URLDecoder.decode(parts[1],"UTF-8"):"");}return out;
@@ -202,7 +239,7 @@ public final class Main {
                 synchronized(Main.class){entry=entries.get(identity);if(entry==null)throw new IOException("Source expired; play the episode again");
                     String range=exchange.getRequestHeaders().getFirst("Range");if(range!=null)params.put("range",range);
                     result=entry.spider.proxy(params);
-                    if(result==null)try{result=(Object[])entry.loader.loadClass("com.github.catvod.spider.Proxy").getMethod("proxy",Map.class).invoke(null,params);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
+                    if(result==null)try{result=(Object[])entry.shared.loader.loadClass("com.github.catvod.spider.Proxy").getMethod("proxy",Map.class).invoke(null,params);}catch(ClassNotFoundException|NoSuchMethodException ignored){}
                 }
                 if(result==null)throw new IOException("Source has no local proxy handler");
                 int code=((Number)result[0]).intValue();String mime=String.valueOf(result[1]);

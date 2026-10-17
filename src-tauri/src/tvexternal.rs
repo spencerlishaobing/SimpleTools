@@ -204,7 +204,7 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
         .arg("-cp")
         .arg(classpath)
         .args(["com.simpletools.tvbridge.Main", &secret])
-        .current_dir(cache)
+        .current_dir(&cache)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -234,8 +234,34 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
     tokio::spawn(async move {
         let _ = tokio::io::copy(&mut reader, &mut tokio::io::sink()).await;
     });
+    // JVM 日志落盘（诊断用）：data_dir/tvbox-java/worker.log，超 2MB 重置
+    let log_path = cache.join("worker.log");
     tokio::spawn(async move {
-        let _ = tokio::io::copy(&mut err_reader, &mut tokio::io::sink()).await;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut file = tokio::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .await
+            .ok();
+        let mut written = tokio::fs::metadata(&log_path).await.map(|m| m.len()).unwrap_or(0);
+        let mut buf = vec![0u8; 65536];
+        loop {
+            match err_reader.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    if let Some(f) = file.as_mut() {
+                        let _ = f.write_all(&buf[..n]).await;
+                        written += n as u64;
+                        if written > 2 * 1024 * 1024 {
+                            let _ = f.flush().await;
+                            file = tokio::fs::File::create(&log_path).await.ok();
+                            written = 0;
+                        }
+                    }
+                }
+            }
+        }
     });
     let port = data["port"]
         .as_u64()
@@ -413,6 +439,9 @@ pub async fn tvbox_external(
             }
         }
         data["identity"] = json!(identity);
+        // JAR 内容哈希：Java 端按它共享解包/转换产物与类加载器（手机端 TVBox 也是按 JAR 缓存 JarLoader），
+        // 同一个 JAR 的多个源只需转换/加载一次。
+        data["jarHash"] = json!(hash);
         data["jarData"] = json!(STANDARD.encode(bytes));
         if !ext.is_string() {
             data["ext"] = json!(ext.to_string());
@@ -434,7 +463,9 @@ pub async fn tvbox_external(
     let worker = slot.as_mut().unwrap();
     if !is_python {
         data["proxyOrigin"] = json!(worker.url);
-        if worker.known.contains(&identity) {
+        // known 记录已传给 Java 端的 JAR 内容哈希：同一 JAR 只传一次 base64 载荷
+        let jar_hash = data["jarHash"].as_str().unwrap_or("").to_string();
+        if worker.known.contains(&jar_hash) {
             data["jarData"] = Value::Null;
         }
     }
@@ -460,10 +491,67 @@ pub async fn tvbox_external(
         ));
     }
     if !is_python {
-        worker.known.insert(identity.clone());
+        worker
+            .known
+            .insert(data["jarHash"].as_str().unwrap_or("").to_string());
         rewrite(&mut result, worker, &identity);
     }
     Ok(result)
+}
+
+/// 预热内置 JVM（TVBOX 有 JAR 源时在后台调用）：提前启动 worker，避免首次点开片源时等待进程启动。
+#[tauri::command]
+pub async fn tvbox_external_warm(app: tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<ExternalState>();
+    let mut slot = state.java.lock().await;
+    if slot.is_none() {
+        *slot = Some(java(&app).await?);
+    }
+    Ok(())
+}
+
+/// 内置直播源（resources/live/default.json）：频道分组 + 频道 + 每频道多线路。
+/// 直播页优先使用内置源（本地读取，毫秒级），当前仓的 lives 按需懒加载。
+#[tauri::command]
+pub async fn tvbox_live_builtin(app: tauri::AppHandle) -> Result<Value, String> {
+    let Ok(path) = resource(&app, "resources/live/default.json") else {
+        return Ok(json!({"name": "内置源", "groups": []}));
+    };
+    let text = tokio::fs::read_to_string(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::from_str(&text).map_err(|e| format!("内置直播源解析失败：{e}"))
+}
+
+/// 内置本地站点爬虫注册表：resources/tvspiders/registry.json。
+/// 每个条目形如 { "match": ["csp_DouDou", "豆豆"], "file": "doudou.js" }，
+/// 返回时附上适配器脚本的绝对 file 地址（由 QuickJS 爬虫引擎直接执行）。
+#[tauri::command]
+pub async fn tvspiders_registry(app: tauri::AppHandle) -> Result<Value, String> {
+    let Ok(dir) = resource(&app, "resources/tvspiders") else {
+        return Ok(json!({"sites": []}));
+    };
+    let registry = dir.join("registry.json");
+    if !registry.is_file() {
+        return Ok(json!({"sites": []}));
+    }
+    let text = tokio::fs::read_to_string(&registry)
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut value: Value =
+        serde_json::from_str(&text).map_err(|e| format!("本地适配器注册表解析失败：{e}"))?;
+    if let Some(sites) = value["sites"].as_array_mut() {
+        for site in sites {
+            let Some(file) = site["file"].as_str() else { continue };
+            let path = dir.join(file);
+            if path.is_file() {
+                if let Ok(url) = reqwest::Url::from_file_path(&path) {
+                    site["url"] = json!(url.to_string());
+                }
+            }
+        }
+    }
+    Ok(value)
 }
 
 #[tauri::command]

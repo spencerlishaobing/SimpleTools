@@ -78,7 +78,7 @@
 
 /* 状态提示（成功类消息自动淡出；错误/进行中保留） */
 #tv-status {
-  margin: 13px 0 4px; padding: 9px 14px;
+  margin: 14px 0 6px; padding: 10px 14px;
   border: 1px solid #223c5e; border-left: 3px solid var(--tv-accent);
   border-radius: 9px; background: #0f1e33; color: #c3d7f1;
   font-size: 12px; line-height: 1.55; overflow-wrap: anywhere;
@@ -86,7 +86,7 @@
 #tv-status.is-idle { display: none; }
 
 /* 视图标题栏（标题 + 搜索框同排；详情模式下显示返回） */
-.tv-viewbar { display: flex; align-items: center; gap: 14px; margin: 16px 0 2px; }
+.tv-viewbar { display: flex; align-items: center; gap: 14px; margin: 18px 0 6px; }
 .tv-viewbar h3 { margin: 0; font-size: 20px; letter-spacing: .02em; flex: none; }
 .tv-viewbar .tv-searchbar { flex: 1; max-width: 620px; margin: 0; }
 #panel-tvbox .tv-back { border-radius: 999px; padding: 6px 15px; font-size: 12.5px; color: var(--tv-muted); }
@@ -97,21 +97,43 @@
 .tv-searchbar { display: flex; gap: 9px; }
 .tv-searchbar input { flex: 1; min-width: 160px; }
 
+/* 左右分组导航（v0.58.5）：左列分组 + 右侧资源宫格；多层分组多列（如直播源列 + 分组列） */
+#tv-library { display: flex; gap: 18px; align-items: flex-start; }
+#tv-sidenav { flex: 0 0 auto; display: flex; gap: 6px; position: sticky; top: 64px; max-height: calc(100vh - 150px); }
+#tv-sidenav:empty { display: none; }
+.tv-nav-col { display: flex; flex-direction: column; gap: 7px; width: 142px; max-height: calc(100vh - 150px); overflow-y: auto; }
+#panel-tvbox .tv-nav-col button { text-align: left; min-height: 38px; padding: 7px 14px; font-size: 12.5px; border-radius: 10px; color: var(--tv-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#panel-tvbox .tv-nav-col button:hover { color: var(--tv-text); }
+#panel-tvbox .tv-nav-col button.is-selected { background: var(--tv-accent-deep); color: #eaf3ff; border-color: #3f6fae; }
+#tv-main { flex: 1 1 auto; min-width: 0; }
+/* 筛选区为空时隐藏（影视页保持上下布局：分类胶囊 + 筛选 + 宫格） */
+#tv-filters:empty { display: none; }
+/* 详情页/收藏/历史/设置：不显示左列 */
+#panel-tvbox.tv-detail-mode #tv-sidenav,
+#panel-tvbox[data-view="favorites"] #tv-sidenav,
+#panel-tvbox[data-view="history"] #tv-sidenav,
+#panel-tvbox[data-view="settings"] #tv-sidenav { display: none; }
+@media (max-width: 980px) {
+  #tv-library { flex-direction: column; }
+  #tv-sidenav { position: static; max-height: none; width: 100%; overflow-x: auto; }
+  .tv-nav-col { flex-direction: row; width: auto; max-height: none; }
+}
+
 /* 分类胶囊 + 筛选 */
-.tv-category-tabs { display: flex; gap: 7px; padding: 12px 0 4px; overflow-x: auto; }
+.tv-category-tabs { display: flex; gap: 8px; padding: 14px 0 6px; overflow-x: auto; }
 #panel-tvbox .tv-category-tabs button {
   flex: none; white-space: nowrap; min-height: 33px; border-radius: 999px;
   background: #131f31; color: var(--tv-muted); font-size: 12.5px; padding: 6px 15px;
 }
 #panel-tvbox .tv-category-tabs button.is-selected { color: #fff; background: #2c558e; border-color: #5b93db; }
-.tv-filters { margin: 6px 0 8px; }
+.tv-filters { margin: 10px 0 12px; }
 .tv-filters label { color: var(--tv-muted); font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
 
 /* 海报网格 */
-.tv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 20px 16px; margin: 15px 0 24px; }
+.tv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 22px 18px; margin: 18px 0 30px; }
 #panel-tvbox .tv-card {
-  min-width: 0; padding: 0 0 6px; border: 0; background: transparent;
-  text-align: left; display: flex; flex-direction: column; gap: 6px;
+  min-width: 0; padding: 0 0 7px; border: 0; background: transparent;
+  text-align: left; display: flex; flex-direction: column; gap: 7px;
 }
 #panel-tvbox button.tv-card:hover { background: transparent; transform: translateY(-3px); }
 .tv-poster {
@@ -121,7 +143,9 @@
 }
 .tv-poster::after { content: ''; position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, #070b12aa); pointer-events: none; }
 .tv-poster-fallback { color: #9dbfeb; font-weight: 800; font-size: 26px; letter-spacing: .14em; opacity: .5; }
-.tv-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.tv-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0; transition: opacity .25s ease; }
+.tv-poster img.is-loaded { opacity: 1; }
+.tv-sentinel { height: 2px; }
 .tv-card-remark {
   position: absolute; top: 7px; right: 7px; z-index: 2;
   padding: 3px 8px; border-radius: 7px; background: #0c1524d9; color: #ffd98a;
@@ -134,7 +158,7 @@
 .tv-empty { grid-column: 1 / -1; padding: 46px 16px; text-align: center; color: var(--tv-muted); font-size: 13px; line-height: 1.8; }
 
 /* 分页 */
-.tv-pagination { justify-content: center; gap: 14px; margin: 18px 0; }
+.tv-pagination { justify-content: center; gap: 14px; margin: 20px 0; }
 #tv-page { color: var(--tv-muted); font-size: 12px; }
 
 /* 详情页（TVBox 式整页） */
@@ -152,8 +176,16 @@
 .tv-synopsis { color: #c4d3e8; font-size: 13px; line-height: 1.75; margin: 0; max-height: 168px; overflow: auto; white-space: pre-wrap; }
 .tv-line-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
 .tv-episodes-title { margin: 14px 0 0; font-size: 14px; color: var(--tv-muted); font-weight: 650; }
-.tv-episodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; margin: 10px 0 2px; }
-#panel-tvbox .tv-episodes button { min-height: 34px; padding: 5px 8px; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 选集网格（v0.58.5）：按容器宽度最大 3 列，不够降 2 列 / 1 列 —— 按钮更大更好点 */
+#tv-detail { container-type: inline-size; }
+.tv-episodes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0 2px; }
+#panel-tvbox .tv-episodes button { min-height: 40px; padding: 8px 14px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 640px) {
+  #panel-tvbox .tv-episodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 400px) {
+  #panel-tvbox .tv-episodes { grid-template-columns: minmax(0, 1fr); }
+}
 #panel-tvbox .tv-watched { color: #9bc6ff; border-color: #4674ad; background: #1d3a5f; }
 #panel-tvbox .tv-line-chip { border-radius: 999px; font-size: 12.5px; min-height: 32px; padding: 5px 14px; color: var(--tv-muted); }
 #panel-tvbox .tv-line-chip.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
@@ -173,12 +205,33 @@
 #panel-tvbox .tv-favorite > button:last-child { min-height: 32px; font-size: 11px; }
 
 /* 直播 */
-#panel-tvbox .tv-channel { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px; background: var(--tv-surface); }
+#panel-tvbox .tv-channel { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; background: var(--tv-surface); }
 .tv-channel img { width: 100%; height: 66px; object-fit: contain; }
 .tv-channel strong { font-size: 13px; }
 .tv-channel small { color: var(--tv-muted); }
 .tv-program { padding: 10px 12px; border-bottom: 1px solid var(--tv-line); font-size: 12px; }
 .tv-program.is-selected { background: #1d3a5f; border-left: 3px solid var(--tv-accent); }
+
+/* 搜索页（参考 Android）：搜索历史 / 热门搜索 / 猜你想搜 */
+.tv-search-panel { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 24px; padding: 10px 0 28px; }
+.tv-search-section { display: flex; flex-direction: column; gap: 10px; }
+.tv-search-head { display: flex; align-items: center; gap: 12px; }
+.tv-search-head strong { font-size: 13px; color: var(--tv-muted); font-weight: 650; letter-spacing: .02em; }
+#panel-tvbox .tv-search-head .tv-search-clear { min-height: 26px; padding: 2px 10px; font-size: 11.5px; border-radius: 7px; color: var(--tv-muted); }
+.tv-search-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.tv-search-chip-wrap { display: inline-flex; align-items: stretch; }
+#panel-tvbox .tv-search-chip { min-height: 34px; padding: 6px 15px; font-size: 12.5px; border-radius: 999px; background: #131f31; color: var(--tv-text); }
+#panel-tvbox .tv-search-chip:hover { background: #1c2f4a; }
+#panel-tvbox .tv-search-chip-wrap .tv-search-del { min-height: 32px; padding: 0 9px; margin-left: -5px; border-radius: 0 999px 999px 0; font-size: 12px; color: var(--tv-muted); }
+#panel-tvbox .tv-search-chip-wrap .tv-search-del:hover { color: #ff9b9b; }
+
+/* 跨仓搜索结果（参考 Android）：左列仓 + 右侧该仓结果（按源分组） */
+.tv-xsearch-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; padding: 2px 0 8px; }
+.tv-xsearch-head strong { font-size: 14px; }
+.tv-xsearch-profile { grid-column: 1 / -1; margin: 16px 0 2px; padding-top: 12px; border-top: 1px solid var(--tv-line); font-size: 13.5px; color: var(--tv-text); font-weight: 700; }
+.tv-xsearch-site { grid-column: 1 / -1; margin-bottom: 20px; }
+.tv-xsearch-site h4 { margin: 6px 0 10px; font-size: 12.5px; color: var(--tv-muted); font-weight: 650; }
+.tv-xsearch-site .tv-grid { margin: 0; }
 
 /* 设置视图 */
 #tv-settings-panel { padding: 20px 0 10px; }
@@ -199,8 +252,51 @@
 .tv-phone img { width: 168px; height: 168px; background: #fff; border-radius: 8px; }
 .tv-phone p { font-size: 12px; overflow-wrap: anywhere; }
 
+/* 集成式播放区域（v0.58.4）：视频区嵌入列表上方（mpv 渲染到主窗口内的原生子窗口），
+   播放中下方列表/详情保持可见 —— 选集、换线路、换频道都在同一界面完成，没有独立播放界面。
+   DOM 中 stage/controls 位于 library 之后，播放时用 flex order 提到列表上方（非播放态两者均隐藏） */
+#tv-stage { display: none; }
+#panel-tvbox.tv-player-mode.active { display: flex; flex-direction: column; overflow: hidden; }
+#panel-tvbox.tv-player-mode .tv-topbar { order: 0; }
+#panel-tvbox.tv-player-mode #tv-status { order: 1; }
+#panel-tvbox.tv-player-mode #tv-stage { display: flex; order: 2; flex: 0 0 auto; gap: 10px; margin: 8px 0 0; }
+#panel-tvbox.tv-player-mode #tv-controls { order: 3; flex: 0 0 auto; margin: 8px 0 0; }
+#panel-tvbox.tv-player-mode #tv-library { order: 4; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+#panel-tvbox.tv-player-mode #tv-settings-panel { order: 4; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+#panel-tvbox.tv-player-mode .tv-note { order: 5; display: none; }
+#tv-stage-main { flex: 1 1 auto; min-width: 0; display: flex; }
+#tv-surface { flex: 1 1 auto; height: clamp(220px, 40vh, 380px); border: 1px solid var(--tv-line); border-radius: 12px; background: #000; overflow: hidden; position: relative; }
+#tv-surface video { width: 100%; height: 100%; max-height: none; margin: 0; border-radius: 0; background: #000; }
+#tv-stage-side { width: 184px; flex: 0 0 auto; overflow-y: auto; max-height: clamp(220px, 40vh, 380px); border: 1px solid var(--tv-line); border-radius: 12px; background: var(--tv-surface); padding: 10px; }
+#tv-stage-side:empty { display: none; }
+#tv-stage-side h4 { margin: 2px 0 8px; font-size: 12px; color: var(--tv-muted); }
+#tv-stage-side .tv-side-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+/* 视频区全屏（应用内，v0.58.5）：不动应用窗口 —— 隐藏导航/列表/侧栏，视频区占满面板，控制条固定底部 */
+#panel-tvbox.tv-stage-full { padding: 0 !important; }
+/* 直播模式：隐藏点播专属的字幕控件 */
+#panel-tvbox.tv-live-mode #tv-subtitles,
+#panel-tvbox.tv-live-mode #tv-subtitle-file,
+#panel-tvbox.tv-live-mode #tv-sub-delay-wrap { display: none !important; }
+#panel-tvbox.tv-stage-full .tv-topbar,
+#panel-tvbox.tv-stage-full #tv-status,
+#panel-tvbox.tv-stage-full #tv-library,
+#panel-tvbox.tv-stage-full #tv-settings-panel,
+#panel-tvbox.tv-stage-full #tv-stage-side,
+#panel-tvbox.tv-stage-full .tv-note { display: none !important; }
+#panel-tvbox.tv-stage-full #tv-stage { position: fixed; inset: 0 0 var(--tv-full-bottom, 84px) 0; margin: 0; z-index: 5000; gap: 0; }
+#panel-tvbox.tv-stage-full #tv-surface { border: 0; border-radius: 0; height: auto; }
+#panel-tvbox.tv-stage-full #tv-controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5001; margin: 0; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; }
+#tv-stage-side button { min-height: 28px; padding: 3px 8px; font-size: 12px; border-radius: 7px; }
+#tv-stage-side button.is-selected { background: #2c558e; border-color: #5b93db; color: #fff; }
+
 /* 播放控制条（默认一行主控制，次要项收在「更多」） */
 .tv-player-controls { margin: 14px 0; padding: 10px 14px; border: 1px solid #31517a; border-radius: 14px; background: #11233c; }
+/* 起播加载转圈（控制条标题旁，mpv 子窗口遮挡不到这里） */
+.tv-buffer { display: inline-block; width: 14px; height: 14px; border: 2px solid #5ea1ff44; border-top-color: #5ea1ff; border-radius: 50%; animation: tv-buffer-spin .8s linear infinite; vertical-align: -2px; }
+@keyframes tv-buffer-spin { to { transform: rotate(360deg); } }
+/* 视频区内的起播提示：加载时隐藏 mpv 子窗口让提示可见，不影响下方频道/直播源切换 */
+#tv-surface .tv-surface-loading { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; gap: 10px; background: #05080f; color: #cfe2ff; font-size: 13px; letter-spacing: .02em; }
+#tv-surface .tv-surface-loading .tv-buffer { width: 18px; height: 18px; border-width: 3px; }
 .tv-player-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .tv-player-head strong { overflow-wrap: anywhere; }
 .tv-player-head #tv-info { color: var(--tv-muted); font-size: 11px; }

@@ -2785,42 +2785,49 @@ textarea[readonly] {
   border-color: var(--primary);
 }
 
-/* ===== 版本更新弹窗（v0.43.0：检查更新说明 / 下载进度；v0.55.0：宽度加宽） ===== */
+/* ===== 版本更新弹窗（v0.43.0：检查更新说明 / 下载进度；v0.55.0：宽度加宽；v0.58.5：整体加大） ===== */
 #update-modal .modal-card {
-  width: 560px;
-  max-width: 92vw;
+  width: 760px;
+  max-width: 94vw;
+  padding: 22px 26px;
+}
+
+#update-modal .modal-title {
+  font-size: 16px;
+  margin-bottom: 10px;
 }
 
 .update-vers {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .update-current {
   font-weight: 400;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
 .update-notes {
-  max-height: 260px;
+  max-height: 46vh;
+  min-height: 120px;
   overflow-y: auto;
-  margin-bottom: 14px;
-  padding: 8px 10px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--panel-bg-subtle);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-dim);
-  line-height: 1.6;
+  line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .update-progress {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .update-progress.hidden {
@@ -2828,24 +2835,24 @@ textarea[readonly] {
 }
 
 .update-progress-bar {
-  height: 6px;
-  border-radius: 3px;
+  height: 7px;
+  border-radius: 4px;
   background: var(--border-light);
   overflow: hidden;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
 
 .update-progress-fill {
   display: block;
   height: 100%;
   width: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--primary);
   transition: width 0.2s ease;
 }
 
 .update-progress-text {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
@@ -3031,60 +3038,66 @@ textarea[readonly] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 16px 8px 4px;
+  gap: 14px;
+  padding: 26px 16px 10px;
   text-align: center;
 }
 
 .about-logo {
-  width: 92px;
-  height: 92px;
-  border-radius: 23px;
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
   background: var(--brand-icon-bg);
   color: var(--brand-icon-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: 31px;
   font-weight: 700;
   letter-spacing: 1.5px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
 }
 
 .about-name {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text);
-  margin-top: 8px;
 }
 
 .about-desc {
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--text-dim);
 }
 
 .about-version {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-dim);
   font-family: var(--mono);
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
 }
 
 .about-check {
-  margin-top: 10px;
+  margin-top: 2px;
 }
 
 .about-hint {
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.65;
   color: var(--text-dim);
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .about-credit {
   font-size: 11px;
   color: var(--text-dim);
-  opacity: 0.85;
-  margin-top: 14px;
+  opacity: 0.9;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  width: min(100%, 280px);
 }
 
 /* ===== 应用设置弹窗：功能显示（v0.26.0） ===== */
