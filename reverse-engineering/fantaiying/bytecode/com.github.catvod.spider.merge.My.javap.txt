@@ -1,0 +1,43 @@
+public final class com.github.catvod.spider.merge.My {
+  private com.github.catvod.spider.merge.LP N;
+    descriptor: Lcom/github/catvod/spider/merge/LP;
+
+  private java.lang.String SN;
+    descriptor: Ljava/lang/String;
+
+  private java.lang.Integer yq;
+    descriptor: Ljava/lang/Integer;
+
+  public com.github.catvod.spider.merge.My();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #23                 // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static com.github.catvod.spider.merge.My SN(java.lang.String);
+    descriptor: (Ljava/lang/String;)Lcom/github/catvod/spider/merge/My;
+    Code:
+       0: aload_0
+       1: ldc           #2                  // class com/github/catvod/spider/merge/My
+       3: invokestatic  #30                 // Method com/github/catvod/spider/merge/Z.yq:(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
+       6: checkcast     #2                  // class com/github/catvod/spider/merge/My
+       9: areturn
+
+  public final com.github.catvod.spider.merge.LP yq();
+    descriptor: ()Lcom/github/catvod/spider/merge/LP;
+    Code:
+       0: aload_0
+       1: getfield      #33                 // Field N:Lcom/github/catvod/spider/merge/LP;
+       4: astore_2
+       5: aload_2
+       6: astore_1
+       7: aload_2
+       8: ifnonnull     19
+      11: new           #35                 // class com/github/catvod/spider/merge/LP
+      14: dup
+      15: invokespecial #36                 // Method com/github/catvod/spider/merge/LP."<init>":()V
+      18: astore_1
+      19: aload_1
+      20: areturn
+}

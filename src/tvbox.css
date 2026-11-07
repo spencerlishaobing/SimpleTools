@@ -174,6 +174,19 @@
 .tv-card strong.is-marquee span { animation: tv-marquee var(--tv-marquee-duration, 4s) linear infinite alternate; }
 @keyframes tv-marquee { from { transform: translateX(0); } to { transform: translateX(var(--tv-marquee-shift, 0px)); } }
 .tv-card small { color: var(--tv-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 源配置 style 布局（对齐 Android）：list=列表行（一行一部）、rect/oval=图标样式；ratio=封面比例 */
+#tv-results.tv-style-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 24px; }
+#panel-tvbox #tv-results.tv-style-list .tv-card {
+  display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 12px;
+  align-items: center; padding: 8px 10px; background: var(--tv-surface); border-radius: 10px; transform: none !important;
+}
+#panel-tvbox #tv-results.tv-style-list .tv-poster { grid-row: 1 / 4; width: 104px; aspect-ratio: 16/9; box-shadow: none; border-radius: 8px; }
+#panel-tvbox #tv-results.tv-style-list .tv-card strong { grid-column: 2; align-self: end; white-space: nowrap; }
+#panel-tvbox #tv-results.tv-style-list .tv-card small { grid-column: 2; align-self: center; }
+#tv-results.tv-style-oval .tv-poster { border-radius: 50%; }
+#tv-results.tv-style-oval .tv-poster img { border-radius: 50%; }
+#tv-results.tv-style-rect .tv-poster { aspect-ratio: var(--tv-poster-ratio, 16/9); }
+#tv-results[style*="--tv-poster-ratio"] .tv-poster { aspect-ratio: var(--tv-poster-ratio); }
 
 /* 空状态 */
 .tv-empty { grid-column: 1 / -1; padding: 46px 16px; text-align: center; color: var(--tv-muted); font-size: 13px; line-height: 1.8; }
@@ -284,20 +297,18 @@
 .tv-phone img { width: 168px; height: 168px; background: #fff; border-radius: 8px; }
 .tv-phone p { font-size: 12px; overflow-wrap: anywhere; }
 
-/* 集成式播放区域（v0.58.4）：视频区嵌入列表上方（mpv 渲染到主窗口内的原生子窗口），
-   播放中下方列表/详情保持可见 —— 选集、换线路、换频道都在同一界面完成，没有独立播放界面。
-   DOM 中 stage/controls 位于 library 之后，播放时用 flex order 提到列表上方（非播放态两者均隐藏） */
+/* 播放器是独立主视图：播放时不再把列表、详情、设置堆叠在视频下面。 */
 #tv-stage { display: none; }
 #panel-tvbox.tv-player-mode.active { display: flex; flex-direction: column; overflow: hidden; }
 #panel-tvbox.tv-player-mode .tv-topbar { order: 0; }
 #panel-tvbox.tv-player-mode #tv-status { order: 1; }
 #panel-tvbox.tv-player-mode #tv-stage { display: flex; order: 2; flex: 0 0 auto; gap: 10px; margin: 8px 0 0; }
 #panel-tvbox.tv-player-mode #tv-controls { order: 3; flex: 0 0 auto; margin: 8px 0 0; }
-#panel-tvbox.tv-player-mode #tv-library { order: 4; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 4px; }
-#panel-tvbox.tv-player-mode #tv-settings-panel { order: 4; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+#panel-tvbox.tv-player-mode #tv-library,
+#panel-tvbox.tv-player-mode #tv-settings-panel { display: none !important; }
 #panel-tvbox.tv-player-mode .tv-note { order: 5; display: none; }
 #tv-stage-main { flex: 1 1 auto; min-width: 0; display: flex; }
-#tv-surface { flex: 1 1 auto; height: clamp(220px, 40vh, 380px); border: 1px solid var(--tv-line); border-radius: 12px; background: #000; overflow: hidden; position: relative; }
+#tv-surface { flex: 1 1 auto; height: clamp(320px, 62vh, 720px); border: 1px solid var(--tv-line); border-radius: 12px; background: #000; overflow: hidden; position: relative; box-shadow: 0 6px 24px rgba(0,0,0,.28); }
 #tv-surface video { width: 100%; height: 100%; max-height: none; margin: 0; border-radius: 0; background: #000; }
 #tv-stage-side { width: 184px; flex: 0 0 auto; overflow-y: auto; max-height: clamp(220px, 40vh, 380px); border: 1px solid var(--tv-line); border-radius: 12px; background: var(--tv-surface); padding: 10px; }
 #tv-stage-side:empty { display: none; }
@@ -305,10 +316,19 @@
 #tv-stage-side .tv-side-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 /* 视频区全屏（应用内，v0.58.5）：不动应用窗口 —— 隐藏导航/列表/侧栏，视频区占满面板，控制条固定底部 */
 #panel-tvbox.tv-stage-full { padding: 0 !important; }
-/* 直播模式：隐藏点播专属的字幕控件 */
+/* 直播与点播能力严格分离。直播只保留播放、频道切换、音量、音轨、比例和全屏。 */
+#panel-tvbox.tv-live-mode .tv-vod-only { display: none !important; }
 #panel-tvbox.tv-live-mode #tv-subtitles,
 #panel-tvbox.tv-live-mode #tv-subtitle-file,
-#panel-tvbox.tv-live-mode #tv-sub-delay-wrap { display: none !important; }
+#panel-tvbox.tv-live-mode #tv-sub-delay-wrap,
+#panel-tvbox.tv-live-mode .tv-sub-only,
+#panel-tvbox.tv-live-mode #tv-sub-online,
+#panel-tvbox.tv-live-mode #tv-sub-word,
+#panel-tvbox.tv-live-mode #tv-sub-search,
+#panel-tvbox.tv-live-mode #tv-sub-url,
+#panel-tvbox.tv-live-mode #tv-sub-load,
+#panel-tvbox.tv-live-mode #tv-sub-hint,
+#panel-tvbox.tv-live-mode #tv-sub-list { display: none !important; }
 #panel-tvbox.tv-stage-full .tv-topbar,
 #panel-tvbox.tv-stage-full #tv-status,
 #panel-tvbox.tv-stage-full #tv-library,

@@ -3,11 +3,99 @@
   "note": "内置本地站点爬虫注册表。match 为站点特征（api/key/名称包含即命中），file 为 resources/tvspiders 下的 JS 爬虫（实现 TVBox Spider 接口）。未命中的站点由桌面端记录到 tvbox.json 的 unmatched 列表，后续版本逐步适配。",
   "sites": [
     {
+      "id": "bili",
+      "name": "哔哩哔哩（内置）",
+      "exact": ["Bili"],
+      "match": [],
+      "file": "bili.js",
+      "note": "饭太硬 BiliGuard 系列：分类配置、搜索、分集详情和网页播放；不依赖 JAR"
+    },
+    {
       "id": "auete",
       "name": "奥特影视（Auete）",
       "match": ["csp_Auete", "Auete", "奥特"],
       "file": "auete.js",
       "note": "www.aeete.com：首页/分类/详情/播放已适配；站内搜索有安全验证，暂不提供搜索"
+    },
+    {
+      "id": "newcz",
+      "name": "厂长资源（内置）",
+      "exact": ["NewCz"],
+      "match": [],
+      "file": "newcz.js",
+      "note": "www.4kcz.com：首页、分类、搜索、详情和播放适配；不依赖 JAR"
+    },
+    {
+      "id": "jpys",
+      "name": "文采影视（内置）",
+      "exact": ["Jpys"],
+      "match": [],
+      "file": "jpys.js",
+      "note": "公开 JSON API：首页、分类筛选、搜索、详情、分集和最高画质直链播放；不依赖 JAR"
+    },
+    {
+      "id": "melost-quark",
+      "name": "影盘社夸克搜索（内置）",
+      "exact": ["YpanSo"],
+      "match": [],
+      "file": "melost-quark.js",
+      "note": "影盘社搜索 API：夸克网盘结果和分页；分享链接交给内置网盘解析器"
+    },
+    {
+      "id": "melost-baidu",
+      "name": "影盘社百度搜索（内置）",
+      "exact": ["BpanSo"],
+      "match": [],
+      "file": "melost-baidu.js",
+      "note": "影盘社搜索 API：百度网盘结果和分页；分享链接交给内置网盘解析器"
+    },
+    {
+      "id": "cloud-search",
+      "name": "网盘聚合搜索（内置）",
+      "exact": ["KkSs", "UuSs", "S_zps", "Seedhub", "PanShare", "Sou4K", "Juying", "Wn4k", "GuanYing", "PanWebShare", "Mipansou", "GuiGui", "PanSou", "Yinhai", "JuheSo", "QuPanSo", "KkSsGuard", "UuSsGuard"],
+      "match": [],
+      "file": "cloud-search.js",
+      "note": "为原 Pan 派生搜索源提供夸克、百度聚合搜索；详情和播放统一进入内置 Pan 兼容层"
+    },
+    {
+      "id": "wogg",
+      "name": "玩偶哥哥（内置）",
+      "exact": ["WoGG"],
+      "match": ["csp_WoGG", "玩偶哥哥"],
+      "file": "wogg.js",
+      "note": "玩偶影片目录、分类筛选、搜索、详情封面与多网盘线路；不依赖 JAR"
+    },
+    {
+      "id": "sixv",
+      "name": "新6V（内置）",
+      "exact": ["SixV"],
+      "match": [],
+      "file": "sixv.js",
+      "note": "首页、分类、搜索、详情以及磁力/夸克/百度下载资源；磁力由内置 BT 引擎接管"
+    },
+    {
+      "id": "push",
+      "name": "手机推送（内置）",
+      "exact": ["Push"],
+      "match": [],
+      "file": "push.js",
+      "note": "接收直链、磁力、ED2K、夸克、UC、百度和阿里云盘分享地址，统一交给内置播放链路；不依赖 JAR"
+    },
+    {
+      "id": "ygp",
+      "name": "荐影预告片（内置）",
+      "exact": ["YGP"],
+      "match": [],
+      "file": "ygp.js",
+      "note": "电影、剧集和动画预告片搜索、详情、分P及网页播放；使用公开接口，不依赖 JAR"
+    },
+    {
+      "id": "bttwoo",
+      "name": "比特兔（内置）",
+      "exact": ["Bttwoo"],
+      "match": ["csp_Bttwoo", "Bttwoo", "比特兔", "bttwo"],
+      "file": "bttwoo.js",
+      "note": "www.bttwo.life：首页/分类/搜索/详情/播放全适配；播放签名由 Rust wasmi 执行上游 nbmovie_wasm（QuickJS 无 WebAssembly）；不依赖 JAR"
     },
     {
       "id": "douban",

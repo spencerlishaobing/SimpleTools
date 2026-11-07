@@ -6,6 +6,7 @@ const MAX_BODY: usize = 32 * 1024 * 1024;
 /// 大多数 TVBox 源站按 OkHttp 客户端（TVBox/影视仓均为 OkHttp）返回内容，
 /// 缺省 UA 与安卓端保持一致，避免源站返回导航页或拒绝响应。
 pub(crate) const TVBOX_UA: &str = "okhttp/3.15";
+const DESKTOP_BROWSER_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 // ---------- 安全 DNS（DoH，参考 Android TVBox 的安全 DNS） ----------
 // 0=关闭 1=阿里 2=腾讯 3=Cloudflare；对所有 Rust 出站 HTTP 请求生效（JVM/JAR 内部 DNS 不受影响）
@@ -63,6 +64,15 @@ impl reqwest::dns::Resolve for DohResolver {
 
 /// 给 reqwest 客户端注入安全 DNS（开启时）
 pub(crate) fn apply_dns(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    let mode = DNS_MODE.load(std::sync::atomic::Ordering::Relaxed);
+    match dns_endpoint(mode) {
+        Some(endpoint) => builder.dns_resolver(std::sync::Arc::new(DohResolver { endpoint })),
+        None => builder,
+    }
+}
+
+/// 同步客户端（内置适配器）也使用同一套安全 DNS：站点域名被污染时能明显加快响应
+pub(crate) fn apply_dns_blocking(builder: reqwest::blocking::ClientBuilder) -> reqwest::blocking::ClientBuilder {
     let mode = DNS_MODE.load(std::sync::atomic::Ordering::Relaxed);
     match dns_endpoint(mode) {
         Some(endpoint) => builder.dns_resolver(std::sync::Arc::new(DohResolver { endpoint })),
@@ -195,6 +205,20 @@ fn looks_like_image(data: &[u8]) -> bool {
         || data.starts_with(b"RIFF")
 }
 
+/// Return at most `max_bytes` without ever splitting a UTF-8 code point.
+/// Network responses often contain Chinese text, so byte-indexing a `str`
+/// directly can panic and terminate the desktop process.
+fn utf8_prefix(value: &str, max_bytes: usize) -> &str {
+    if value.len() <= max_bytes {
+        return value;
+    }
+    let mut end = max_bytes;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    &value[..end]
+}
+
 /// 识别另一种社区“加密接口”：全十六进制文本，解码后为 `$#标识#$` + 加密载荷
 /// （如 `$#lintech#$`、`$#347#$`）。载荷需要发布方客户端内的密钥，本版本不破解，只给出明确提示。
 fn hex_wrapped_marker(data: &[u8]) -> Option<String> {
@@ -234,10 +258,18 @@ pub async fn tvbox_fetch(
     headers: Option<serde_json::Value>,
 ) -> Result<String, String> {
     let url = http_url(&url)?;
-    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
-        .timeout(Duration::from_secs(25))
-        .build()
-        .map_err(|e| e.to_string())?;
+    // 全局复用连接池（对齐 Android OkHttp 长连接）：自定义 DNS + keep-alive，避免每次请求重建连接
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    let client = CLIENT.get_or_init(|| {
+        crate::tvbox::apply_dns(reqwest::Client::builder())
+            .timeout(Duration::from_secs(25))
+            .connect_timeout(Duration::from_secs(6))
+            .pool_idle_timeout(Duration::from_secs(300))
+            .pool_max_idle_per_host(16)
+            .tcp_keepalive(Duration::from_secs(60))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new())
+    });
     let mut header_map = reqwest::header::HeaderMap::new();
     header_map.insert(
         reqwest::header::USER_AGENT,
@@ -310,10 +342,32 @@ pub async fn tvbox_fetch(
     Ok(text.trim_start_matches('\u{feff}').to_string())
 }
 
+/// 内置默认仓库（饭太硬，已从加密配置解出并内置）：首次启动直接可用，用户可切换到其他仓库
+const BUNDLED_WAREHOUSE: &str = include_str!("../resources/tvbox/default-warehouse.json");
+
+/// 解析内置仓库配置；格式损坏时返回 None
+pub(crate) fn bundled_warehouse() -> Option<serde_json::Value> {
+    serde_json::from_str::<serde_json::Value>(BUNDLED_WAREHOUSE).ok()
+}
+
 #[tauri::command]
 pub fn tvbox_load(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, String> {
     let path = crate::datadir::data_dir(&app)?.join("tvbox.json");
     if !path.exists() {
+        // 首次启动：直接返回内置饭太硬仓（不写入磁盘，用户修改/切换后才落盘）
+        if let Some(config) = bundled_warehouse() {
+            return Ok(Some(serde_json::json!({
+                "profiles": [{
+                    "id": "builtin-fantaiying",
+                    "name": "👽饭太硬（内置）",
+                    "base": "",
+                    "collectionBase": "",
+                    "builtin": true,
+                    "config": config
+                }],
+                "profileId": "builtin-fantaiying"
+            })));
+        }
         return Ok(None);
     }
     let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
@@ -332,6 +386,31 @@ pub fn tvbox_save(app: tauri::AppHandle, data: serde_json::Value) -> Result<(), 
         return Err("TVBOX 数据超过 16 MB".into());
     }
     let path = crate::datadir::data_dir(&app)?.join("tvbox.json");
+    // 防覆盖保护：profiles 从非空变空时拒绝写入（多半是前端加载失败后的空快照，之前曾把用户全部配置刷掉），
+    // 同时每次保存前保留上一版 tvbox.json.bak 供恢复
+    let new_profiles_empty = data
+        .get("profiles")
+        .and_then(|v| v.as_array())
+        .map(|a| a.is_empty())
+        .unwrap_or(true);
+    if new_profiles_empty && path.exists() {
+        if let Ok(prev) = std::fs::read(&path) {
+            if let Ok(prev_value) = serde_json::from_slice::<serde_json::Value>(&prev) {
+                let prev_profiles = prev_value
+                    .get("profiles")
+                    .and_then(|v| v.as_array())
+                    .map(|a| a.len())
+                    .unwrap_or(0);
+                if prev_profiles > 0 {
+                    let _ = std::fs::copy(&path, path.with_extension("json.rejected"));
+                    return Err("拒绝覆盖：新数据没有任何 TVBOX 配置（疑似加载失败后的空快照），已保留原配置".into());
+                }
+            }
+        }
+    }
+    if path.exists() {
+        let _ = std::fs::copy(&path, path.with_extension("json.bak"));
+    }
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
     std::fs::rename(tmp, path).map_err(|e| e.to_string())
@@ -341,6 +420,27 @@ static IMAGE_CACHE: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, String)>>,
 > = std::sync::OnceLock::new();
 
+static IMAGE_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
+static POSTER_SEARCH_CACHE: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, String)>>,
+> = std::sync::OnceLock::new();
+
+/// 图片代理专用 HTTP 客户端（连接池复用：封面大量并发加载时不再每张图新建 TCP/TLS）
+fn image_client() -> Result<&'static reqwest::Client, String> {
+    if let Some(client) = IMAGE_CLIENT.get() {
+        return Ok(client);
+    }
+    let client = crate::tvbox::apply_dns(reqwest::Client::builder())
+        .user_agent(TVBOX_UA)
+        .timeout(Duration::from_secs(12))
+        .pool_max_idle_per_host(16)
+        .build()
+        .map_err(|e| e.to_string())?;
+    let _ = IMAGE_CLIENT.set(client);
+    IMAGE_CLIENT.get().ok_or_else(|| "图片客户端初始化失败".to_string())
+}
+
 /// 图片代理：部分片源海报地址带防盗链（如豆瓣图床要求 Referer，无 Referer 直接返回 418），
 /// 地址用 `@Referer=...` / `@User-Agent=...` 后缀描述（安卓端图片加载器会解析）。桌面 `<img>` 无法自定义请求头，
 /// 这里由后台带 UA / Referer 拉取并返回 data URL（本地缓存 10 分钟）。
@@ -348,19 +448,25 @@ static IMAGE_CACHE: std::sync::OnceLock<
 pub async fn tvbox_image(url: String, referer: Option<String>, user_agent: Option<String>) -> Result<String, String> {
     let parsed = http_url(&url)?;
     let ua = user_agent.filter(|value| !value.trim().is_empty());
-    let key = format!("{url}|{}|{}", referer.as_deref().unwrap_or(""), ua.as_deref().unwrap_or(""));
+    // Douban's image CDN rejects Android/OkHttp UA with 403 even with a valid Referer.
+    // Keep TVBox UA for source sites, but emulate a desktop browser only for this CDN.
+    let effective_ua = ua.as_deref().unwrap_or_else(|| {
+        if parsed.host_str().is_some_and(|host| host.ends_with("doubanio.com")) {
+            DESKTOP_BROWSER_UA
+        } else {
+            TVBOX_UA
+        }
+    });
+    let key = format!("{url}|{}|{}", referer.as_deref().unwrap_or(""), effective_ua);
     let cache = IMAGE_CACHE.get_or_init(Default::default);
     if let Some((when, data)) = cache.lock().map_err(|_| "缓存锁异常")?.get(&key) {
         if when.elapsed() < Duration::from_secs(600) {
             return Ok(data.clone());
         }
     }
-    let mut request = crate::tvbox::apply_dns(reqwest::Client::builder())
-        .user_agent(ua.as_deref().unwrap_or(TVBOX_UA))
-        .timeout(Duration::from_secs(12))
-        .build()
-        .map_err(|e| e.to_string())?
-        .get(parsed);
+    let mut request = image_client()?
+        .get(parsed)
+        .header(reqwest::header::USER_AGENT, effective_ua);
     if let Some(referer) = referer.filter(|r| !r.is_empty()) {
         request = request.header(reqwest::header::REFERER, referer);
     }
@@ -393,6 +499,138 @@ pub async fn tvbox_image(url: String, referer: Option<String>, user_agent: Optio
     }
     guard.insert(key, (std::time::Instant::now(), data.clone()));
     Ok(data)
+}
+
+/// 清洗网盘/搜索结果标题：提取核心片名（去《》外标签、方括号块、常见技术词）
+fn clean_movie_title(raw: &str) -> String {
+    let mut title = raw.trim().to_string();
+    // 优先取《》内的正式片名
+    if let (Some(start), Some(end)) = (title.find('《'), title.find('》')) {
+        if end > start {
+            let inner = title[start + '《'.len_utf8()..end].trim().to_string();
+            if !inner.is_empty() { title = inner; }
+        }
+    }
+    // 去掉【】[]（）() 包裹的发布标签
+    for (open, close) in [('【', '】'), ('[', ']'), ('（', '）'), ('(', ')')] {
+        let mut guard = 0;
+        while let Some(start) = title.find(open) {
+            guard += 1;
+            if guard > 8 { break; }
+            match title[start..].find(close) {
+                Some(offset) => title.replace_range(start..start + offset + close.len_utf8(), " "),
+                None => { title.truncate(start); break; }
+            }
+        }
+    }
+    // 截断到第一个常见技术词（分辨率/编码/音轨/来源/合集标记）
+    let stops = ["4K", "8K", "2160", "1080", "720", "HDR", "SDR", "DV", "杜比", "Dolby", "蓝光", "BluRay", "Blu-ray", "WEB-DL", "WEBRip", "HDTV", "H265", "H264", "HEVC", "x265", "x264", "10bit", "8bit", "60fps", "50fps", "DTS", "AC3", "AAC", "国语", "国英", "中英", "中字", "双语", "内封", "内嵌", "字幕", "合集", "全集", "系列", "连载", "更新至", "S01", "S02", "第一季", "第二季", "第1季", "第2季", "高码", "高帧"];
+    let mut cut = title.len();
+    for token in stops {
+        if let Some(pos) = title.find(token) {
+            if pos > 0 && pos < cut { cut = pos; }
+        }
+    }
+    title.truncate(cut);
+    title
+        .trim_matches(|c: char| matches!(c, '·' | '-' | '_' | '|' | '—' | ' ' | '：' | ':'))
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Search one representative poster for cloud-search results. Cloud indexes generally only
+/// return a share title/link, so use Douban's public suggestion endpoint once per keyword and
+/// cache it. The front end only fills missing posters; source-provided artwork always wins.
+#[tauri::command]
+pub async fn tvbox_poster_search(title: String) -> Result<String, String> {
+    let original = title.trim().to_string();
+    if original.is_empty() {
+        return Ok(String::new());
+    }
+    let cleaned = clean_movie_title(&original);
+    let query = if cleaned.is_empty() { original.clone() } else { cleaned.clone() };
+    let key = query.to_lowercase();
+    let cache = POSTER_SEARCH_CACHE.get_or_init(Default::default);
+    if let Some((when, url)) = cache.lock().map_err(|_| "缓存锁异常")?.get(&key) {
+        if when.elapsed() < Duration::from_secs(24 * 3600) {
+            return Ok(url.clone());
+        }
+    }
+    let url = reqwest::Url::parse_with_params(
+        "https://movie.douban.com/j/subject_suggest",
+        &[("q", query.as_str())],
+    )
+    .map_err(|e| e.to_string())?;
+    // subject_suggest is a legacy endpoint and may return 403/418 or malformed data.
+    // It is only an optimisation: never let its failure skip the public web-search fallback.
+    let rows: serde_json::Value = match image_client()?
+        .get(url)
+        .header(reqwest::header::USER_AGENT, DESKTOP_BROWSER_UA)
+        .header(reqwest::header::REFERER, "https://movie.douban.com/")
+        .send()
+        .await
+    {
+        Ok(response) => match response.error_for_status() {
+            Ok(response) => response.json().await.unwrap_or_else(|_| serde_json::json!([])),
+            Err(_) => serde_json::json!([]),
+        },
+        Err(_) => serde_json::json!([]),
+    };
+    // 候选相似度：完全同名 > 互相包含 > 其余，取最高分而非盲目取第一个
+    let query_l = query.to_lowercase();
+    let mut poster = rows
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| {
+            let img = row.get("img").and_then(serde_json::Value::as_str)?;
+            if !img.starts_with("http") { return None; }
+            let name = row.get("title").and_then(serde_json::Value::as_str).unwrap_or("").to_lowercase();
+            let score = if name == query_l { 100 } else if !name.is_empty() && (name.contains(&query_l) || query_l.contains(&name)) { 60 } else { 10 };
+            Some((score, img.to_string()))
+        })
+        .max_by_key(|(score, _)| *score)
+        .map(|(_, img)| img)
+        .unwrap_or_default();
+    // 豆瓣的旧 subject_suggest 接口在 2026 年已可能对正常关键词直接返回 []。
+    // 桌面端仍需要为只给分享链接的网盘索引补封面，因此退回豆瓣网页搜索的
+    // 影视分类结果；结果块同时带 title 与 poster，取第一条即为网页端的最佳匹配。
+    if poster.is_empty() {
+        let search_url = reqwest::Url::parse_with_params(
+            "https://www.douban.com/search",
+            &[("cat", "1002"), ("q", query.as_str())],
+        )
+        .map_err(|e| e.to_string())?;
+        if let Ok(response) = image_client()?
+            .get(search_url)
+            .header(reqwest::header::USER_AGENT, DESKTOP_BROWSER_UA)
+            .header(reqwest::header::REFERER, "https://www.douban.com/")
+            .send()
+            .await
+        {
+            if let Ok(response) = response.error_for_status() {
+              if let Ok(html) = response.text().await {
+                if let Some(start) = html.find("<a class=\"nbg\"") {
+                    let block = utf8_prefix(&html[start..], 1400);
+                    if let Some(img_at) = block.find("<img src=\"") {
+                        let value = &block[img_at + 10..];
+                        if let Some(end) = value.find('"') {
+                            let candidate = value[..end].replace("&amp;", "&");
+                            if candidate.starts_with("http") { poster = candidate; }
+                        }
+                    }
+                }
+              }
+            }
+        }
+    }
+    let mut guard = cache.lock().map_err(|_| "缓存锁异常")?;
+    if guard.len() >= 256 {
+        guard.clear();
+    }
+    guard.insert(key, (std::time::Instant::now(), poster.clone()));
+    Ok(poster)
 }
 
 /// 影视热榜（借鉴 LibreTV：经 60s 公共 API，免 key）：豆瓣周榜 / 百度热播剧。
@@ -481,16 +719,20 @@ pub async fn tvbox_cloud_login(app: tauri::AppHandle, site: String) -> Result<St
             let _ = win.eval(SCRIPT);
         }
     });
-    // 登录检测：扫码确认后（关键 Cookie 出现）保存登录态并自动关闭窗口（等同安卓端扫码成功弹窗消失）
+    // 登录检测：扫码确认后（关键 Cookie 出现且真实有效）保存登录态并自动关闭窗口
     let handle = app.clone();
     let thread_label = label.clone();
     let site_key = site.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_secs(1));
-        let Some(win) = handle.get_webview_window(&thread_label) else { break; };
-        sync_cloud_cookies(&handle, &win);
-        if cloud_logged_in(&win, &site_key) {
+    std::thread::spawn(move || {
+        let opened = std::time::Instant::now();
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+            let Some(win) = handle.get_webview_window(&thread_label) else { break };
             sync_cloud_cookies(&handle, &win);
+            // 窗口至少停留 8 秒：给页面加载与自动点「登录」弹码的时间；
+            // 否则旧会话残留的 __puus（已过期）会让窗口 1 秒内直接关闭，用户根本没机会扫码
+            if opened.elapsed().as_secs() < 8 { continue; }
+            if !cloud_logged_in(&win, &site_key) { continue; }
             let _ = win.close();
             let _ = handle.emit("cloud-login-done", thread_label.clone());
             break;
@@ -567,16 +809,94 @@ pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
         .timeout(Duration::from_secs(20))
         .build()
         .map_err(|e| e.to_string())?;
-    let response = client
-        .get(parsed.clone())
-        .header("User-Agent", TVBOX_UA)
-        .send()
-        .await
-        .map_err(|e| format!("字幕下载失败：{e}"))?;
-    if !response.status().is_success() {
-        return Err(format!("字幕下载失败：HTTP {}", response.status()));
-    }
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let is_assrt = parsed.host_str().map(|h| h.ends_with("assrt.net")).unwrap_or(false);
+    let is_media = ["srt", "ass", "ssa", "vtt", "sub"].iter().any(|e| parsed.path().to_lowercase().ends_with(&format!(".{e}")));
+    let bytes = if parsed.host_str() == Some("api.assrt.net") && parsed.path().contains("/sub/detail") {
+        // Assrt JSON API 详情：优先服务端已解压的字幕文件，其次下载 zip。
+        let response = client.get(parsed.clone()).header("User-Agent", ASSRT_UA).send().await
+            .map_err(|e| format!("字幕详情获取失败：{e}"))?;
+        let value: serde_json::Value = response.json().await.map_err(|e| format!("字幕详情解析失败：{e}"))?;
+        let sub = value.pointer("/sub/subs/0").ok_or("字幕详情为空或共享额度暂不可用")?;
+        let direct = sub.get("filelist").and_then(|v| v.as_array()).into_iter().flatten()
+            .find_map(|f| {
+                let name = f.get("f").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
+                if [".srt", ".ass", ".ssa", ".vtt"].iter().any(|e| name.ends_with(e)) {
+                    f.get("url").and_then(|v| v.as_str()).map(str::to_owned)
+                } else { None }
+            })
+            .or_else(|| sub.get("url").and_then(|v| v.as_str()).map(str::to_owned))
+            .ok_or("字幕详情没有可下载文件")?;
+        let response = client.get(&direct).header("User-Agent", ASSRT_UA).send().await
+            .map_err(|e| format!("字幕下载失败：{e}"))?;
+        if !response.status().is_success() { return Err(format!("字幕下载失败：HTTP {}", response.status())); }
+        response.bytes().await.map_err(|e| e.to_string())?
+    } else if is_assrt && !is_media {
+        // Assrt 字幕详情页：解析下载地址 -> 不跟随重定向拿 location -> 下载（对齐 Android getSubtitleUrlFromAssrt）
+        let page = client
+            .get(parsed.clone())
+            .header("User-Agent", ASSRT_UA)
+            .header("Referer", ASSRT_REFERER)
+            .send()
+            .await
+            .map_err(|e| format!("字幕页面获取失败：{e}"))?;
+        let html = page.text().await.map_err(|e| e.to_string())?;
+        let Some(download) = assrt_page_download_url(&html) else {
+            return Err("未找到字幕下载地址（可能需登录或字幕已失效）".into());
+        };
+        let no_redirect = crate::tvbox::apply_dns(reqwest::Client::builder())
+            .timeout(Duration::from_secs(20))
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .map_err(|e| e.to_string())?;
+        let resp = no_redirect
+            .get(&download)
+            .header("User-Agent", ASSRT_UA)
+            .header("Referer", ASSRT_REFERER)
+            .send()
+            .await
+            .map_err(|e| format!("字幕下载失败：{e}"))?;
+        let status = resp.status();
+        let target = if status.is_redirection() {
+            resp.headers()
+                .get("location")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.to_string())
+                .ok_or("字幕下载跳转地址缺失")?
+        } else if status.is_success() {
+            download.clone()
+        } else {
+            return Err(format!("字幕下载失败：HTTP {status}"));
+        };
+        let resp2 = client
+            .get(&target)
+            .header("User-Agent", ASSRT_UA)
+            .header("Referer", ASSRT_REFERER)
+            .send()
+            .await
+            .map_err(|e| format!("字幕下载失败：{e}"))?;
+        if !resp2.status().is_success() {
+            return Err(format!("字幕下载失败：HTTP {}", resp2.status()));
+        }
+        resp2.bytes().await.map_err(|e| e.to_string())?
+    } else {
+        let response = client
+            .get(parsed.clone())
+            .header("User-Agent", TVBOX_UA)
+            .send()
+            .await
+            .map_err(|e| format!("字幕下载失败：{e}"))?;
+        if !response.status().is_success() {
+            return Err(format!("字幕下载失败：HTTP {}", response.status()));
+        }
+        response.bytes().await.map_err(|e| e.to_string())?
+    };
+    // Assrt 返回的是 zip 压缩包：解压第一个字幕文件
+    let (bytes, zipped_ext) = if bytes.starts_with(b"PK") {
+        let (data, ext) = unzip_first_subtitle(&bytes)?;
+        (data, ext)
+    } else {
+        (bytes.to_vec(), String::new())
+    };
     if bytes.len() > 8 * 1024 * 1024 {
         return Err("字幕文件过大".into());
     }
@@ -584,11 +904,16 @@ pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
         return Err("字幕内容为空".into());
     }
     let path = parsed.path().to_lowercase();
-    let ext = ["srt", "ass", "ssa", "vtt", "sub"]
-        .iter()
-        .find(|e| path.ends_with(&format!(".{e}")))
-        .copied()
-        .unwrap_or("srt");
+    let ext = if !zipped_ext.is_empty() {
+        zipped_ext
+    } else {
+        ["srt", "ass", "ssa", "vtt", "sub"]
+            .iter()
+            .find(|e| path.ends_with(&format!(".{e}")))
+            .copied()
+            .unwrap_or("srt")
+            .to_string()
+    };
     use std::hash::{Hash, Hasher};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     url.hash(&mut hasher);
@@ -611,6 +936,10 @@ pub async fn tvbox_subtitle_search(apis: Vec<String>, name: String) -> Result<Ve
         .timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| e.to_string())?;
+    // 配置没有字幕接口时使用 Assrt 官方 JSON API；网页搜索页已失效，不能再抓 HTML。
+    if apis.iter().all(|a| a.trim().is_empty()) {
+        return Ok(assrt_search(&client, &name).await);
+    }
     let mut items: Vec<SubtitleItem> = Vec::new();
     for api in apis.iter().filter(|a| !a.trim().is_empty()).take(6) {
         let url = if api.contains("{name}") {
@@ -629,6 +958,76 @@ pub async fn tvbox_subtitle_search(apis: Vec<String>, name: String) -> Result<Ve
         }
     }
     Ok(items)
+}
+
+
+// ===== 内置 Assrt（字幕库）在线字幕 =====
+const ASSRT_REFERER: &str = "https://secure.assrt.net";
+const ASSRT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36";
+// AssrtOSS/mpv-assrt 面向开源客户端公开的共享 token；个人配置接口仍优先于此兜底。
+const ASSRT_OSS_TOKEN: &str = "tNjXZUnOJWcHznHDyalNMYqqP6IdDdpQ";
+
+async fn assrt_search(client: &reqwest::Client, name: &str) -> Vec<SubtitleItem> {
+    let url = format!("https://api.assrt.net/v1/sub/search?token={}&cnt=20&q={}", ASSRT_OSS_TOKEN, encode_component(name));
+    let mut out = Vec::new();
+    let Ok(response) = client.get(&url).header("User-Agent", ASSRT_UA).send().await else { return out };
+    let Ok(value) = response.json::<serde_json::Value>().await else { return out };
+    for sub in value.pointer("/sub/subs").and_then(|v| v.as_array()).into_iter().flatten() {
+        let id = sub.get("id").and_then(|v| v.as_i64()).map(|v| v.to_string())
+            .or_else(|| sub.get("id").and_then(|v| v.as_str()).map(str::to_owned)).unwrap_or_default();
+        if id.is_empty() { continue; }
+        let title = sub.get("native_name").or_else(|| sub.get("videoname")).and_then(|v| v.as_str()).unwrap_or("字幕");
+        let lang = sub.pointer("/lang/desc").and_then(|v| v.as_str()).unwrap_or("");
+        let detail = format!("https://api.assrt.net/v1/sub/detail?token={ASSRT_OSS_TOKEN}&id={id}");
+        out.push(SubtitleItem { title: title.chars().take(100).collect(), lang: lang.to_string(), url: detail });
+    }
+    out
+}
+
+/// 从 Assrt 字幕详情页解析下载地址：压缩包 download('id','-','file') 优先，其次直链
+fn assrt_page_download_url(html: &str) -> Option<String> {
+    if let Some(pos) = html.find("download('") {
+        let rest = &html[pos + "download('".len()..];
+        let parts: Vec<&str> = rest.split('\'').collect();
+        if parts.len() >= 5 {
+            return Some(format!("https://secure.assrt.net/download/{}/-/{}/{}", parts[0], parts[2], parts[4]));
+        }
+    }
+    let lower = html.to_lowercase();
+    for ext in [".srt", ".ass", ".ssa", ".vtt", ".scc", ".ttml"] {
+        let mut start = 0;
+        while let Some(idx) = lower[start..].find(ext) {
+            let end = start + idx + ext.len();
+            if let Some(href_pos) = lower[..end].rfind("href=\"") {
+                let value = &html[href_pos + 6..];
+                if let Some(q) = value.find('"') {
+                    let href = &value[..q];
+                    let href = if href.starts_with("http") { href.to_string() } else { format!("https://assrt.net{href}") };
+                    return Some(href);
+                }
+            }
+            start = end;
+        }
+    }
+    None
+}
+
+/// 解压 zip 中的第一个字幕文件，返回（内容，扩展名）
+fn unzip_first_subtitle(bytes: &[u8]) -> Result<(Vec<u8>, String), String> {
+    let reader = std::io::Cursor::new(bytes);
+    let mut archive = zip::ZipArchive::new(reader).map_err(|e| format!("字幕压缩包解析失败：{e}"))?;
+    for i in 0..archive.len() {
+        let Ok(mut entry) = archive.by_index(i) else { continue };
+        let name = entry.name().to_lowercase();
+        let Some(ext) = [".srt", ".ass", ".ssa", ".vtt", ".sub"].iter().find(|e| name.ends_with(*e)) else { continue };
+        let mut out = Vec::new();
+        use std::io::Read;
+        entry.read_to_end(&mut out).map_err(|e| e.to_string())?;
+        if !out.is_empty() {
+            return Ok((out, ext.trim_start_matches('.').to_string()));
+        }
+    }
+    Err("字幕压缩包里没有字幕文件".into())
 }
 
 fn collect_subtitles(value: &serde_json::Value, out: &mut Vec<SubtitleItem>) {
@@ -698,8 +1097,17 @@ mod tests {
         body.extend_from_slice(b"VjVsmoeD**");
         body.extend_from_slice(encode(json).as_bytes());
         let out = extract_encrypted_config(&body).expect("应提取配置");
-        assert!(out.starts_with("{"), "输出应为 JSON，实际：{}", &out[..out.len().min(20)]);
+        assert!(out.starts_with("{"), "输出应为 JSON，实际：{}", utf8_prefix(&out, 20));
         assert!(out.contains("sites"));
+    }
+
+
+    #[test]
+    fn utf8_prefix_never_splits_chinese_text() {
+        let value = "abc，中文内容";
+        assert_eq!(utf8_prefix(value, 5), "abc");
+        assert_eq!(utf8_prefix(value, 6), "abc，");
+        assert_eq!(utf8_prefix(value, 999), value);
     }
 
     #[test]

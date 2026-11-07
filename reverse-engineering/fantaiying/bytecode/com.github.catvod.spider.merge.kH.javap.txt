@@ -1,0 +1,688 @@
+public final class com.github.catvod.spider.merge.kH {
+  static final com.github.catvod.spider.merge.TO N;
+    descriptor: Lcom/github/catvod/spider/merge/TO;
+
+  static final com.github.catvod.spider.merge.hj SN;
+    descriptor: Lcom/github/catvod/spider/merge/hj;
+
+  private static java.lang.String i;
+    descriptor: Ljava/lang/String;
+
+  static boolean tF;
+    descriptor: Z
+
+  static volatile int yq;
+    descriptor: I
+
+  private static final java.lang.String[] zH;
+    descriptor: [Ljava/lang/String;
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: new           #22                 // class com/github/catvod/spider/merge/hj
+       3: dup
+       4: invokespecial #25                 // Method com/github/catvod/spider/merge/hj."<init>":()V
+       7: putstatic     #27                 // Field SN:Lcom/github/catvod/spider/merge/hj;
+      10: new           #29                 // class com/github/catvod/spider/merge/TO
+      13: dup
+      14: invokespecial #30                 // Method com/github/catvod/spider/merge/TO."<init>":()V
+      17: putstatic     #32                 // Field N:Lcom/github/catvod/spider/merge/TO;
+      20: aconst_null
+      21: astore_1
+      22: ldc           #34                 // String slf4j.detectLoggerNameMismatch
+      24: invokestatic  #40                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+      27: astore_2
+      28: aload_2
+      29: astore_1
+      30: goto          34
+      33: astore_2
+      34: aload_1
+      35: ifnonnull     43
+      38: iconst_0
+      39: istore_0
+      40: goto          50
+      43: aload_1
+      44: ldc           #42                 // String true
+      46: invokevirtual #48                 // Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+      49: istore_0
+      50: iload_0
+      51: putstatic     #50                 // Field tF:Z
+      54: iconst_2
+      55: anewarray     #44                 // class java/lang/String
+      58: dup
+      59: iconst_0
+      60: ldc           #52                 // String 1.6
+      62: aastore
+      63: dup
+      64: iconst_1
+      65: ldc           #54                 // String 1.7
+      67: aastore
+      68: putstatic     #56                 // Field zH:[Ljava/lang/String;
+      71: ldc           #58                 // String org/slf4j/impl/StaticLoggerBinder.class
+      73: putstatic     #60                 // Field i:Ljava/lang/String;
+      76: return
+    Exception table:
+       from    to  target type
+          22    28    33   Class java/lang/SecurityException
+
+  private com.github.catvod.spider.merge.kH();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #62                 // Method java/lang/Object."<init>":()V
+       4: return
+
+  private static void Gc(java.util.Set<java.net.URL>);
+    descriptor: (Ljava/util/Set;)V
+    Code:
+       0: aload_0
+       1: ifnull        58
+       4: aload_0
+       5: invokeinterface #71,  1           // InterfaceMethod java/util/Set.size:()I
+      10: istore_2
+      11: iconst_1
+      12: istore_1
+      13: iload_2
+      14: iconst_1
+      15: if_icmple     21
+      18: goto          23
+      21: iconst_0
+      22: istore_1
+      23: iload_1
+      24: ifeq          58
+      27: ldc           #73                 // String Actual binding is of type [
+      29: invokestatic  #78                 // Method com/github/catvod/spider/merge/oI.yq:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      32: astore_0
+      33: aload_0
+      34: invokestatic  #84                 // Method org/slf4j/impl/StaticLoggerBinder.getSingleton:()Lorg/slf4j/impl/StaticLoggerBinder;
+      37: invokevirtual #88                 // Method org/slf4j/impl/StaticLoggerBinder.getLoggerFactoryClassStr:()Ljava/lang/String;
+      40: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      43: pop
+      44: aload_0
+      45: ldc           #95                 // String ]
+      47: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      50: pop
+      51: aload_0
+      52: invokevirtual #98                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      55: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      58: return
+
+  private static final void KJ();
+    descriptor: ()V
+    Code:
+       0: getstatic     #110                // Field org/slf4j/impl/StaticLoggerBinder.REQUESTED_API_VERSION:Ljava/lang/String;
+       3: astore_3
+       4: getstatic     #56                 // Field zH:[Ljava/lang/String;
+       7: astore        4
+       9: aload         4
+      11: arraylength
+      12: istore_2
+      13: iconst_0
+      14: istore_0
+      15: iconst_0
+      16: istore_1
+      17: iload_0
+      18: iload_2
+      19: if_icmpge     41
+      22: aload_3
+      23: aload         4
+      25: iload_0
+      26: aaload
+      27: invokevirtual #113                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+      30: ifeq          35
+      33: iconst_1
+      34: istore_1
+      35: iinc          0, 1
+      38: goto          17
+      41: iload_1
+      42: ifne          116
+      45: new           #90                 // class java/lang/StringBuilder
+      48: astore        4
+      50: aload         4
+      52: invokespecial #114                // Method java/lang/StringBuilder."<init>":()V
+      55: aload         4
+      57: ldc           #116                // String The requested version
+      59: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      62: pop
+      63: aload         4
+      65: aload_3
+      66: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      69: pop
+      70: aload         4
+      72: ldc           #118                // String  by your slf4j binding is not compatible with
+      74: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      77: pop
+      78: aload         4
+      80: getstatic     #56                 // Field zH:[Ljava/lang/String;
+      83: invokestatic  #124                // Method java/util/Arrays.asList:([Ljava/lang/Object;)Ljava/util/List;
+      86: invokevirtual #125                // Method java/lang/Object.toString:()Ljava/lang/String;
+      89: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      92: pop
+      93: aload         4
+      95: invokevirtual #98                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      98: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     101: ldc           #127                // String See http://www.slf4j.org/codes.html#version_mismatch for further details.
+     103: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     106: goto          116
+     109: astore_3
+     110: ldc           #129                // String Unexpected problem occured during version sanity check
+     112: aload_3
+     113: invokestatic  #132                // Method com/github/catvod/spider/merge/bs.N:(Ljava/lang/String;Ljava/lang/Throwable;)V
+     116: return
+     117: astore_3
+     118: goto          116
+    Exception table:
+       from    to  target type
+           0    13   117   Class java/lang/NoSuchFieldError
+           0    13   109   any
+          22    33   117   Class java/lang/NoSuchFieldError
+          22    33   109   any
+          45   106   117   Class java/lang/NoSuchFieldError
+          45   106   109   any
+
+  private static void M(java.util.Set<java.net.URL>);
+    descriptor: (Ljava/util/Set;)V
+    Code:
+       0: aload_0
+       1: invokeinterface #71,  1           // InterfaceMethod java/util/Set.size:()I
+       6: istore_2
+       7: iconst_1
+       8: istore_1
+       9: iload_2
+      10: iconst_1
+      11: if_icmple     17
+      14: goto          19
+      17: iconst_0
+      18: istore_1
+      19: iload_1
+      20: ifeq          102
+      23: ldc           #135                // String Class path contains multiple SLF4J bindings.
+      25: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      28: aload_0
+      29: invokeinterface #139,  1          // InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+      34: astore_3
+      35: aload_3
+      36: invokeinterface #145,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      41: ifeq          97
+      44: aload_3
+      45: invokeinterface #149,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      50: checkcast     #151                // class java/net/URL
+      53: astore_0
+      54: new           #90                 // class java/lang/StringBuilder
+      57: dup
+      58: invokespecial #114                // Method java/lang/StringBuilder."<init>":()V
+      61: astore        4
+      63: aload         4
+      65: ldc           #153                // String Found binding in [
+      67: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      70: pop
+      71: aload         4
+      73: aload_0
+      74: invokevirtual #156                // Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+      77: pop
+      78: aload         4
+      80: ldc           #95                 // String ]
+      82: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      85: pop
+      86: aload         4
+      88: invokevirtual #98                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      91: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      94: goto          35
+      97: ldc           #158                // String See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+      99: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     102: return
+
+  public static com.github.catvod.spider.merge.zh N();
+    descriptor: ()Lcom/github/catvod/spider/merge/zh;
+    Code:
+       0: getstatic     #161                // Field yq:I
+       3: ifne          44
+       6: ldc           #2                  // class com/github/catvod/spider/merge/kH
+       8: monitorenter
+       9: getstatic     #161                // Field yq:I
+      12: ifne          32
+      15: iconst_1
+      16: putstatic     #161                // Field yq:I
+      19: invokestatic  #163                // Method yq:()V
+      22: getstatic     #161                // Field yq:I
+      25: iconst_3
+      26: if_icmpne     32
+      29: invokestatic  #165                // Method KJ:()V
+      32: ldc           #2                  // class com/github/catvod/spider/merge/kH
+      34: monitorexit
+      35: goto          44
+      38: astore_1
+      39: ldc           #2                  // class com/github/catvod/spider/merge/kH
+      41: monitorexit
+      42: aload_1
+      43: athrow
+      44: getstatic     #161                // Field yq:I
+      47: istore_0
+      48: iload_0
+      49: iconst_1
+      50: if_icmpeq     99
+      53: iload_0
+      54: iconst_2
+      55: if_icmpeq     89
+      58: iload_0
+      59: iconst_3
+      60: if_icmpeq     82
+      63: iload_0
+      64: iconst_4
+      65: if_icmpne     72
+      68: getstatic     #32                 // Field N:Lcom/github/catvod/spider/merge/TO;
+      71: areturn
+      72: new           #167                // class java/lang/IllegalStateException
+      75: dup
+      76: ldc           #169                // String Unreachable code
+      78: invokespecial #171                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+      81: athrow
+      82: invokestatic  #84                 // Method org/slf4j/impl/StaticLoggerBinder.getSingleton:()Lorg/slf4j/impl/StaticLoggerBinder;
+      85: invokevirtual #175                // Method org/slf4j/impl/StaticLoggerBinder.getLoggerFactory:()Lorg/slf4j/ILoggerFactory;
+      88: areturn
+      89: new           #167                // class java/lang/IllegalStateException
+      92: dup
+      93: ldc           #177                // String org.slf4j.LoggerFactory in failed state. Original exception was thrown EARLIER. See also http://www.slf4j.org/codes.html#unsuccessfulInit
+      95: invokespecial #171                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+      98: athrow
+      99: getstatic     #27                 // Field SN:Lcom/github/catvod/spider/merge/hj;
+     102: areturn
+    Exception table:
+       from    to  target type
+           9    32    38   any
+          32    35    38   any
+          39    42    38   any
+
+  static java.util.Set<java.net.URL> SN();
+    descriptor: ()Ljava/util/Set;
+    Code:
+       0: new           #183                // class java/util/LinkedHashSet
+       3: dup
+       4: invokespecial #184                // Method java/util/LinkedHashSet."<init>":()V
+       7: astore_1
+       8: ldc           #2                  // class com/github/catvod/spider/merge/kH
+      10: invokevirtual #190                // Method java/lang/Class.getClassLoader:()Ljava/lang/ClassLoader;
+      13: astore_0
+      14: aload_0
+      15: ifnonnull     28
+      18: getstatic     #60                 // Field i:Ljava/lang/String;
+      21: invokestatic  #196                // Method java/lang/ClassLoader.getSystemResources:(Ljava/lang/String;)Ljava/util/Enumeration;
+      24: astore_0
+      25: goto          36
+      28: aload_0
+      29: getstatic     #60                 // Field i:Ljava/lang/String;
+      32: invokevirtual #199                // Method java/lang/ClassLoader.getResources:(Ljava/lang/String;)Ljava/util/Enumeration;
+      35: astore_0
+      36: aload_0
+      37: invokeinterface #204,  1          // InterfaceMethod java/util/Enumeration.hasMoreElements:()Z
+      42: ifeq          71
+      45: aload_1
+      46: aload_0
+      47: invokeinterface #207,  1          // InterfaceMethod java/util/Enumeration.nextElement:()Ljava/lang/Object;
+      52: checkcast     #151                // class java/net/URL
+      55: invokeinterface #211,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+      60: pop
+      61: goto          36
+      64: astore_0
+      65: ldc           #213                // String Error getting resources from path
+      67: aload_0
+      68: invokestatic  #132                // Method com/github/catvod/spider/merge/bs.N:(Ljava/lang/String;Ljava/lang/Throwable;)V
+      71: aload_1
+      72: areturn
+    Exception table:
+       from    to  target type
+           8    14    64   Class java/io/IOException
+          18    25    64   Class java/io/IOException
+          28    36    64   Class java/io/IOException
+          36    61    64   Class java/io/IOException
+
+  private static boolean i();
+    descriptor: ()Z
+    Code:
+       0: aconst_null
+       1: astore_0
+       2: ldc           #215                // String java.vendor.url
+       4: invokestatic  #40                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+       7: astore_1
+       8: aload_1
+       9: astore_0
+      10: aload_0
+      11: ifnonnull     16
+      14: iconst_0
+      15: ireturn
+      16: aload_0
+      17: invokevirtual #218                // Method java/lang/String.toLowerCase:()Ljava/lang/String;
+      20: ldc           #220                // String android
+      22: invokevirtual #224                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      25: ireturn
+      26: astore_1
+      27: goto          10
+    Exception table:
+       from    to  target type
+           2     8    26   Class java/lang/SecurityException
+
+  private static void t0();
+    descriptor: ()V
+    Code:
+       0: getstatic     #27                 // Field SN:Lcom/github/catvod/spider/merge/hj;
+       3: astore_2
+       4: aload_2
+       5: monitorenter
+       6: aload_2
+       7: invokevirtual #227                // Method com/github/catvod/spider/merge/hj.zH:()V
+      10: aload_2
+      11: invokevirtual #230                // Method com/github/catvod/spider/merge/hj.tF:()Ljava/util/List;
+      14: checkcast     #232                // class java/util/ArrayList
+      17: invokevirtual #233                // Method java/util/ArrayList.iterator:()Ljava/util/Iterator;
+      20: astore_3
+      21: aload_3
+      22: invokeinterface #145,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      27: ifeq          57
+      30: aload_3
+      31: invokeinterface #149,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      36: checkcast     #235                // class com/github/catvod/spider/merge/QE
+      39: astore        4
+      41: aload         4
+      43: aload         4
+      45: invokevirtual #238                // Method com/github/catvod/spider/merge/QE.getName:()Ljava/lang/String;
+      48: invokestatic  #241                // Method zH:(Ljava/lang/String;)Lcom/github/catvod/spider/merge/mu;
+      51: invokevirtual #244                // Method com/github/catvod/spider/merge/QE.i:(Lcom/github/catvod/spider/merge/mu;)V
+      54: goto          21
+      57: aload_2
+      58: monitorexit
+      59: getstatic     #27                 // Field SN:Lcom/github/catvod/spider/merge/hj;
+      62: invokevirtual #247                // Method com/github/catvod/spider/merge/hj.N:()Ljava/util/concurrent/LinkedBlockingQueue;
+      65: astore_3
+      66: aload_3
+      67: invokevirtual #250                // Method java/util/concurrent/LinkedBlockingQueue.size:()I
+      70: istore_1
+      71: new           #232                // class java/util/ArrayList
+      74: dup
+      75: sipush        128
+      78: invokespecial #253                // Method java/util/ArrayList."<init>":(I)V
+      81: astore_2
+      82: iconst_0
+      83: istore_0
+      84: aload_3
+      85: aload_2
+      86: sipush        128
+      89: invokevirtual #257                // Method java/util/concurrent/LinkedBlockingQueue.drainTo:(Ljava/util/Collection;I)I
+      92: ifne          102
+      95: getstatic     #27                 // Field SN:Lcom/github/catvod/spider/merge/hj;
+      98: invokevirtual #259                // Method com/github/catvod/spider/merge/hj.SN:()V
+     101: return
+     102: aload_2
+     103: invokevirtual #233                // Method java/util/ArrayList.iterator:()Ljava/util/Iterator;
+     106: astore        4
+     108: aload         4
+     110: invokeinterface #145,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+     115: ifeq          327
+     118: aload         4
+     120: invokeinterface #149,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+     125: checkcast     #261                // class com/github/catvod/spider/merge/io
+     128: astore        6
+     130: aload         6
+     132: ifnonnull     138
+     135: goto          194
+     138: aload         6
+     140: invokevirtual #264                // Method com/github/catvod/spider/merge/io.yq:()Lcom/github/catvod/spider/merge/QE;
+     143: astore        5
+     145: aload         5
+     147: invokevirtual #238                // Method com/github/catvod/spider/merge/QE.getName:()Ljava/lang/String;
+     150: astore        7
+     152: aload         5
+     154: invokevirtual #266                // Method com/github/catvod/spider/merge/QE.tF:()Z
+     157: ifne          316
+     160: aload         5
+     162: invokevirtual #268                // Method com/github/catvod/spider/merge/QE.N:()Z
+     165: ifeq          171
+     168: goto          194
+     171: aload         5
+     173: invokevirtual #270                // Method com/github/catvod/spider/merge/QE.SN:()Z
+     176: ifeq          189
+     179: aload         5
+     181: aload         6
+     183: invokevirtual #273                // Method com/github/catvod/spider/merge/QE.zH:(Lcom/github/catvod/spider/merge/iQ;)V
+     186: goto          194
+     189: aload         7
+     191: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     194: iload_0
+     195: ifne          310
+     198: aload         6
+     200: invokevirtual #264                // Method com/github/catvod/spider/merge/io.yq:()Lcom/github/catvod/spider/merge/QE;
+     203: invokevirtual #270                // Method com/github/catvod/spider/merge/QE.SN:()Z
+     206: ifeq          266
+     209: new           #90                 // class java/lang/StringBuilder
+     212: dup
+     213: invokespecial #114                // Method java/lang/StringBuilder."<init>":()V
+     216: astore        5
+     218: aload         5
+     220: ldc_w         #275                // String A number (
+     223: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     226: pop
+     227: aload         5
+     229: iload_1
+     230: invokevirtual #278                // Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+     233: pop
+     234: aload         5
+     236: ldc_w         #280                // String ) of logging calls during the initialization phase have been intercepted and are
+     239: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     242: pop
+     243: aload         5
+     245: invokevirtual #98                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     248: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     251: ldc_w         #282                // String now being replayed. These are subject to the filtering rules of the underlying logging system.
+     254: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     257: ldc_w         #284                // String See also http://www.slf4j.org/codes.html#replay
+     260: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     263: goto          310
+     266: aload         6
+     268: invokevirtual #264                // Method com/github/catvod/spider/merge/io.yq:()Lcom/github/catvod/spider/merge/QE;
+     271: invokevirtual #268                // Method com/github/catvod/spider/merge/QE.N:()Z
+     274: ifeq          280
+     277: goto          310
+     280: ldc_w         #286                // String The following set of substitute loggers may have been accessed
+     283: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     286: ldc_w         #288                // String during the initialization phase. Logging calls during this
+     289: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     292: ldc_w         #290                // String phase were not honored. However, subsequent logging calls to these
+     295: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     298: ldc_w         #292                // String loggers will work as normally expected.
+     301: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     304: ldc_w         #294                // String See also http://www.slf4j.org/codes.html#substituteLogger
+     307: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     310: iinc          0, 1
+     313: goto          108
+     316: new           #167                // class java/lang/IllegalStateException
+     319: dup
+     320: ldc_w         #296                // String Delegate logger cannot be null at this state.
+     323: invokespecial #171                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+     326: athrow
+     327: aload_2
+     328: invokevirtual #299                // Method java/util/ArrayList.clear:()V
+     331: goto          84
+     334: astore_3
+     335: aload_2
+     336: monitorexit
+     337: goto          342
+     340: aload_3
+     341: athrow
+     342: goto          340
+    Exception table:
+       from    to  target type
+           6    21   334   any
+          21    54   334   any
+          57    59   334   any
+         335   337   334   any
+
+  public static com.github.catvod.spider.merge.mu tF(java.lang.Class<?>);
+    descriptor: (Ljava/lang/Class;)Lcom/github/catvod/spider/merge/mu;
+    Code:
+       0: aload_0
+       1: invokevirtual #302                // Method java/lang/Class.getName:()Ljava/lang/String;
+       4: astore_1
+       5: invokestatic  #304                // Method N:()Lcom/github/catvod/spider/merge/zh;
+       8: aload_1
+       9: invokeinterface #308,  2          // InterfaceMethod com/github/catvod/spider/merge/zh.yq:(Ljava/lang/String;)Lcom/github/catvod/spider/merge/mu;
+      14: astore_2
+      15: getstatic     #50                 // Field tF:Z
+      18: ifeq          74
+      21: invokestatic  #311                // Method com/github/catvod/spider/merge/bs.yq:()Ljava/lang/Class;
+      24: astore_1
+      25: aload_1
+      26: ifnull        74
+      29: aload_1
+      30: aload_0
+      31: invokevirtual #315                // Method java/lang/Class.isAssignableFrom:(Ljava/lang/Class;)Z
+      34: iconst_1
+      35: ixor
+      36: ifeq          74
+      39: ldc_w         #317                // String Detected logger name mismatch. Given name: \"%s\"; computed name: \"%s\".
+      42: iconst_2
+      43: anewarray     #4                  // class java/lang/Object
+      46: dup
+      47: iconst_0
+      48: aload_2
+      49: invokeinterface #320,  1          // InterfaceMethod com/github/catvod/spider/merge/mu.getName:()Ljava/lang/String;
+      54: aastore
+      55: dup
+      56: iconst_1
+      57: aload_1
+      58: invokevirtual #302                // Method java/lang/Class.getName:()Ljava/lang/String;
+      61: aastore
+      62: invokestatic  #324                // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      65: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      68: ldc_w         #326                // String See http://www.slf4j.org/codes.html#loggerNameMismatch for an explanation
+      71: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      74: aload_2
+      75: areturn
+
+  private static final void yq();
+    descriptor: ()V
+    Code:
+       0: aconst_null
+       1: astore_1
+       2: invokestatic  #334                // Method i:()Z
+       5: ifne          16
+       8: invokestatic  #336                // Method SN:()Ljava/util/Set;
+      11: astore_1
+      12: aload_1
+      13: invokestatic  #338                // Method M:(Ljava/util/Set;)V
+      16: invokestatic  #84                 // Method org/slf4j/impl/StaticLoggerBinder.getSingleton:()Lorg/slf4j/impl/StaticLoggerBinder;
+      19: pop
+      20: iconst_3
+      21: putstatic     #161                // Field yq:I
+      24: aload_1
+      25: invokestatic  #340                // Method Gc:(Ljava/util/Set;)V
+      28: invokestatic  #342                // Method t0:()V
+      31: goto          180
+      34: astore_1
+      35: goto          194
+      38: astore_1
+      39: iconst_2
+      40: putstatic     #161                // Field yq:I
+      43: ldc_w         #344                // String Failed to instantiate SLF4J LoggerFactory
+      46: aload_1
+      47: invokestatic  #132                // Method com/github/catvod/spider/merge/bs.N:(Ljava/lang/String;Ljava/lang/Throwable;)V
+      50: new           #167                // class java/lang/IllegalStateException
+      53: astore_2
+      54: aload_2
+      55: ldc_w         #346                // String Unexpected initialization failure
+      58: aload_1
+      59: invokespecial #348                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+      62: aload_2
+      63: athrow
+      64: astore_1
+      65: aload_1
+      66: invokevirtual #353                // Method java/lang/Throwable.getMessage:()Ljava/lang/String;
+      69: astore_2
+      70: aload_2
+      71: ifnull        106
+      74: aload_2
+      75: ldc_w         #355                // String org.slf4j.impl.StaticLoggerBinder.getSingleton()
+      78: invokevirtual #224                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      81: ifeq          106
+      84: iconst_2
+      85: putstatic     #161                // Field yq:I
+      88: ldc_w         #357                // String slf4j-api 1.6.x (or later) is incompatible with this binding.
+      91: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+      94: ldc_w         #359                // String Your binding is version 1.5.5 or earlier.
+      97: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     100: ldc_w         #361                // String Upgrade your binding to version 1.6.x.
+     103: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     106: aload_1
+     107: athrow
+     108: astore_2
+     109: aload_2
+     110: invokevirtual #353                // Method java/lang/Throwable.getMessage:()Ljava/lang/String;
+     113: astore_1
+     114: iconst_0
+     115: istore_0
+     116: aload_1
+     117: ifnonnull     123
+     120: goto          151
+     123: aload_1
+     124: ldc_w         #362                // String org/slf4j/impl/StaticLoggerBinder
+     127: invokevirtual #224                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     130: ifeq          138
+     133: iconst_1
+     134: istore_0
+     135: goto          151
+     138: aload_1
+     139: ldc_w         #364                // String org.slf4j.impl.StaticLoggerBinder
+     142: invokevirtual #224                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     145: ifeq          151
+     148: goto          133
+     151: iload_0
+     152: ifeq          181
+     155: iconst_4
+     156: putstatic     #161                // Field yq:I
+     159: ldc_w         #366                // String Failed to load class \"org.slf4j.impl.StaticLoggerBinder\".
+     162: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     165: ldc_w         #368                // String Defaulting to no-operation (NOP) logger implementation
+     168: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     171: ldc_w         #370                // String See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+     174: invokestatic  #103                // Method com/github/catvod/spider/merge/bs.SN:(Ljava/lang/String;)V
+     177: goto          28
+     180: return
+     181: iconst_2
+     182: putstatic     #161                // Field yq:I
+     185: ldc_w         #344                // String Failed to instantiate SLF4J LoggerFactory
+     188: aload_2
+     189: invokestatic  #132                // Method com/github/catvod/spider/merge/bs.N:(Ljava/lang/String;Ljava/lang/Throwable;)V
+     192: aload_2
+     193: athrow
+     194: invokestatic  #342                // Method t0:()V
+     197: goto          202
+     200: aload_1
+     201: athrow
+     202: goto          200
+    Exception table:
+       from    to  target type
+           2    16   108   Class java/lang/NoClassDefFoundError
+           2    16    64   Class java/lang/NoSuchMethodError
+           2    16    38   Class java/lang/Exception
+           2    16    34   any
+          16    28   108   Class java/lang/NoClassDefFoundError
+          16    28    64   Class java/lang/NoSuchMethodError
+          16    28    38   Class java/lang/Exception
+          16    28    34   any
+          39    64    34   any
+          65    70    34   any
+          74   106    34   any
+         106   108    34   any
+         109   114    34   any
+         123   133    34   any
+         138   148    34   any
+         155   177    34   any
+         181   194    34   any
+
+  public static com.github.catvod.spider.merge.mu zH(java.lang.String);
+    descriptor: (Ljava/lang/String;)Lcom/github/catvod/spider/merge/mu;
+    Code:
+       0: invokestatic  #304                // Method N:()Lcom/github/catvod/spider/merge/zh;
+       3: aload_0
+       4: invokeinterface #308,  2          // InterfaceMethod com/github/catvod/spider/merge/zh.yq:(Ljava/lang/String;)Lcom/github/catvod/spider/merge/mu;
+       9: areturn
+}

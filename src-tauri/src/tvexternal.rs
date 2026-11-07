@@ -73,6 +73,13 @@ pub struct ExternalState {
     python: Mutex<Option<Worker>>,
     java: Mutex<Option<Worker>>,
 }
+impl ExternalState {
+    /// 已启动的 JVM 桥地址与 token（供云盘扫码登录后向 JAR 推送登录态）
+    pub async fn java_endpoint(&self) -> Option<(String, String)> {
+        let slot = self.java.lock().await;
+        slot.as_ref().map(|worker| (worker.url.clone(), worker.token.clone()))
+    }
+}
 fn command(path: impl AsRef<std::ffi::OsStr>) -> Command {
     let mut cmd = Command::new(path);
     cmd.kill_on_drop(true);
@@ -150,7 +157,7 @@ pub fn tvbox_cancel(token: String) {
 fn client() -> Result<reqwest::Client, String> {
     crate::tvbox::apply_dns(reqwest::Client::builder())
         .no_proxy()
-        .timeout(Duration::from_secs(45))
+        .timeout(Duration::from_secs(120))
         .build()
         .map_err(|e| e.to_string())
 }
@@ -215,7 +222,10 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
     let executable = resource(app, "resources/java/jre/bin/java.exe")?;
     let host = resource(app, "resources/java/host.jar")?;
     let lib = resource(app, "resources/java/lib")?;
-    let dex = resource(app, "resources/java/dex-runtime")?;
+    // Dex2jar discovers several command handlers at startup. Even the Dex2jar command can
+    // load the Smali handler, so a hand-picked subset produces NoClassDefFoundError for
+    // com.googlecode.d2j.smali.Smali. Use the complete, bundled upstream lib directory.
+    let dex = resource(app, "resources/java/dex")?;
     let cache = crate::datadir::data_dir(app)?.join("tvbox-java");
     tokio::fs::create_dir_all(&cache)
         .await
@@ -230,6 +240,9 @@ async fn java(app: &tauri::AppHandle) -> Result<Worker, String> {
             "-Xverify:none",
             "-Xmx384m",
             "-Dfile.encoding=UTF-8",
+            // JAR 的本地代理服务（drivePort 6677-7000）在 Windows 上默认绑 IPv6（::），
+            // 而它生成的播放地址是 127.0.0.1（IPv4）→ 连接被拒、端口探测器失败（adjustPort 错误）
+            "-Djava.net.preferIPv4Stack=true",
             "-Dsun.net.httpserver.maxReqTime=45",
             "-Dsun.net.httpserver.maxRspTime=120",
         ])
@@ -482,31 +495,38 @@ pub async fn tvbox_external(
         }
     }
     let state = app.state::<ExternalState>();
-    let mut slot = if is_python {
-        state.python.lock().await
-    } else {
-        state.java.lock().await
-    };
-    if slot.is_none() {
-        *slot = Some(if is_python {
-            python(&app).await?
+    // 只在取/建 worker、读写 known 时持锁；HTTP 请求期间不持锁——否则所有 JAR 源请求串行（Android 是并发 18 线程）
+    let (worker_url, worker_token) = {
+        let mut slot = if is_python {
+            state.python.lock().await
         } else {
-            java(&app).await?
-        });
-    }
-    let worker = slot.as_mut().unwrap();
+            state.java.lock().await
+        };
+        if slot.is_none() {
+            *slot = Some(if is_python {
+                python(&app).await?
+            } else {
+                java(&app).await?
+            });
+        }
+        let worker = slot.as_ref().unwrap();
+        (worker.url.clone(), worker.token.clone())
+    };
     if !is_python {
-        data["proxyOrigin"] = json!(worker.url);
+        data["proxyOrigin"] = json!(worker_url);
         // known 记录已传给 Java 端的 JAR 内容哈希：同一 JAR 只传一次 base64 载荷
         let jar_hash = data["jarHash"].as_str().unwrap_or("").to_string();
-        if worker.known.contains(&jar_hash) {
-            data["jarData"] = Value::Null;
+        let mut slot = state.java.lock().await;
+        if let Some(worker) = slot.as_mut() {
+            if worker.known.contains(&jar_hash) {
+                data["jarData"] = Value::Null;
+            }
         }
     }
     let response = {
         let request = client()?
-            .post(format!("{}/call", worker.url))
-            .header("X-TVBOX-Token", &worker.token)
+            .post(format!("{}/call", worker_url))
+            .header("X-TVBOX-Token", &worker_token)
             .json(&data)
             .send();
         // 支持前端取消（切仓/切源/取消弹窗时中止挂起请求，避免阻塞与旧数据回写）
@@ -529,8 +549,8 @@ pub async fn tvbox_external(
     let response = match response {
         Ok(r) => r,
         Err(e) => {
-            *slot = None;
-            return Err(format!("片源运行超时或中断，运行环境已重置：{e}"));
+            // 超时（如网盘源 play 内部多请求慢）：不重置 JVM（重置会 kill 正在处理的其他请求，更慢）
+            return Err(format!("片源运行超时或中断：{e}"));
         }
     };
     let status = response.status();
@@ -542,10 +562,13 @@ pub async fn tvbox_external(
         ));
     }
     if !is_python {
-        worker
-            .known
-            .insert(data["jarHash"].as_str().unwrap_or("").to_string());
-        rewrite(&mut result, worker, &identity);
+        let mut slot = state.java.lock().await;
+        if let Some(worker) = slot.as_mut() {
+            worker
+                .known
+                .insert(data["jarHash"].as_str().unwrap_or("").to_string());
+            rewrite(&mut result, worker, &identity);
+        }
     }
     Ok(result)
 }

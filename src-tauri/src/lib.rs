@@ -6,10 +6,12 @@ mod db;
 mod history;
 mod md5calc;
 mod mock;
+mod nbmovie;
 mod notes;
 mod textfile;
 mod titlebar;
 mod tvbox;
+mod cloudrive;
 mod tvexternal;
 mod tvremote;
 mod tvplayer;
@@ -23,6 +25,18 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // GUI 子系统没有可见 stderr；原生回调中的 panic 会直接以 0xc0000409 终止，
+    // 只留下无意义的 Windows 故障偏移。持久化 panic 与回溯，既便于现场诊断，
+    // 也避免后续把这类退出误判成 WebView 崩溃。
+    std::panic::set_hook(Box::new(|info| {
+        let root = std::env::var_os("APPDATA")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir)
+            .join("com.simpletools.desktop");
+        let _ = std::fs::create_dir_all(&root);
+        let text = format!("{info}\n{:?}\n", std::backtrace::Backtrace::force_capture());
+        let _ = std::fs::write(root.join("panic.log"), text);
+    }));
     tauri::Builder::default()
         // 单实例限制（v0.52.0）：重复启动时聚焦已有窗口（必须第一个注册）
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -129,8 +143,9 @@ pub fn run() {
                 tvbox::tvbox_load,
                 tvbox::tvbox_save,
                 tvbox::tvbox_image,
+                tvbox::tvbox_poster_search,
                 tvbox::tvbox_hot_list,
-                tvbox::tvbox_cloud_login,
+                cloudrive::tvbox_cloud_play,cloudrive::tvbox_cloud_detail,cloudrive::tvbox_cloud_qr,cloudrive::tvbox_cloud_is_share,tvbox::tvbox_cloud_login,cloudrive::tvbox_quark_qr_start,cloudrive::tvbox_cloud_apply,cloudrive::tvbox_cloud_find,
                 tvbox::tvbox_dns_set,
                 tvbox::tvbox_subtitle_load,
                 tvbox::tvbox_subtitle_search,

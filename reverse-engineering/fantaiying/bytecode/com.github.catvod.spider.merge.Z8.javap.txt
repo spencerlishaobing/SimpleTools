@@ -1,0 +1,1677 @@
+public final class com.github.catvod.spider.merge.Z8 {
+  private final byte[] N;
+    descriptor: [B
+
+  private final com.github.catvod.spider.merge.DS SN;
+    descriptor: Lcom/github/catvod/spider/merge/DS;
+
+  private com.github.catvod.spider.merge.fZ yq;
+    descriptor: Lcom/github/catvod/spider/merge/fZ;
+
+  public com.github.catvod.spider.merge.Z8();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #14                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: new           #16                 // class com/github/catvod/spider/merge/DS
+       8: dup
+       9: invokespecial #17                 // Method com/github/catvod/spider/merge/DS."<init>":()V
+      12: putfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      15: aload_0
+      16: iconst_4
+      17: newarray       byte
+      19: putfield      #21                 // Field N:[B
+      22: return
+
+  private void Gc(java.io.RandomAccessFile, long);
+    descriptor: (Ljava/io/RandomAccessFile;J)V
+    Code:
+       0: aload_1
+       1: instanceof    #26                 // class com/github/catvod/spider/merge/OM
+       4: ifeq          18
+       7: aload_1
+       8: checkcast     #26                 // class com/github/catvod/spider/merge/OM
+      11: lload_2
+      12: invokevirtual #29                 // Method com/github/catvod/spider/merge/OM.N:(J)V
+      15: goto          23
+      18: aload_1
+      19: lload_2
+      20: invokevirtual #34                 // Method java/io/RandomAccessFile.seek:(J)V
+      23: return
+
+  private com.github.catvod.spider.merge.N SN(java.util.List<com.github.catvod.spider.merge.bA>, com.github.catvod.spider.merge.DS);
+    descriptor: (Ljava/util/List;Lcom/github/catvod/spider/merge/DS;)Lcom/github/catvod/spider/merge/N;
+    Code:
+       0: aload_1
+       1: ifnonnull     6
+       4: aconst_null
+       5: areturn
+       6: aload_1
+       7: invokeinterface #42,  1           // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+      12: astore_1
+      13: aload_1
+      14: invokeinterface #48,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+      19: ifeq          148
+      22: aload_1
+      23: invokeinterface #52,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      28: checkcast     #54                 // class com/github/catvod/spider/merge/bA
+      31: astore_3
+      32: aload_3
+      33: ifnonnull     39
+      36: goto          13
+      39: aload_3
+      40: invokevirtual #58                 // Method com/github/catvod/spider/merge/bA.g:()J
+      43: bipush        12
+      45: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      48: lcmp
+      49: ifne          13
+      52: aload_3
+      53: invokevirtual #67                 // Method com/github/catvod/spider/merge/bA.Dr:()[B
+      56: ifnull        138
+      59: new           #69                 // class com/github/catvod/spider/merge/N
+      62: dup
+      63: invokespecial #70                 // Method com/github/catvod/spider/merge/N."<init>":()V
+      66: astore_1
+      67: aload_3
+      68: invokevirtual #67                 // Method com/github/catvod/spider/merge/bA.Dr:()[B
+      71: astore_3
+      72: aload_1
+      73: aload_2
+      74: aload_3
+      75: iconst_0
+      76: invokevirtual #74                 // Method com/github/catvod/spider/merge/DS.B:([BI)I
+      79: invokestatic  #79                 // Method com/github/catvod/spider/merge/RQ.yq:(I)I
+      82: invokevirtual #83                 // Method com/github/catvod/spider/merge/N.Fz:(I)V
+      85: iconst_2
+      86: newarray       byte
+      88: astore        4
+      90: aload_3
+      91: iconst_2
+      92: aload         4
+      94: iconst_0
+      95: iconst_2
+      96: invokestatic  #89                 // Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+      99: new           #91                 // class java/lang/String
+     102: dup
+     103: aload         4
+     105: invokespecial #94                 // Method java/lang/String."<init>":([B)V
+     108: pop
+     109: aload_1
+     110: aload_3
+     111: iconst_4
+     112: baload
+     113: sipush        255
+     116: iand
+     117: invokestatic  #97                 // Method com/github/catvod/spider/merge/k.yq:(I)I
+     120: invokevirtual #100                // Method com/github/catvod/spider/merge/N.U:(I)V
+     123: aload_1
+     124: aload_2
+     125: aload_3
+     126: iconst_5
+     127: invokevirtual #74                 // Method com/github/catvod/spider/merge/DS.B:([BI)I
+     130: invokestatic  #103                // Method com/github/catvod/spider/merge/Cr.yq:(I)I
+     133: invokevirtual #106                // Method com/github/catvod/spider/merge/N.E1:(I)V
+     136: aload_1
+     137: areturn
+     138: new           #108                // class com/github/catvod/spider/merge/Mt
+     141: dup
+     142: ldc           #110                // String corrupt AES extra data records
+     144: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     147: athrow
+     148: aconst_null
+     149: areturn
+
+  private com.github.catvod.spider.merge.Kt t0(java.util.List<com.github.catvod.spider.merge.bA>, com.github.catvod.spider.merge.DS, long, long, long, int);
+    descriptor: (Ljava/util/List;Lcom/github/catvod/spider/merge/DS;JJJI)Lcom/github/catvod/spider/merge/Kt;
+    Code:
+       0: aload_1
+       1: invokeinterface #42,  1           // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+       6: astore        12
+       8: aload         12
+      10: invokeinterface #48,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+      15: ifeq          242
+      18: aload         12
+      20: invokeinterface #52,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      25: checkcast     #54                 // class com/github/catvod/spider/merge/bA
+      28: astore_1
+      29: aload_1
+      30: ifnonnull     36
+      33: goto          8
+      36: bipush        11
+      38: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      41: aload_1
+      42: invokevirtual #58                 // Method com/github/catvod/spider/merge/bA.g:()J
+      45: lcmp
+      46: ifne          239
+      49: new           #119                // class com/github/catvod/spider/merge/Kt
+      52: dup
+      53: invokespecial #120                // Method com/github/catvod/spider/merge/Kt."<init>":()V
+      56: astore        13
+      58: aload_1
+      59: invokevirtual #67                 // Method com/github/catvod/spider/merge/bA.Dr:()[B
+      62: astore        12
+      64: aload_1
+      65: invokevirtual #124                // Method com/github/catvod/spider/merge/bA.H:()I
+      68: ifgt          73
+      71: aconst_null
+      72: areturn
+      73: iconst_0
+      74: istore        11
+      76: iload         11
+      78: istore        10
+      80: aload_1
+      81: invokevirtual #124                // Method com/github/catvod/spider/merge/bA.H:()I
+      84: ifle          115
+      87: iload         11
+      89: istore        10
+      91: lload_3
+      92: ldc2_w        #125                // long 4294967295l
+      95: lcmp
+      96: ifne          115
+      99: aload         13
+     101: aload_2
+     102: aload         12
+     104: iconst_0
+     105: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     108: invokevirtual #132                // Method com/github/catvod/spider/merge/Kt.m:(J)V
+     111: bipush        8
+     113: istore        10
+     115: iload         10
+     117: istore        11
+     119: iload         10
+     121: aload_1
+     122: invokevirtual #124                // Method com/github/catvod/spider/merge/bA.H:()I
+     125: if_icmpge     161
+     128: iload         10
+     130: istore        11
+     132: lload         5
+     134: ldc2_w        #125                // long 4294967295l
+     137: lcmp
+     138: ifne          161
+     141: aload         13
+     143: aload_2
+     144: aload         12
+     146: iload         10
+     148: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     151: invokevirtual #134                // Method com/github/catvod/spider/merge/Kt.Fz:(J)V
+     154: iload         10
+     156: bipush        8
+     158: iadd
+     159: istore        11
+     161: iload         11
+     163: istore        10
+     165: iload         11
+     167: aload_1
+     168: invokevirtual #124                // Method com/github/catvod/spider/merge/bA.H:()I
+     171: if_icmpge     207
+     174: iload         11
+     176: istore        10
+     178: lload         7
+     180: ldc2_w        #125                // long 4294967295l
+     183: lcmp
+     184: ifne          207
+     187: aload         13
+     189: aload_2
+     190: aload         12
+     192: iload         11
+     194: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     197: invokevirtual #137                // Method com/github/catvod/spider/merge/Kt.tO:(J)V
+     200: iload         11
+     202: bipush        8
+     204: iadd
+     205: istore        10
+     207: iload         10
+     209: aload_1
+     210: invokevirtual #124                // Method com/github/catvod/spider/merge/bA.H:()I
+     213: if_icmpge     236
+     216: iload         9
+     218: ldc           #138                // int 65535
+     220: if_icmpne     236
+     223: aload         13
+     225: aload_2
+     226: aload         12
+     228: iload         10
+     230: invokevirtual #141                // Method com/github/catvod/spider/merge/DS.tF:([BI)I
+     233: invokevirtual #142                // Method com/github/catvod/spider/merge/Kt.E1:(I)V
+     236: aload         13
+     238: areturn
+     239: goto          8
+     242: aconst_null
+     243: areturn
+
+  private java.util.List<com.github.catvod.spider.merge.bA> yq(byte[], int);
+    descriptor: ([BI)Ljava/util/List;
+    Code:
+       0: new           #146                // class java/util/ArrayList
+       3: dup
+       4: invokespecial #147                // Method java/util/ArrayList."<init>":()V
+       7: astore        5
+       9: iconst_0
+      10: istore_3
+      11: iload_3
+      12: iload_2
+      13: if_icmpge     107
+      16: new           #54                 // class com/github/catvod/spider/merge/bA
+      19: dup
+      20: invokespecial #148                // Method com/github/catvod/spider/merge/bA."<init>":()V
+      23: astore        6
+      25: aload         6
+      27: aload_0
+      28: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      31: aload_1
+      32: iload_3
+      33: invokevirtual #74                 // Method com/github/catvod/spider/merge/DS.B:([BI)I
+      36: i2l
+      37: invokevirtual #149                // Method com/github/catvod/spider/merge/bA.Fz:(J)V
+      40: iload_3
+      41: iconst_2
+      42: iadd
+      43: istore        4
+      45: aload_0
+      46: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      49: aload_1
+      50: iload         4
+      52: invokevirtual #74                 // Method com/github/catvod/spider/merge/DS.B:([BI)I
+      55: istore_3
+      56: aload         6
+      58: iload_3
+      59: invokevirtual #150                // Method com/github/catvod/spider/merge/bA.E1:(I)V
+      62: iinc          4, 2
+      65: iload_3
+      66: ifle          91
+      69: iload_3
+      70: newarray       byte
+      72: astore        7
+      74: aload_1
+      75: iload         4
+      77: aload         7
+      79: iconst_0
+      80: iload_3
+      81: invokestatic  #89                 // Method java/lang/System.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V
+      84: aload         6
+      86: aload         7
+      88: invokevirtual #152                // Method com/github/catvod/spider/merge/bA.U:([B)V
+      91: iload         4
+      93: iload_3
+      94: iadd
+      95: istore_3
+      96: aload         5
+      98: aload         6
+     100: invokevirtual #156                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     103: pop
+     104: goto          11
+     107: aload         5
+     109: invokevirtual #159                // Method java/util/ArrayList.size:()I
+     112: ifle          121
+     115: aload         5
+     117: astore_1
+     118: goto          123
+     121: aconst_null
+     122: astore_1
+     123: aload_1
+     124: areturn
+
+  private com.github.catvod.spider.merge.vt zH(java.io.RandomAccessFile, com.github.catvod.spider.merge.DS, com.github.catvod.spider.merge.a0);
+    descriptor: (Ljava/io/RandomAccessFile;Lcom/github/catvod/spider/merge/DS;Lcom/github/catvod/spider/merge/a0;)Lcom/github/catvod/spider/merge/vt;
+    Code:
+       0: aload_1
+       1: invokevirtual #166                // Method java/io/RandomAccessFile.length:()J
+       4: lstore        5
+       6: lload         5
+       8: ldc2_w        #167                // long 22l
+      11: lcmp
+      12: iflt          330
+      15: lload         5
+      17: ldc2_w        #167                // long 22l
+      20: lsub
+      21: lstore        7
+      23: aload_0
+      24: aload_1
+      25: lload         7
+      27: invokespecial #170                // Method Gc:(Ljava/io/RandomAccessFile;J)V
+      30: aload_0
+      31: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      34: aload_1
+      35: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+      38: i2l
+      39: iconst_4
+      40: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      43: lcmp
+      44: ifne          50
+      47: goto          138
+      50: aload_1
+      51: invokevirtual #166                // Method java/io/RandomAccessFile.length:()J
+      54: ldc2_w        #167                // long 22l
+      57: lsub
+      58: lstore        9
+      60: aload_1
+      61: invokevirtual #166                // Method java/io/RandomAccessFile.length:()J
+      64: lstore        11
+      66: ldc2_w        #174                // long 65536l
+      69: lstore        5
+      71: lload         9
+      73: lstore        7
+      75: lload         11
+      77: ldc2_w        #174                // long 65536l
+      80: lcmp
+      81: ifge          94
+      84: aload_1
+      85: invokevirtual #166                // Method java/io/RandomAccessFile.length:()J
+      88: lstore        5
+      90: lload         9
+      92: lstore        7
+      94: lload         5
+      96: lconst_0
+      97: lcmp
+      98: ifle          320
+     101: lload         7
+     103: lconst_0
+     104: lcmp
+     105: ifle          320
+     108: lload         7
+     110: lconst_1
+     111: lsub
+     112: lstore        7
+     114: aload_0
+     115: aload_1
+     116: lload         7
+     118: invokespecial #170                // Method Gc:(Ljava/io/RandomAccessFile;J)V
+     121: aload_0
+     122: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     125: aload_1
+     126: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     129: i2l
+     130: iconst_4
+     131: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+     134: lcmp
+     135: ifne          311
+     138: aload_0
+     139: aload_1
+     140: ldc2_w        #176                // long 4l
+     143: lload         7
+     145: ladd
+     146: invokespecial #170                // Method Gc:(Ljava/io/RandomAccessFile;J)V
+     149: new           #179                // class com/github/catvod/spider/merge/vt
+     152: dup
+     153: invokespecial #180                // Method com/github/catvod/spider/merge/vt."<init>":()V
+     156: astore        14
+     158: aload         14
+     160: aload_2
+     161: aload_1
+     162: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     165: invokevirtual #184                // Method com/github/catvod/spider/merge/vt.Fz:(I)V
+     168: aload_2
+     169: aload_1
+     170: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     173: pop
+     174: aload_2
+     175: aload_1
+     176: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     179: pop
+     180: aload         14
+     182: aload_2
+     183: aload_1
+     184: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     187: invokevirtual #186                // Method com/github/catvod/spider/merge/vt.m:(I)V
+     190: aload_2
+     191: aload_1
+     192: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     195: pop
+     196: aload         14
+     198: lload         7
+     200: invokevirtual #188                // Method com/github/catvod/spider/merge/vt.E1:(J)V
+     203: aload_1
+     204: aload_0
+     205: getfield      #21                 // Field N:[B
+     208: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     211: aload_0
+     212: getfield      #21                 // Field N:[B
+     215: astore        15
+     217: iconst_0
+     218: istore        13
+     220: aload         14
+     222: aload_2
+     223: aload         15
+     225: iconst_0
+     226: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     229: invokevirtual #192                // Method com/github/catvod/spider/merge/vt.tO:(J)V
+     232: aload_2
+     233: aload_1
+     234: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     237: istore        4
+     239: aload_3
+     240: invokevirtual #197                // Method com/github/catvod/spider/merge/a0.SN:()Ljava/nio/charset/Charset;
+     243: astore_2
+     244: iload         4
+     246: ifgt          252
+     249: goto          286
+     252: iload         4
+     254: newarray       byte
+     256: astore_3
+     257: aload_1
+     258: aload_3
+     259: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     262: aload_2
+     263: ifnull        271
+     266: aload_2
+     267: astore_1
+     268: goto          275
+     271: getstatic     #202                // Field com/github/catvod/spider/merge/ht.N:Ljava/nio/charset/Charset;
+     274: astore_1
+     275: aload_3
+     276: iconst_0
+     277: aload_1
+     278: invokestatic  #207                // Method com/github/catvod/spider/merge/TA.SN:([BZLjava/nio/charset/Charset;)Ljava/lang/String;
+     281: pop
+     282: goto          286
+     285: astore_1
+     286: aload_0
+     287: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     290: astore_1
+     291: aload         14
+     293: invokevirtual #211                // Method com/github/catvod/spider/merge/vt.Dr:()I
+     296: ifle          302
+     299: iconst_1
+     300: istore        13
+     302: aload_1
+     303: iload         13
+     305: invokevirtual #217                // Method com/github/catvod/spider/merge/fZ.KJ:(Z)V
+     308: aload         14
+     310: areturn
+     311: lload         5
+     313: lconst_1
+     314: lsub
+     315: lstore        5
+     317: goto          94
+     320: new           #108                // class com/github/catvod/spider/merge/Mt
+     323: dup
+     324: ldc           #219                // String Zip headers not found. Probably not a zip file
+     326: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     329: athrow
+     330: new           #108                // class com/github/catvod/spider/merge/Mt
+     333: dup
+     334: ldc           #221                // String Zip file size less than size of zip headers. Probably not a zip file.
+     336: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     339: astore_1
+     340: goto          345
+     343: aload_1
+     344: athrow
+     345: goto          343
+    Exception table:
+       from    to  target type
+         252   262   285   Class java/io/IOException
+         271   275   285   Class java/io/IOException
+         275   282   285   Class java/io/IOException
+
+  public final com.github.catvod.spider.merge.fZ N(java.io.RandomAccessFile, com.github.catvod.spider.merge.a0);
+    descriptor: (Ljava/io/RandomAccessFile;Lcom/github/catvod/spider/merge/a0;)Lcom/github/catvod/spider/merge/fZ;
+    Code:
+       0: aload_0
+       1: astore        16
+       3: aload_1
+       4: invokevirtual #166                // Method java/io/RandomAccessFile.length:()J
+       7: ldc2_w        #167                // long 22l
+      10: lcmp
+      11: iflt          1536
+      14: new           #213                // class com/github/catvod/spider/merge/fZ
+      17: dup
+      18: invokespecial #225                // Method com/github/catvod/spider/merge/fZ."<init>":()V
+      21: astore        15
+      23: aload         16
+      25: aload         15
+      27: putfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+      30: aload         15
+      32: aload         16
+      34: aload_1
+      35: aload         16
+      37: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      40: aload_2
+      41: invokespecial #227                // Method zH:(Ljava/io/RandomAccessFile;Lcom/github/catvod/spider/merge/DS;Lcom/github/catvod/spider/merge/a0;)Lcom/github/catvod/spider/merge/vt;
+      44: invokevirtual #231                // Method com/github/catvod/spider/merge/fZ.M:(Lcom/github/catvod/spider/merge/vt;)V
+      47: aload         16
+      49: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+      52: invokevirtual #234                // Method com/github/catvod/spider/merge/fZ.SN:()Lcom/github/catvod/spider/merge/vt;
+      55: invokevirtual #236                // Method com/github/catvod/spider/merge/vt.U:()I
+      58: ifne          67
+      61: aload         16
+      63: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+      66: areturn
+      67: aload         16
+      69: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+      72: astore        17
+      74: aload         16
+      76: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      79: astore        18
+      81: aload         17
+      83: invokevirtual #234                // Method com/github/catvod/spider/merge/fZ.SN:()Lcom/github/catvod/spider/merge/vt;
+      86: invokevirtual #237                // Method com/github/catvod/spider/merge/vt.g:()J
+      89: lstore        6
+      91: new           #239                // class com/github/catvod/spider/merge/I9
+      94: dup
+      95: invokespecial #240                // Method com/github/catvod/spider/merge/I9."<init>":()V
+      98: astore        15
+     100: aload         16
+     102: aload_1
+     103: lload         6
+     105: ldc2_w        #176                // long 4l
+     108: lsub
+     109: ldc2_w        #241                // long 8l
+     112: lsub
+     113: ldc2_w        #176                // long 4l
+     116: lsub
+     117: ldc2_w        #176                // long 4l
+     120: lsub
+     121: invokespecial #170                // Method Gc:(Ljava/io/RandomAccessFile;J)V
+     124: aload         18
+     126: aload_1
+     127: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     130: i2l
+     131: bipush        9
+     133: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+     136: lcmp
+     137: ifne          177
+     140: aload         16
+     142: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     145: iconst_1
+     146: invokevirtual #245                // Method com/github/catvod/spider/merge/fZ.G:(Z)V
+     149: aload         18
+     151: aload_1
+     152: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     155: pop
+     156: aload         15
+     158: aload         18
+     160: aload_1
+     161: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     164: invokevirtual #251                // Method com/github/catvod/spider/merge/I9.g:(J)V
+     167: aload         18
+     169: aload_1
+     170: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     173: pop
+     174: goto          189
+     177: aload         16
+     179: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     182: iconst_0
+     183: invokevirtual #245                // Method com/github/catvod/spider/merge/fZ.G:(Z)V
+     186: aconst_null
+     187: astore        15
+     189: aload         17
+     191: aload         15
+     193: invokevirtual #254                // Method com/github/catvod/spider/merge/fZ.q:(Lcom/github/catvod/spider/merge/I9;)V
+     196: aload         16
+     198: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     201: invokevirtual #256                // Method com/github/catvod/spider/merge/fZ.t0:()Z
+     204: ifeq          475
+     207: aload         16
+     209: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     212: astore        17
+     214: aload         16
+     216: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     219: astore        18
+     221: aload         17
+     223: invokevirtual #259                // Method com/github/catvod/spider/merge/fZ.N:()Lcom/github/catvod/spider/merge/I9;
+     226: ifnull        464
+     229: aload         16
+     231: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     234: invokevirtual #259                // Method com/github/catvod/spider/merge/fZ.N:()Lcom/github/catvod/spider/merge/I9;
+     237: invokevirtual #261                // Method com/github/catvod/spider/merge/I9.Dr:()J
+     240: lstore        6
+     242: lload         6
+     244: lconst_0
+     245: lcmp
+     246: iflt          453
+     249: aload_1
+     250: lload         6
+     252: invokevirtual #34                 // Method java/io/RandomAccessFile.seek:(J)V
+     255: new           #263                // class com/github/catvod/spider/merge/pD
+     258: dup
+     259: invokespecial #264                // Method com/github/catvod/spider/merge/pD."<init>":()V
+     262: astore        15
+     264: aload         18
+     266: aload_1
+     267: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     270: i2l
+     271: bipush        10
+     273: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+     276: lcmp
+     277: ifne          442
+     280: aload         15
+     282: aload         18
+     284: aload_1
+     285: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     288: invokevirtual #265                // Method com/github/catvod/spider/merge/pD.tO:(J)V
+     291: aload         18
+     293: aload_1
+     294: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     297: pop
+     298: aload         18
+     300: aload_1
+     301: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     304: pop
+     305: aload         15
+     307: aload         18
+     309: aload_1
+     310: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     313: invokevirtual #266                // Method com/github/catvod/spider/merge/pD.Fz:(I)V
+     316: aload         18
+     318: aload_1
+     319: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     322: pop
+     323: aload         18
+     325: aload_1
+     326: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     329: pop2
+     330: aload         15
+     332: aload         18
+     334: aload_1
+     335: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     338: invokevirtual #267                // Method com/github/catvod/spider/merge/pD.m:(J)V
+     341: aload         18
+     343: aload_1
+     344: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     347: pop2
+     348: aload         15
+     350: aload         18
+     352: aload_1
+     353: invokevirtual #249                // Method com/github/catvod/spider/merge/DS.i:(Ljava/io/RandomAccessFile;)J
+     356: invokevirtual #268                // Method com/github/catvod/spider/merge/pD.E1:(J)V
+     359: aload         15
+     361: invokevirtual #270                // Method com/github/catvod/spider/merge/pD.H:()J
+     364: ldc2_w        #271                // long 44l
+     367: lsub
+     368: lstore        6
+     370: lload         6
+     372: lconst_0
+     373: lcmp
+     374: ifle          386
+     377: aload_1
+     378: lload         6
+     380: l2i
+     381: newarray       byte
+     383: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     386: aload         17
+     388: aload         15
+     390: invokevirtual #275                // Method com/github/catvod/spider/merge/fZ.B:(Lcom/github/catvod/spider/merge/pD;)V
+     393: aload         16
+     395: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     398: invokevirtual #278                // Method com/github/catvod/spider/merge/fZ.tF:()Lcom/github/catvod/spider/merge/pD;
+     401: ifnull        430
+     404: aload         16
+     406: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     409: invokevirtual #278                // Method com/github/catvod/spider/merge/fZ.tF:()Lcom/github/catvod/spider/merge/pD;
+     412: invokevirtual #279                // Method com/github/catvod/spider/merge/pD.Dr:()I
+     415: ifle          430
+     418: aload         16
+     420: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     423: iconst_1
+     424: invokevirtual #217                // Method com/github/catvod/spider/merge/fZ.KJ:(Z)V
+     427: goto          475
+     430: aload         16
+     432: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     435: iconst_0
+     436: invokevirtual #217                // Method com/github/catvod/spider/merge/fZ.KJ:(Z)V
+     439: goto          475
+     442: new           #108                // class com/github/catvod/spider/merge/Mt
+     445: dup
+     446: ldc_w         #281                // String invalid signature for zip64 end of central directory record
+     449: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     452: athrow
+     453: new           #108                // class com/github/catvod/spider/merge/Mt
+     456: dup
+     457: ldc_w         #283                // String invalid offset for start of end of central directory record
+     460: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     463: athrow
+     464: new           #108                // class com/github/catvod/spider/merge/Mt
+     467: dup
+     468: ldc_w         #285                // String invalid zip64 end of central directory locator
+     471: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     474: athrow
+     475: aload         16
+     477: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     480: astore        17
+     482: aload         16
+     484: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     487: astore        21
+     489: aload_2
+     490: invokevirtual #197                // Method com/github/catvod/spider/merge/a0.SN:()Ljava/nio/charset/Charset;
+     493: astore        22
+     495: new           #287                // class com/github/catvod/spider/merge/Gx
+     498: dup
+     499: invokespecial #288                // Method com/github/catvod/spider/merge/Gx."<init>":()V
+     502: astore        15
+     504: new           #146                // class java/util/ArrayList
+     507: dup
+     508: invokespecial #147                // Method java/util/ArrayList."<init>":()V
+     511: astore        19
+     513: aload         16
+     515: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     518: astore_2
+     519: aload_2
+     520: invokevirtual #256                // Method com/github/catvod/spider/merge/fZ.t0:()Z
+     523: ifeq          538
+     526: aload_2
+     527: invokevirtual #278                // Method com/github/catvod/spider/merge/fZ.tF:()Lcom/github/catvod/spider/merge/pD;
+     530: invokevirtual #289                // Method com/github/catvod/spider/merge/pD.g:()J
+     533: lstore        8
+     535: goto          547
+     538: aload_2
+     539: invokevirtual #234                // Method com/github/catvod/spider/merge/fZ.SN:()Lcom/github/catvod/spider/merge/vt;
+     542: invokevirtual #290                // Method com/github/catvod/spider/merge/vt.H:()J
+     545: lstore        8
+     547: aload         16
+     549: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+     552: astore_2
+     553: aload_2
+     554: invokevirtual #256                // Method com/github/catvod/spider/merge/fZ.t0:()Z
+     557: ifeq          572
+     560: aload_2
+     561: invokevirtual #278                // Method com/github/catvod/spider/merge/fZ.tF:()Lcom/github/catvod/spider/merge/pD;
+     564: invokevirtual #292                // Method com/github/catvod/spider/merge/pD.U:()J
+     567: lstore        6
+     569: goto          582
+     572: aload_2
+     573: invokevirtual #234                // Method com/github/catvod/spider/merge/fZ.SN:()Lcom/github/catvod/spider/merge/vt;
+     576: invokevirtual #236                // Method com/github/catvod/spider/merge/vt.U:()I
+     579: i2l
+     580: lstore        6
+     582: aload_1
+     583: lload         8
+     585: invokevirtual #34                 // Method java/io/RandomAccessFile.seek:(J)V
+     588: iconst_2
+     589: newarray       byte
+     591: astore        18
+     593: iconst_4
+     594: newarray       byte
+     596: astore_2
+     597: iconst_0
+     598: istore_3
+     599: aload         17
+     601: astore        16
+     603: aload_2
+     604: astore        17
+     606: aload_0
+     607: astore_2
+     608: iload_3
+     609: i2l
+     610: lload         6
+     612: lcmp
+     613: ifge          1428
+     616: new           #294                // class com/github/catvod/spider/merge/NJ
+     619: dup
+     620: invokespecial #295                // Method com/github/catvod/spider/merge/NJ."<init>":()V
+     623: astore        23
+     625: aload         21
+     627: aload_1
+     628: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     631: i2l
+     632: iconst_3
+     633: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+     636: lcmp
+     637: ifne          1393
+     640: aload         21
+     642: aload_1
+     643: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     646: pop
+     647: aload         21
+     649: aload_1
+     650: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     653: pop
+     654: iconst_2
+     655: newarray       byte
+     657: astore_2
+     658: aload_1
+     659: aload_2
+     660: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     663: aload         23
+     665: aload_2
+     666: iconst_0
+     667: baload
+     668: iconst_0
+     669: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     672: invokevirtual #305                // Method com/github/catvod/spider/merge/nQ.mG:(Z)V
+     675: aload         23
+     677: aload_2
+     678: iconst_0
+     679: baload
+     680: iconst_3
+     681: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     684: invokevirtual #308                // Method com/github/catvod/spider/merge/nQ.p:(Z)V
+     687: aload         23
+     689: aload_2
+     690: iconst_1
+     691: baload
+     692: iconst_3
+     693: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     696: invokevirtual #311                // Method com/github/catvod/spider/merge/nQ.LY:(Z)V
+     699: aload         23
+     701: aload_2
+     702: invokevirtual #315                // Method "[B".clone:()Ljava/lang/Object;
+     705: checkcast     #312                // class "[B"
+     708: invokevirtual #318                // Method com/github/catvod/spider/merge/nQ.nQ:([B)V
+     711: aload         23
+     713: aload         21
+     715: aload_1
+     716: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     719: invokestatic  #103                // Method com/github/catvod/spider/merge/Cr.yq:(I)I
+     722: invokevirtual #321                // Method com/github/catvod/spider/merge/nQ.C:(I)V
+     725: aload         23
+     727: aload         21
+     729: aload_1
+     730: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+     733: i2l
+     734: invokevirtual #324                // Method com/github/catvod/spider/merge/nQ.kR:(J)V
+     737: aload_1
+     738: aload         17
+     740: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     743: aload         23
+     745: aload         21
+     747: aload         17
+     749: iconst_0
+     750: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     753: invokevirtual #327                // Method com/github/catvod/spider/merge/nQ.Q4:(J)V
+     756: aload         23
+     758: aload         21
+     760: aload_1
+     761: invokevirtual #329                // Method com/github/catvod/spider/merge/DS.M:(Ljava/io/RandomAccessFile;)J
+     764: invokevirtual #332                // Method com/github/catvod/spider/merge/nQ.lF:(J)V
+     767: aload         23
+     769: aload         21
+     771: aload_1
+     772: invokevirtual #329                // Method com/github/catvod/spider/merge/DS.M:(Ljava/io/RandomAccessFile;)J
+     775: invokevirtual #335                // Method com/github/catvod/spider/merge/nQ.L:(J)V
+     778: aload         21
+     780: aload_1
+     781: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     784: istore        5
+     786: aload         23
+     788: aload         21
+     790: aload_1
+     791: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     794: invokevirtual #338                // Method com/github/catvod/spider/merge/nQ.j:(I)V
+     797: aload         21
+     799: aload_1
+     800: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     803: istore        4
+     805: aload         23
+     807: aload         21
+     809: aload_1
+     810: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+     813: invokevirtual #341                // Method com/github/catvod/spider/merge/NJ.OB:(I)V
+     816: aload_1
+     817: aload         18
+     819: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     822: aload_1
+     823: aload         17
+     825: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     828: aload         23
+     830: aload         17
+     832: invokevirtual #315                // Method "[B".clone:()Ljava/lang/Object;
+     835: checkcast     #312                // class "[B"
+     838: invokevirtual #344                // Method com/github/catvod/spider/merge/NJ.x:([B)V
+     841: aload_1
+     842: aload         17
+     844: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     847: aload         23
+     849: aload         21
+     851: aload         17
+     853: iconst_0
+     854: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     857: invokevirtual #347                // Method com/github/catvod/spider/merge/NJ.ue:(J)V
+     860: iload         5
+     862: ifle          927
+     865: iload         5
+     867: newarray       byte
+     869: astore_2
+     870: aload_1
+     871: aload_2
+     872: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+     875: aload_2
+     876: aload         23
+     878: invokevirtual #350                // Method com/github/catvod/spider/merge/nQ.J:()Z
+     881: aload         22
+     883: invokestatic  #207                // Method com/github/catvod/spider/merge/TA.SN:([BZLjava/nio/charset/Charset;)Ljava/lang/String;
+     886: astore        20
+     888: aload         20
+     890: astore_2
+     891: aload         20
+     893: ldc_w         #352                // String :\\
+     896: invokevirtual #356                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     899: ifeq          918
+     902: aload         20
+     904: aload         20
+     906: ldc_w         #352                // String :\\
+     909: invokevirtual #360                // Method java/lang/String.indexOf:(Ljava/lang/String;)I
+     912: iconst_2
+     913: iadd
+     914: invokevirtual #364                // Method java/lang/String.substring:(I)Ljava/lang/String;
+     917: astore_2
+     918: aload         23
+     920: aload_2
+     921: invokevirtual #367                // Method com/github/catvod/spider/merge/nQ.o:(Ljava/lang/String;)V
+     924: goto          933
+     927: aload         23
+     929: aconst_null
+     930: invokevirtual #367                // Method com/github/catvod/spider/merge/nQ.o:(Ljava/lang/String;)V
+     933: aload         23
+     935: invokevirtual #370                // Method com/github/catvod/spider/merge/NJ.u7:()[B
+     938: astore_2
+     939: aload         23
+     941: invokevirtual #373                // Method com/github/catvod/spider/merge/nQ.m:()Ljava/lang/String;
+     944: astore        20
+     946: aload_2
+     947: iconst_0
+     948: baload
+     949: ifeq          965
+     952: aload_2
+     953: iconst_0
+     954: baload
+     955: iconst_4
+     956: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     959: ifeq          965
+     962: goto          1012
+     965: aload_2
+     966: iconst_3
+     967: baload
+     968: ifeq          985
+     971: aload_2
+     972: iconst_3
+     973: baload
+     974: bipush        6
+     976: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     979: ifeq          985
+     982: goto          1012
+     985: aload         20
+     987: ifnull        1018
+     990: aload         20
+     992: ldc_w         #375                // String /
+     995: invokevirtual #379                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+     998: ifne          1012
+    1001: aload         20
+    1003: ldc_w         #381                // String \\
+    1006: invokevirtual #379                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+    1009: ifeq          1018
+    1012: iconst_1
+    1013: istore        14
+    1015: goto          1021
+    1018: iconst_0
+    1019: istore        14
+    1021: aload         23
+    1023: iload         14
+    1025: invokevirtual #384                // Method com/github/catvod/spider/merge/nQ.w:(Z)V
+    1028: aload         23
+    1030: invokevirtual #386                // Method com/github/catvod/spider/merge/nQ.tO:()I
+    1033: istore        5
+    1035: iload         5
+    1037: ifgt          1043
+    1040: goto          1099
+    1043: iload         5
+    1045: iconst_4
+    1046: if_icmpge     1066
+    1049: iload         5
+    1051: ifle          1061
+    1054: aload_1
+    1055: iload         5
+    1057: invokevirtual #389                // Method java/io/RandomAccessFile.skipBytes:(I)I
+    1060: pop
+    1061: aconst_null
+    1062: astore_2
+    1063: goto          1093
+    1066: iload         5
+    1068: newarray       byte
+    1070: astore_2
+    1071: aload_1
+    1072: aload_2
+    1073: invokevirtual #393                // Method java/io/RandomAccessFile.read:([B)I
+    1076: pop
+    1077: aload_0
+    1078: aload_2
+    1079: iload         5
+    1081: invokespecial #395                // Method yq:([BI)Ljava/util/List;
+    1084: astore_2
+    1085: goto          1093
+    1088: astore_2
+    1089: invokestatic  #401                // Method java/util/Collections.emptyList:()Ljava/util/List;
+    1092: astore_2
+    1093: aload         23
+    1095: aload_2
+    1096: invokevirtual #405                // Method com/github/catvod/spider/merge/nQ.XO:(Ljava/util/List;)V
+    1099: aload         23
+    1101: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1104: ifnull        1266
+    1107: aload         23
+    1109: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1112: invokeinterface #408,  1          // InterfaceMethod java/util/List.size:()I
+    1117: ifgt          1123
+    1120: goto          1266
+    1123: aload         23
+    1125: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1128: astore_2
+    1129: aload         23
+    1131: invokevirtual #411                // Method com/github/catvod/spider/merge/nQ.Z:()J
+    1134: lstore        8
+    1136: aload         23
+    1138: invokevirtual #412                // Method com/github/catvod/spider/merge/nQ.g:()J
+    1141: lstore        10
+    1143: aload         23
+    1145: invokevirtual #415                // Method com/github/catvod/spider/merge/NJ.cS:()J
+    1148: lstore        12
+    1150: aload         23
+    1152: invokevirtual #418                // Method com/github/catvod/spider/merge/NJ.cp:()I
+    1155: istore        5
+    1157: aload_0
+    1158: aload_2
+    1159: aload         21
+    1161: lload         8
+    1163: lload         10
+    1165: lload         12
+    1167: iload         5
+    1169: invokespecial #420                // Method t0:(Ljava/util/List;Lcom/github/catvod/spider/merge/DS;JJJI)Lcom/github/catvod/spider/merge/Kt;
+    1172: astore_2
+    1173: aload_2
+    1174: ifnonnull     1180
+    1177: goto          1266
+    1180: aload         23
+    1182: aload_2
+    1183: invokevirtual #424                // Method com/github/catvod/spider/merge/nQ.Cu:(Lcom/github/catvod/spider/merge/Kt;)V
+    1186: aload_2
+    1187: invokevirtual #425                // Method com/github/catvod/spider/merge/Kt.U:()J
+    1190: ldc2_w        #426                // long -1l
+    1193: lcmp
+    1194: ifeq          1206
+    1197: aload         23
+    1199: aload_2
+    1200: invokevirtual #425                // Method com/github/catvod/spider/merge/Kt.U:()J
+    1203: invokevirtual #335                // Method com/github/catvod/spider/merge/nQ.L:(J)V
+    1206: aload_2
+    1207: invokevirtual #428                // Method com/github/catvod/spider/merge/Kt.Dr:()J
+    1210: ldc2_w        #426                // long -1l
+    1213: lcmp
+    1214: ifeq          1226
+    1217: aload         23
+    1219: aload_2
+    1220: invokevirtual #428                // Method com/github/catvod/spider/merge/Kt.Dr:()J
+    1223: invokevirtual #332                // Method com/github/catvod/spider/merge/nQ.lF:(J)V
+    1226: aload_2
+    1227: invokevirtual #429                // Method com/github/catvod/spider/merge/Kt.H:()J
+    1230: ldc2_w        #426                // long -1l
+    1233: lcmp
+    1234: ifeq          1246
+    1237: aload         23
+    1239: aload_2
+    1240: invokevirtual #429                // Method com/github/catvod/spider/merge/Kt.H:()J
+    1243: invokevirtual #347                // Method com/github/catvod/spider/merge/NJ.ue:(J)V
+    1246: aload_2
+    1247: invokevirtual #431                // Method com/github/catvod/spider/merge/Kt.g:()I
+    1250: iconst_m1
+    1251: if_icmpeq     1266
+    1254: aload         23
+    1256: aload_2
+    1257: invokevirtual #431                // Method com/github/catvod/spider/merge/Kt.g:()I
+    1260: invokevirtual #341                // Method com/github/catvod/spider/merge/NJ.OB:(I)V
+    1263: goto          1266
+    1266: aload         23
+    1268: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1271: ifnull        1318
+    1274: aload         23
+    1276: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1279: invokeinterface #408,  1          // InterfaceMethod java/util/List.size:()I
+    1284: ifgt          1290
+    1287: goto          1318
+    1290: aload_0
+    1291: aload         23
+    1293: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+    1296: aload         21
+    1298: invokespecial #433                // Method SN:(Ljava/util/List;Lcom/github/catvod/spider/merge/DS;)Lcom/github/catvod/spider/merge/N;
+    1301: astore_2
+    1302: aload_2
+    1303: ifnull        1318
+    1306: aload         23
+    1308: aload_2
+    1309: invokevirtual #437                // Method com/github/catvod/spider/merge/nQ.i3:(Lcom/github/catvod/spider/merge/N;)V
+    1312: aload         23
+    1314: iconst_4
+    1315: invokevirtual #440                // Method com/github/catvod/spider/merge/nQ.Hj:(I)V
+    1318: iload         4
+    1320: ifle          1345
+    1323: iload         4
+    1325: newarray       byte
+    1327: astore_2
+    1328: aload_1
+    1329: aload_2
+    1330: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+    1333: aload_2
+    1334: aload         23
+    1336: invokevirtual #350                // Method com/github/catvod/spider/merge/nQ.J:()Z
+    1339: aload         22
+    1341: invokestatic  #207                // Method com/github/catvod/spider/merge/TA.SN:([BZLjava/nio/charset/Charset;)Ljava/lang/String;
+    1344: pop
+    1345: aload         23
+    1347: invokevirtual #443                // Method com/github/catvod/spider/merge/nQ.R:()Z
+    1350: ifeq          1377
+    1353: aload         23
+    1355: invokevirtual #446                // Method com/github/catvod/spider/merge/nQ.Dr:()Lcom/github/catvod/spider/merge/N;
+    1358: ifnull        1367
+    1361: iconst_4
+    1362: istore        4
+    1364: goto          1370
+    1367: iconst_2
+    1368: istore        4
+    1370: aload         23
+    1372: iload         4
+    1374: invokevirtual #440                // Method com/github/catvod/spider/merge/nQ.Hj:(I)V
+    1377: aload         19
+    1379: aload         23
+    1381: invokevirtual #156                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+    1384: pop
+    1385: iinc          3, 1
+    1388: aload_0
+    1389: astore_2
+    1390: goto          606
+    1393: ldc_w         #448                // String Expected central directory entry not found (#
+    1396: invokestatic  #453                // Method com/github/catvod/spider/merge/oI.yq:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    1399: astore_1
+    1400: aload_1
+    1401: iload_3
+    1402: iconst_1
+    1403: iadd
+    1404: invokevirtual #459                // Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+    1407: pop
+    1408: aload_1
+    1409: ldc_w         #461                // String )
+    1412: invokevirtual #463                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    1415: pop
+    1416: new           #108                // class com/github/catvod/spider/merge/Mt
+    1419: dup
+    1420: aload_1
+    1421: invokevirtual #466                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+    1424: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+    1427: athrow
+    1428: aload         15
+    1430: aload         19
+    1432: invokevirtual #468                // Method com/github/catvod/spider/merge/Gx.SN:(Ljava/util/List;)V
+    1435: new           #470                // class com/github/catvod/spider/merge/T
+    1438: dup
+    1439: invokespecial #471                // Method com/github/catvod/spider/merge/T."<init>":()V
+    1442: astore        17
+    1444: aload         21
+    1446: aload_1
+    1447: invokevirtual #173                // Method com/github/catvod/spider/merge/DS.N:(Ljava/io/RandomAccessFile;)I
+    1450: i2l
+    1451: bipush        6
+    1453: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+    1456: lcmp
+    1457: ifne          1504
+    1460: aload         17
+    1462: aload         21
+    1464: aload_1
+    1465: invokevirtual #183                // Method com/github/catvod/spider/merge/DS.q:(Ljava/io/RandomAccessFile;)I
+    1468: invokevirtual #473                // Method com/github/catvod/spider/merge/T.g:(I)V
+    1471: aload         17
+    1473: invokevirtual #474                // Method com/github/catvod/spider/merge/T.Dr:()I
+    1476: ifle          1504
+    1479: aload         17
+    1481: invokevirtual #474                // Method com/github/catvod/spider/merge/T.Dr:()I
+    1484: newarray       byte
+    1486: astore        17
+    1488: aload_1
+    1489: aload         17
+    1491: invokevirtual #191                // Method java/io/RandomAccessFile.readFully:([B)V
+    1494: new           #91                 // class java/lang/String
+    1497: dup
+    1498: aload         17
+    1500: invokespecial #94                 // Method java/lang/String."<init>":([B)V
+    1503: pop
+    1504: aload         16
+    1506: aload         15
+    1508: invokevirtual #477                // Method com/github/catvod/spider/merge/fZ.Gc:(Lcom/github/catvod/spider/merge/Gx;)V
+    1511: aload_2
+    1512: getfield      #209                // Field yq:Lcom/github/catvod/spider/merge/fZ;
+    1515: areturn
+    1516: astore_1
+    1517: aload_1
+    1518: invokevirtual #482                // Method java/lang/Throwable.printStackTrace:()V
+    1521: new           #108                // class com/github/catvod/spider/merge/Mt
+    1524: dup
+    1525: ldc_w         #484                // String Zip headers not found. Probably not a zip file or a corrupted zip file
+    1528: aload_1
+    1529: invokespecial #487                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;Ljava/lang/Exception;)V
+    1532: athrow
+    1533: astore_1
+    1534: aload_1
+    1535: athrow
+    1536: new           #108                // class com/github/catvod/spider/merge/Mt
+    1539: dup
+    1540: ldc_w         #489                // String Zip file size less than minimum expected zip file size. Probably not a zip file or a corrupted zip file
+    1543: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+    1546: astore_1
+    1547: goto          1552
+    1550: aload_1
+    1551: athrow
+    1552: goto          1550
+    Exception table:
+       from    to  target type
+          30    47  1533   Class com/github/catvod/spider/merge/Mt
+          30    47  1516   Class java/io/IOException
+        1077  1085  1088   Class java/lang/Exception
+
+  public final com.github.catvod.spider.merge.B7 i(java.io.InputStream, java.nio.charset.Charset);
+    descriptor: (Ljava/io/InputStream;Ljava/nio/charset/Charset;)Lcom/github/catvod/spider/merge/B7;
+    Code:
+       0: new           #492                // class com/github/catvod/spider/merge/B7
+       3: dup
+       4: invokespecial #493                // Method com/github/catvod/spider/merge/B7."<init>":()V
+       7: astore        13
+       9: iconst_4
+      10: newarray       byte
+      12: astore        14
+      14: aload_0
+      15: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      18: aload_1
+      19: invokevirtual #496                // Method com/github/catvod/spider/merge/DS.SN:(Ljava/io/InputStream;)I
+      22: istore        4
+      24: iload         4
+      26: istore_3
+      27: iload         4
+      29: i2l
+      30: iconst_5
+      31: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      34: lcmp
+      35: ifne          47
+      38: aload_0
+      39: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      42: aload_1
+      43: invokevirtual #496                // Method com/github/catvod/spider/merge/DS.SN:(Ljava/io/InputStream;)I
+      46: istore_3
+      47: iload_3
+      48: i2l
+      49: lstore        9
+      51: iconst_1
+      52: istore        6
+      54: iconst_1
+      55: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      58: lstore        7
+      60: aconst_null
+      61: astore        11
+      63: lload         9
+      65: lload         7
+      67: lcmp
+      68: ifeq          73
+      71: aconst_null
+      72: areturn
+      73: aload_0
+      74: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      77: aload_1
+      78: invokevirtual #498                // Method com/github/catvod/spider/merge/DS.KJ:(Ljava/io/InputStream;)I
+      81: pop
+      82: iconst_2
+      83: istore_3
+      84: iconst_2
+      85: newarray       byte
+      87: astore        12
+      89: aload_1
+      90: aload         12
+      92: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+      95: iconst_2
+      96: if_icmpne     693
+      99: aload         13
+     101: aload         12
+     103: iconst_0
+     104: baload
+     105: iconst_0
+     106: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     109: invokevirtual #305                // Method com/github/catvod/spider/merge/nQ.mG:(Z)V
+     112: aload         13
+     114: aload         12
+     116: iconst_0
+     117: baload
+     118: iconst_3
+     119: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     122: invokevirtual #308                // Method com/github/catvod/spider/merge/nQ.p:(Z)V
+     125: aload         13
+     127: aload         12
+     129: iconst_1
+     130: baload
+     131: iconst_3
+     132: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     135: invokevirtual #311                // Method com/github/catvod/spider/merge/nQ.LY:(Z)V
+     138: aload         13
+     140: aload         12
+     142: invokevirtual #315                // Method "[B".clone:()Ljava/lang/Object;
+     145: checkcast     #312                // class "[B"
+     148: invokevirtual #318                // Method com/github/catvod/spider/merge/nQ.nQ:([B)V
+     151: aload         13
+     153: aload_0
+     154: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     157: aload_1
+     158: invokevirtual #498                // Method com/github/catvod/spider/merge/DS.KJ:(Ljava/io/InputStream;)I
+     161: invokestatic  #103                // Method com/github/catvod/spider/merge/Cr.yq:(I)I
+     164: invokevirtual #321                // Method com/github/catvod/spider/merge/nQ.C:(I)V
+     167: aload         13
+     169: aload_0
+     170: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     173: aload_1
+     174: invokevirtual #496                // Method com/github/catvod/spider/merge/DS.SN:(Ljava/io/InputStream;)I
+     177: i2l
+     178: invokevirtual #324                // Method com/github/catvod/spider/merge/nQ.kR:(J)V
+     181: aload_1
+     182: aload         14
+     184: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+     187: pop
+     188: aload         13
+     190: aload_0
+     191: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     194: aload         14
+     196: iconst_0
+     197: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+     200: invokevirtual #327                // Method com/github/catvod/spider/merge/nQ.Q4:(J)V
+     203: aload         13
+     205: aload_0
+     206: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     209: aload_1
+     210: invokevirtual #507                // Method com/github/catvod/spider/merge/DS.Gc:(Ljava/io/InputStream;)J
+     213: invokevirtual #332                // Method com/github/catvod/spider/merge/nQ.lF:(J)V
+     216: aload         13
+     218: aload_0
+     219: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     222: aload_1
+     223: invokevirtual #507                // Method com/github/catvod/spider/merge/DS.Gc:(Ljava/io/InputStream;)J
+     226: invokevirtual #335                // Method com/github/catvod/spider/merge/nQ.L:(J)V
+     229: aload_0
+     230: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     233: aload_1
+     234: invokevirtual #498                // Method com/github/catvod/spider/merge/DS.KJ:(Ljava/io/InputStream;)I
+     237: istore        4
+     239: aload         13
+     241: aload_0
+     242: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     245: aload_1
+     246: invokevirtual #498                // Method com/github/catvod/spider/merge/DS.KJ:(Ljava/io/InputStream;)I
+     249: invokevirtual #338                // Method com/github/catvod/spider/merge/nQ.j:(I)V
+     252: iload         4
+     254: ifle          404
+     257: iload         4
+     259: newarray       byte
+     261: astore        12
+     263: aload_1
+     264: aload         12
+     266: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+     269: pop
+     270: aload         12
+     272: aload         13
+     274: invokevirtual #350                // Method com/github/catvod/spider/merge/nQ.J:()Z
+     277: aload_2
+     278: invokestatic  #207                // Method com/github/catvod/spider/merge/TA.SN:([BZLjava/nio/charset/Charset;)Ljava/lang/String;
+     281: astore        12
+     283: ldc_w         #509                // String :
+     286: invokestatic  #453                // Method com/github/catvod/spider/merge/oI.yq:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     289: astore        14
+     291: aload         14
+     293: ldc_w         #511                // String file.separator
+     296: invokestatic  #515                // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     299: invokevirtual #463                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     302: pop
+     303: aload         12
+     305: astore_2
+     306: aload         12
+     308: aload         14
+     310: invokevirtual #466                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     313: invokevirtual #356                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     316: ifeq          354
+     319: ldc_w         #509                // String :
+     322: invokestatic  #453                // Method com/github/catvod/spider/merge/oI.yq:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     325: astore_2
+     326: aload_2
+     327: ldc_w         #511                // String file.separator
+     330: invokestatic  #515                // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     333: invokevirtual #463                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     336: pop
+     337: aload         12
+     339: aload         12
+     341: aload_2
+     342: invokevirtual #466                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     345: invokevirtual #360                // Method java/lang/String.indexOf:(Ljava/lang/String;)I
+     348: iconst_2
+     349: iadd
+     350: invokevirtual #364                // Method java/lang/String.substring:(I)Ljava/lang/String;
+     353: astore_2
+     354: aload         13
+     356: aload_2
+     357: invokevirtual #367                // Method com/github/catvod/spider/merge/nQ.o:(Ljava/lang/String;)V
+     360: iload         6
+     362: istore        5
+     364: aload_2
+     365: ldc_w         #375                // String /
+     368: invokevirtual #379                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+     371: ifne          394
+     374: aload_2
+     375: ldc_w         #381                // String \\
+     378: invokevirtual #379                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+     381: ifeq          391
+     384: iload         6
+     386: istore        5
+     388: goto          394
+     391: iconst_0
+     392: istore        5
+     394: aload         13
+     396: iload         5
+     398: invokevirtual #384                // Method com/github/catvod/spider/merge/nQ.w:(Z)V
+     401: goto          410
+     404: aload         13
+     406: aconst_null
+     407: invokevirtual #367                // Method com/github/catvod/spider/merge/nQ.o:(Ljava/lang/String;)V
+     410: aload         13
+     412: invokevirtual #386                // Method com/github/catvod/spider/merge/nQ.tO:()I
+     415: istore        4
+     417: iload         4
+     419: ifgt          425
+     422: goto          486
+     425: iload         4
+     427: iconst_4
+     428: if_icmpge     453
+     431: aload         11
+     433: astore_2
+     434: iload         4
+     436: ifle          480
+     439: aload_1
+     440: iload         4
+     442: i2l
+     443: invokevirtual #521                // Method java/io/InputStream.skip:(J)J
+     446: pop2
+     447: aload         11
+     449: astore_2
+     450: goto          480
+     453: iload         4
+     455: newarray       byte
+     457: astore_2
+     458: aload_1
+     459: aload_2
+     460: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+     463: pop
+     464: aload_0
+     465: aload_2
+     466: iload         4
+     468: invokespecial #395                // Method yq:([BI)Ljava/util/List;
+     471: astore_2
+     472: goto          480
+     475: astore_1
+     476: invokestatic  #401                // Method java/util/Collections.emptyList:()Ljava/util/List;
+     479: astore_2
+     480: aload         13
+     482: aload_2
+     483: invokevirtual #405                // Method com/github/catvod/spider/merge/nQ.XO:(Ljava/util/List;)V
+     486: aload_0
+     487: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     490: astore_1
+     491: aload         13
+     493: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     496: ifnull        591
+     499: aload         13
+     501: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     504: invokeinterface #408,  1          // InterfaceMethod java/util/List.size:()I
+     509: ifgt          515
+     512: goto          591
+     515: aload_0
+     516: aload         13
+     518: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     521: aload_1
+     522: aload         13
+     524: invokevirtual #411                // Method com/github/catvod/spider/merge/nQ.Z:()J
+     527: aload         13
+     529: invokevirtual #412                // Method com/github/catvod/spider/merge/nQ.g:()J
+     532: lconst_0
+     533: iconst_0
+     534: invokespecial #420                // Method t0:(Ljava/util/List;Lcom/github/catvod/spider/merge/DS;JJJI)Lcom/github/catvod/spider/merge/Kt;
+     537: astore_1
+     538: aload_1
+     539: ifnonnull     545
+     542: goto          591
+     545: aload         13
+     547: aload_1
+     548: invokevirtual #424                // Method com/github/catvod/spider/merge/nQ.Cu:(Lcom/github/catvod/spider/merge/Kt;)V
+     551: aload_1
+     552: invokevirtual #425                // Method com/github/catvod/spider/merge/Kt.U:()J
+     555: ldc2_w        #426                // long -1l
+     558: lcmp
+     559: ifeq          571
+     562: aload         13
+     564: aload_1
+     565: invokevirtual #425                // Method com/github/catvod/spider/merge/Kt.U:()J
+     568: invokevirtual #335                // Method com/github/catvod/spider/merge/nQ.L:(J)V
+     571: aload_1
+     572: invokevirtual #428                // Method com/github/catvod/spider/merge/Kt.Dr:()J
+     575: ldc2_w        #426                // long -1l
+     578: lcmp
+     579: ifeq          591
+     582: aload         13
+     584: aload_1
+     585: invokevirtual #428                // Method com/github/catvod/spider/merge/Kt.Dr:()J
+     588: invokevirtual #332                // Method com/github/catvod/spider/merge/nQ.lF:(J)V
+     591: aload_0
+     592: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     595: astore_1
+     596: aload         13
+     598: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     601: ifnull        647
+     604: aload         13
+     606: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     609: invokeinterface #408,  1          // InterfaceMethod java/util/List.size:()I
+     614: ifgt          620
+     617: goto          647
+     620: aload_0
+     621: aload         13
+     623: invokevirtual #407                // Method com/github/catvod/spider/merge/nQ.E1:()Ljava/util/List;
+     626: aload_1
+     627: invokespecial #433                // Method SN:(Ljava/util/List;Lcom/github/catvod/spider/merge/DS;)Lcom/github/catvod/spider/merge/N;
+     630: astore_1
+     631: aload_1
+     632: ifnull        647
+     635: aload         13
+     637: aload_1
+     638: invokevirtual #437                // Method com/github/catvod/spider/merge/nQ.i3:(Lcom/github/catvod/spider/merge/N;)V
+     641: aload         13
+     643: iconst_4
+     644: invokevirtual #440                // Method com/github/catvod/spider/merge/nQ.Hj:(I)V
+     647: aload         13
+     649: invokevirtual #443                // Method com/github/catvod/spider/merge/nQ.R:()Z
+     652: ifeq          690
+     655: aload         13
+     657: invokevirtual #523                // Method com/github/catvod/spider/merge/nQ.Fz:()I
+     660: iconst_4
+     661: if_icmpne     667
+     664: goto          690
+     667: aload         13
+     669: invokevirtual #526                // Method com/github/catvod/spider/merge/nQ.k:()[B
+     672: iconst_0
+     673: baload
+     674: bipush        6
+     676: invokestatic  #300                // Method com/github/catvod/spider/merge/wg.tF:(BI)Z
+     679: ifeq          684
+     682: iconst_3
+     683: istore_3
+     684: aload         13
+     686: iload_3
+     687: invokevirtual #440                // Method com/github/catvod/spider/merge/nQ.Hj:(I)V
+     690: aload         13
+     692: areturn
+     693: new           #108                // class com/github/catvod/spider/merge/Mt
+     696: dup
+     697: ldc_w         #528                // String Could not read enough bytes for generalPurposeFlags
+     700: invokespecial #113                // Method com/github/catvod/spider/merge/Mt."<init>":(Ljava/lang/String;)V
+     703: athrow
+    Exception table:
+       from    to  target type
+         464   472   475   Class java/lang/Exception
+
+  public final com.github.catvod.spider.merge.rT tF(java.io.InputStream, boolean);
+    descriptor: (Ljava/io/InputStream;Z)Lcom/github/catvod/spider/merge/rT;
+    Code:
+       0: new           #531                // class com/github/catvod/spider/merge/rT
+       3: dup
+       4: invokespecial #532                // Method com/github/catvod/spider/merge/rT."<init>":()V
+       7: astore        5
+       9: iconst_4
+      10: newarray       byte
+      12: astore        6
+      14: aload_1
+      15: aload         6
+      17: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+      20: pop
+      21: aload_0
+      22: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      25: aload         6
+      27: iconst_0
+      28: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+      31: lstore_3
+      32: lload_3
+      33: iconst_2
+      34: invokestatic  #63                 // Method com/github/catvod/spider/merge/V.SN:(I)J
+      37: lcmp
+      38: ifne          66
+      41: aload_1
+      42: aload         6
+      44: invokestatic  #504                // Method com/github/catvod/spider/merge/rS.v3:(Ljava/io/InputStream;[B)I
+      47: pop
+      48: aload         5
+      50: aload_0
+      51: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      54: aload         6
+      56: iconst_0
+      57: invokevirtual #129                // Method com/github/catvod/spider/merge/DS.t0:([BI)J
+      60: invokevirtual #533                // Method com/github/catvod/spider/merge/rT.Fz:(J)V
+      63: goto          72
+      66: aload         5
+      68: lload_3
+      69: invokevirtual #533                // Method com/github/catvod/spider/merge/rT.Fz:(J)V
+      72: iload_2
+      73: ifeq          101
+      76: aload         5
+      78: aload_0
+      79: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      82: aload_1
+      83: invokevirtual #535                // Method com/github/catvod/spider/merge/DS.zH:(Ljava/io/InputStream;)J
+      86: invokevirtual #537                // Method com/github/catvod/spider/merge/rT.U:(J)V
+      89: aload_0
+      90: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+      93: aload_1
+      94: invokevirtual #535                // Method com/github/catvod/spider/merge/DS.zH:(Ljava/io/InputStream;)J
+      97: lstore_3
+      98: goto          125
+     101: aload         5
+     103: aload_0
+     104: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     107: aload_1
+     108: invokevirtual #496                // Method com/github/catvod/spider/merge/DS.SN:(Ljava/io/InputStream;)I
+     111: i2l
+     112: invokevirtual #537                // Method com/github/catvod/spider/merge/rT.U:(J)V
+     115: aload_0
+     116: getfield      #19                 // Field SN:Lcom/github/catvod/spider/merge/DS;
+     119: aload_1
+     120: invokevirtual #496                // Method com/github/catvod/spider/merge/DS.SN:(Ljava/io/InputStream;)I
+     123: i2l
+     124: lstore_3
+     125: aload         5
+     127: lload_3
+     128: invokevirtual #538                // Method com/github/catvod/spider/merge/rT.E1:(J)V
+     131: aload         5
+     133: areturn
+}

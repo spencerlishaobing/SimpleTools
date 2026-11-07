@@ -13,7 +13,7 @@ async function app(t,config,respond=()=>undefined,extra={}) {
     calls.push({name,args});if(name==='tvbox_load')return saved;if(name==='tvbox_save')return;
     return respond(name,args);
   }},event:{listen:async(name,fn)=>{events[name]=fn;return()=>{};}},dialog:{open:async()=>null,save:async()=>null}};
-  w.eval(fs.readFileSync('src/modules/tvbox-core.js','utf8'));w.eval(fs.readFileSync('src/modules/tvbox.js','utf8'));await w.TVBOXReady;
+  w.eval(fs.readFileSync('src/modules/tvbox-core.js','utf8'));w.eval(fs.readFileSync('src/modules/tvbox.js','utf8'));await w.TVBOXReady();
   const get=id=>w.document.getElementById('tv-'+id);get('engine').value='mpv';get('site').value='0';
   return {w,get,calls,events,dom};
 }
@@ -53,10 +53,10 @@ test('multi-warehouse URL imports named configurations and loads them on selecti
   assert.match(a.get('site').textContent,/第二片源/);
   assert.equal(a.get('config-url').value,collection);
 });
-test('source filter narrows a large warehouse without changing source indexes',async t=>{
+test('source selector keeps original indexes after the filter UI was removed',async t=>{
   const a=await app(t,{sites:[{...source,name:'影片 A'},{...source,name:'影片 B',key:'second'}]},catalogue);
-  a.get('site-filter').value='影片 B';a.get('site-filter').oninput();
-  assert.equal(a.get('site').options.length,1);
+  assert.equal(a.get('site').options.length,2);
+  a.get('site').value='1';
   assert.equal(a.get('site').value,'1');
   await a.get('site').onchange();
   assert.equal(a.calls.findLast(c=>c.name==='tvbox_fetch').args.url.startsWith('https://source.test/'),true);
@@ -72,7 +72,7 @@ test('browse and signed episode URL reach embedded player intact',async t=>{
   const call=a.calls.findLast(c=>c.name==='tvplayer_play');assert.equal(call.args.target,'https://video.test/a.mkv?token=a$b');assert.ok(call.args.session);
 });
 test('JAR source resolves global spider URL and dispatches to built-in JVM',async t=>{
-  const a=await app(t,{spider:'./spider.jar;md5;abc',sites:[{type:3,api:'csp_Test',key:'jar',ext:'custom'}]},(name,args)=>name==='tvbox_external'?{class:[],list:[]}:undefined);
+  const a=await app(t,{spider:'./spider.jar;md5;abc',sites:[{type:3,api:'csp_Test',key:'jar',ext:'custom'}]},(name,args)=>name==='tvbox_external'?{class:[],list:[]}:undefined,{prefs:{selfParser:true}});
   await a.get('home').onclick();const call=a.calls.findLast(c=>c.name==='tvbox_external');assert.equal(call.args.api,'csp_Test');assert.equal(call.args.jar,'https://source.test/spider.jar;md5;abc');assert.equal(call.args.ext,'custom');
 });
 test('Python source resolves script URL and keeps structured extension',async t=>{
@@ -82,7 +82,11 @@ test('Python source resolves script URL and keeps structured extension',async t=
 
 test('inline and remote M3U channels appear and can play',async t=>{
   const a=await app(t,{lives:[{channels:[{name:'一',urls:['https://live.test/1']}]},{url:'/live.m3u'}]},()=> '#EXTM3U\n#EXTINF:-1,二\nhttps://live.test/2');
-  await a.get('live').onclick();assert.equal(a.get('results').children.length,2);await a.get('results').children[1].onclick();assert.equal(a.calls.findLast(c=>c.name==='tvplayer_play').args.target,'https://live.test/2');
+  await a.get('live').onclick();
+  const sources=a.get('sidenav').querySelectorAll('button');assert.equal(sources.length>=3,true);
+  await sources[1].onclick();await tick();assert.match(a.get('results').textContent,/一/);
+  await a.get('sidenav').querySelectorAll('button')[2].onclick();await tick();assert.match(a.get('results').textContent,/二/);
+  await a.get('results').querySelector('button').onclick();assert.equal(a.calls.findLast(c=>c.name==='tvplayer_play').args.target,'https://live.test/2');
 });
 test('resume loads progress persisted in native data',async t=>{
   const a=await app(t,{sites:[source]},catalogue,{history:[{key:'p1:test:2:0:0',name:'电影',url:'https://video.test/a.mkv',position:120,duration:3600}]});await episode(a);

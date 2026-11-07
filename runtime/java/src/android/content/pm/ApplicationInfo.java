@@ -1,5 +1,6 @@
 package android.content.pm;
-public class ApplicationInfo {
+/** Android 真实继承关系：ApplicationInfo extends PackageItemInfo（饭太硬 Pan 的内部类依赖此类型可赋值性，否则 VerifyError） */
+public class ApplicationInfo extends PackageItemInfo {
     public String packageName="com.simpletools.desktop";
     public String sourceDir="";
     public String publicSourceDir="";

@@ -47,3 +47,15 @@ Thumbs.db
 /T*.class
 /_jtest-cache/
 target/
+
+# 本机逆向工具、探针和运行态缓存（正式反编译证据保存在 reverse-engineering/）
+/_probe/
+/_dec/
+/_docs/
+/ctx/
+/shared/
+/tools/
+/qr-port.txt
+/_tauri_build.log
+/_verify-*.js
+/scripts/__pycache__/

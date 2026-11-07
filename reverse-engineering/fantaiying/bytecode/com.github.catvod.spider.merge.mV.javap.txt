@@ -1,0 +1,122 @@
+public final class com.github.catvod.spider.merge.mV {
+  public static final int SN;
+    descriptor: I
+
+  private static final java.lang.Object yq;
+    descriptor: Ljava/lang/Object;
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: aconst_null
+       1: astore_1
+       2: ldc           #21                 // String sun.misc.SharedSecrets
+       4: iconst_0
+       5: aconst_null
+       6: invokestatic  #27                 // Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+       9: ldc           #29                 // String getJavaLangAccess
+      11: iconst_0
+      12: anewarray     #23                 // class java/lang/Class
+      15: invokevirtual #33                 // Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      18: aconst_null
+      19: iconst_0
+      20: anewarray     #4                  // class java/lang/Object
+      23: invokevirtual #39                 // Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+      26: astore_0
+      27: goto          33
+      30: astore_0
+      31: aconst_null
+      32: astore_0
+      33: aload_0
+      34: putstatic     #41                 // Field yq:Ljava/lang/Object;
+      37: aload_0
+      38: ifnonnull     44
+      41: goto          78
+      44: getstatic     #47                 // Field java/lang/Integer.TYPE:Ljava/lang/Class;
+      47: astore_0
+      48: ldc           #49                 // String sun.misc.JavaLangAccess
+      50: iconst_0
+      51: aconst_null
+      52: invokestatic  #27                 // Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+      55: ldc           #51                 // String getStackTraceElement
+      57: iconst_2
+      58: anewarray     #23                 // class java/lang/Class
+      61: dup
+      62: iconst_0
+      63: ldc           #53                 // class java/lang/Throwable
+      65: aastore
+      66: dup
+      67: iconst_1
+      68: aload_0
+      69: aastore
+      70: invokevirtual #33                 // Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+      73: pop
+      74: goto          78
+      77: astore_0
+      78: getstatic     #41                 // Field yq:Ljava/lang/Object;
+      81: astore_2
+      82: aload_2
+      83: ifnonnull     89
+      86: goto          152
+      89: ldc           #49                 // String sun.misc.JavaLangAccess
+      91: iconst_0
+      92: aconst_null
+      93: invokestatic  #27                 // Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+      96: ldc           #55                 // String getStackTraceDepth
+      98: iconst_1
+      99: anewarray     #23                 // class java/lang/Class
+     102: dup
+     103: iconst_0
+     104: ldc           #53                 // class java/lang/Throwable
+     106: aastore
+     107: invokevirtual #33                 // Method java/lang/Class.getMethod:(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+     110: astore_0
+     111: goto          117
+     114: astore_0
+     115: aload_1
+     116: astore_0
+     117: aload_0
+     118: ifnonnull     124
+     121: goto          152
+     124: new           #53                 // class java/lang/Throwable
+     127: astore_1
+     128: aload_1
+     129: invokespecial #58                 // Method java/lang/Throwable."<init>":()V
+     132: aload_0
+     133: aload_2
+     134: iconst_1
+     135: anewarray     #4                  // class java/lang/Object
+     138: dup
+     139: iconst_0
+     140: aload_1
+     141: aastore
+     142: invokevirtual #39                 // Method java/lang/reflect/Method.invoke:(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+     145: pop
+     146: goto          152
+     149: astore_0
+     150: aload_0
+     151: athrow
+     152: return
+     153: astore_0
+     154: aload_0
+     155: athrow
+     156: astore_0
+     157: aload_0
+     158: athrow
+     159: astore_0
+     160: goto          152
+    Exception table:
+       from    to  target type
+           2    27   156   Class java/lang/ThreadDeath
+           2    27    30   any
+          48    74   153   Class java/lang/ThreadDeath
+          48    74    77   any
+          89   111   149   Class java/lang/ThreadDeath
+          89   111   114   any
+         124   146   159   Class java/lang/UnsupportedOperationException
+         124   146   159   Class java/lang/IllegalAccessException
+         124   146   159   Class java/lang/reflect/InvocationTargetException
+         150   152   159   Class java/lang/UnsupportedOperationException
+         150   152   159   Class java/lang/IllegalAccessException
+         150   152   159   Class java/lang/reflect/InvocationTargetException
+}

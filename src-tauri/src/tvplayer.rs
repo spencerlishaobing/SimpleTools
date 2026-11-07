@@ -404,8 +404,11 @@ pub async fn tvplayer_play(
                 _ => {
                     reqwest::header::HeaderName::from_bytes(key.as_bytes())
                         .map_err(|_| "非法请求头名称")?;
-                    let field = format!("{key}: {value}");
-                    fields.push(format!("%{}%{field}", field.len()));
+                    // libmpv's C API parses this option as a comma-separated string list.
+                    // Its command-line `%len%value` quoting is not accepted here: libmpv
+                    // silently drops the header, which makes authenticated Quark streams
+                    // return HTTP 412 and end with MPV_ERROR_LOADING_FAILED (-13).
+                    fields.push(format!("{key}: {value}"));
                 }
             }
         }
@@ -499,6 +502,18 @@ pub async fn tvplayer_control(
             }
             player.set("video-aspect-override", v)
         }
+        // 字幕样式（对齐 Android 字幕设置：字号/颜色/粗体/描边）
+        "sub-font-size" | "sub-bold" | "sub-color" | "sub-border-color" | "sub-border-size"
+        | "sub-back-color" | "sub-back-alpha" | "sub-shadow-offset" | "sub-margin-y" => {
+            let v = value.as_ref().ok_or("需要字幕样式参数")?;
+            let text = match v {
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Bool(b) => if *b { "yes" } else { "no" }.to_string(),
+                _ => return Err("字幕样式参数无效".into()),
+            };
+            player.set(&action, &text)
+        }
         "subtitle" => {
             let v = value
                 .as_ref()
@@ -507,7 +522,13 @@ pub async fn tvplayer_control(
             if !std::path::Path::new(v).is_file() {
                 return Err("字幕文件不存在".into());
             }
-            player.command(&["sub-add", v, "select"])
+            // Windows 路径转 file:// URL（部分 mpv 构建对反斜杠路径处理异常）
+            let mut url = String::from("file:///");
+            url.push_str(&v.replace('\\', "/"));
+            player.command(&["sub-add", &url])?;
+            // 确保字幕可见（用户可能之前选过「关闭字幕」）
+            let _ = player.set("sub-visibility", "yes");
+            Ok(())
         }
         _ => Err("不支持的播放操作".into()),
     }

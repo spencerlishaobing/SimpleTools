@@ -122,3 +122,19 @@ cargo test --offline --lib windows_job_terminates_packaged_worker -- --ignored
 ```
 
 协议和 DOM 流程使用本地模拟接口测试，QuickJS 测试执行真实脚本并请求本地 HTTP 服务。`tests/uia-tvbox-e2e.js` 通过 WebView2 CDP 连接运行中的应用（需以 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` 启动），验证面板结构、加密配置解密、多仓导入、加壳提示与截图。桌面自动操作工具拒绝访问 SimpleTools，尚未完成原生窗口视觉和点击验收。
+
+# 内置源目录维护
+
+项目提供 `scripts/sync-tvbox-catalog.py`，用于把影视仓多仓入口逐层展开为可审计的本地快照和片源分类目录：
+
+```powershell
+python scripts/sync-tvbox-catalog.py
+```
+
+默认读取 Tomorrow 的 `lmw.json`，结果写入 `src-tauri/resources/tvspiders/upstream/`，并生成 `docs/TVBOX-SOURCES.md`。同步器兼容普通 JSON、JSONC、图片外壳加 `**` Base64 载荷和载荷内 GZIP；标准 API、JavaScript、Python、普通 JAR、加固 JAR 会分别统计。上游失效、TLS 失败和需要发布方密钥的十六进制封装会保留错误状态，不会生成不可运行的适配器。
+
+更换维护入口时使用：
+
+```powershell
+python scripts/sync-tvbox-catalog.py --collection "https://example.com/warehouses.json"
+```

@@ -22,6 +22,13 @@ public class Context {
     private final Map<String,SharedPreferences> prefs=new HashMap<>();
     public Context(){this(new File("context"));}
     public Context(File root){this.root=root;root.mkdirs();}
+    /** 探测：JAR 可能用 Intent 启动登录/扫码 Activity（记录内容供桌面端转发 UI）。 */
+    public void startActivity(android.content.Intent intent){
+        try{System.err.println("[UI-PROBE] Context.startActivity intent="+intent);}catch(Throwable ignored){}
+    }
+    public void startActivityForResult(android.content.Intent intent,int requestCode){
+        startActivity(intent);
+    }
     private File folder(String name){File f=new File(root,name);f.mkdirs();return f;}
     /** 部分片源（如瓜子）在初始化时读取系统内容提供者，返回空实现避免 NoSuchMethodError。 */
     public ContentResolver getContentResolver(){return new ContentResolver();}
@@ -30,7 +37,7 @@ public class Context {
     public File getFilesDir(){return folder("files");}public File getExternalFilesDir(String type){return folder("external/"+(type==null?"":safe(type)));}
     public File getExternalCacheDir(){return folder("external-cache");}public File getDir(String name,int mode){return folder("app_"+safe(name));}
     /** TVBox 生态的 spider 常用包名做白名单校验，这里保持与主流客户端的既有包名一致。 */
-    public String getPackageName(){return "com.github.tvbox.osc";}public android.content.pm.ApplicationInfo getApplicationInfo(){return new android.content.pm.ApplicationInfo();}
+    public String getPackageName(){return "com.r3ac892153.q1ed27199a.wf930fc6bf20260401";}public android.content.pm.ApplicationInfo getApplicationInfo(){return new android.content.pm.ApplicationInfo();}
     public android.content.pm.PackageManager getPackageManager(){return new android.content.pm.PackageManager();}
     public int checkCallingOrSelfPermission(String permission){return 0;}
     public int checkCallingPermission(String permission){return 0;}

@@ -1,0 +1,1806 @@
+Summary for _jtest-cache/sources/095922679bb9e83eec52c131940f51f0/converted-v2.4g.jar
+Decompiled with CFR 0.152
+
+
+com.github.catvod.parser.JsonParallel
+----------------------------
+
+parse(java.util.LinkedHashMap<java.lang.String, java.lang.String> java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.parser.MixWeb
+----------------------------
+
+parse(java.util.LinkedHashMap<java.lang.String, java.util.HashMap<java.lang.String, java.lang.String>> java.lang.String java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [1[TRYBLOCK]], but top level block is 11[UNCONDITIONALDOLOOP]
+
+
+com.github.catvod.spider.Pan
+----------------------------
+
+KJ(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+i(com.github.catvod.spider.Pan android.widget.Button android.view.View boolean )
+  Unable to fully structure code
+zH(com.github.catvod.spider.Pan android.widget.Button android.view.View )
+  Unable to fully structure code
+  Could not resolve type clashes
+panList(java.util.List<java.lang.String> java.lang.String )
+  Unable to fully structure code
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Loose catch block
+onClick(android.content.DialogInterface int )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.YU
+----------------------------
+
+B(java.lang.String java.lang.Object[] )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+F5()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+G(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G4(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+proxy(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 6[TRYBLOCK] [6 : 917->977)] java.lang.Exception
+????(java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [1[TRYBLOCK]], but top level block is 48[UNCONDITIONALDOLOOP]
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 2[TRYBLOCK] [4 : 314->363)] java.lang.Throwable
+homeVideoContent()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [16[CASE]], but top level block is 2[TRYBLOCK]
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 12[TRYBLOCK] [25, 24, 26 : 1190->1237)] java.lang.Exception
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [16[CASE]], but top level block is 2[TRYBLOCK]
+
+
+com.github.catvod.spider.Alllive
+----------------------------
+
+t0()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+
+
+com.github.catvod.spider.App99
+----------------------------
+
+B()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+G(java.lang.String java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [14[CASE]], but top level block is 2[TRYBLOCK]
+G4()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+W(byte[] )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+ee(java.lang.String java.lang.String java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 10[TRYBLOCK] [11 : 618->626)] java.lang.Exception
+i(org.json.JSONObject )
+  Unable to fully structure code
+q(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [8[CASE]], but top level block is 1[TRYBLOCK]
+t0(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+v(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 8[TRYBLOCK] [8 : 421->430)] java.lang.Exception
+v3(org.json.JSONArray )
+  Unable to fully structure code
+yq(org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [8[CASE]], but top level block is 1[TRYBLOCK]
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.AppSx
+----------------------------
+
+Gc(java.lang.String int java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 19[TRYBLOCK] [26 : 3562->3601)] java.lang.Exception
+N(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+i()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+t0()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tF()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(java.lang.String java.lang.String )
+  Unable to fully structure code
+zH(org.json.JSONObject )
+  Unable to fully structure code
+  Could not resolve type clashes
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 17[TRYBLOCK] [20 : 1958->1979)] java.lang.Exception
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+getOcrCode(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [2[TRYBLOCK]], but top level block is 25[UNCONDITIONALDOLOOP]
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 51[TRYBLOCK] [53 : 5624->5641)] java.lang.Exception
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 15[TRYBLOCK] [22 : 1986->2010)] java.lang.Exception
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.AppTT
+----------------------------
+
+N(java.lang.String java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 2[TRYBLOCK] [2 : 738->894)] java.lang.Exception
+homeContent(boolean )
+  Unable to fully structure code
+  Could not resolve type clashes
+homeVideoContent()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 7[TRYBLOCK] [7 : 818->837)] java.lang.Exception
+
+
+com.github.catvod.spider.AppYsV2
+----------------------------
+
+B(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Gc(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+SN(org.json.JSONObject java.lang.String java.util.ArrayList<org.json.JSONArray> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [24[CASE]], but top level block is 2[TRYBLOCK]
+????(java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+M(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N(java.lang.String org.json.JSONObject org.json.JSONObject java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 36[TRYBLOCK] [36 : 2370->2374)] java.lang.Exception
+homeVideoContent()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 14[TRYBLOCK] [16 : 1573->1614)] java.lang.Exception
+i(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [1[TRYBLOCK]], but top level block is 40[UNCONDITIONALDOLOOP]
+q(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 19[TRYBLOCK] [20 : 1833->1858)] java.lang.Exception
+t0(java.util.ArrayList java.lang.String )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tF(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+zH(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.Appgz
+----------------------------
+
+Gc()
+  Handled duff style switch with additional control
+KJ(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+t0()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+zH()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [0[TRYBLOCK]], but top level block is 21[UNCONDITIONALDOLOOP]
+homeVideoContent()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [12[CASE], 0[TRYBLOCK], 34[CATCHBLOCK]], but top level block is 7[TRYBLOCK]
+init(android.content.Context )
+  Handled duff style switch with additional control
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [5 : 862->887)] java.lang.Throwable
+
+
+com.github.catvod.spider.Auete
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.Bili
+----------------------------
+
+B(com.github.catvod.spider.Bili java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Fz()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+H()
+  Unable to fully structure code
+Zm(com.github.catvod.spider.merge.ts_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+containsChinese(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(com.github.catvod.spider.Bili org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+ee(com.github.catvod.spider.Bili )
+  Handled duff style switch with additional control
+g(java.lang.String )
+  Handled duff style switch with additional control
+g1()
+  Unable to fully structure code
+  Could not resolve type clashes
+proxy(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+q(com.github.catvod.spider.Bili java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 3[TRYBLOCK] [8 : 359->364)] java.lang.Throwable
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+action(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [7[CASE]], but top level block is 1[TRYBLOCK]
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.Bttwoo
+----------------------------
+
+yq(com.github.catvod.spider.merge.kb_0 java.lang.String )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [12[TRYBLOCK]], but top level block is 126[UNCONDITIONALDOLOOP]
+init(android.content.Context java.lang.String )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+
+
+com.github.catvod.spider.Cloud_ali
+----------------------------
+
+init(android.content.Context java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.Cloud_baidu
+----------------------------
+
+detailVideo(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.DexNative
+----------------------------
+
+<clinit>()
+  Unable to fully structure code
+N(okhttp3.Response java.io.File )
+  Unable to fully structure code
+SN(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 3[TRYBLOCK] [5 : 106->152)] java.lang.Throwable
+danmuStart(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [6 : 952->955)] java.lang.Throwable
+yq(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 27[TRYBLOCK] [27 : 443->446)] java.lang.Throwable
+
+
+com.github.catvod.spider.Dm84
+----------------------------
+
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [22[UNCONDITIONALDOLOOP]], but top level block is 13[TRYBLOCK]
+
+
+com.github.catvod.spider.DouDou
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.Doubao
+----------------------------
+
+N()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tF(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [10[CASE]], but top level block is 12[SWITCH]
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+isVideoFormat(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.HgCencProxy
+----------------------------
+
+M(java.lang.String java.lang.String java.lang.String java.util.Map<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+i(java.lang.String long long )
+  Loose catch block
+
+
+com.github.catvod.spider.Hmys
+----------------------------
+
+B(java.lang.String java.util.HashMap<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+G(org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G4(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+KJ(java.lang.String java.util.HashMap )
+  Ignored method signature, as it can't be verified against descriptor
+M(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N(org.json.JSONArray )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+SN()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.Object )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+i(java.lang.String java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tF(java.lang.String java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+vod(java.util.Map<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [2[TRYBLOCK]], but top level block is 31[UNCONDITIONALDOLOOP]
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 14[TRYBLOCK] [14 : 1519->1540)] java.lang.Throwable
+homeVideoContent()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+regLogin()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 16[TRYBLOCK] [20 : 1675->1702)] java.lang.Exception
+searchContent(java.lang.String boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.InitOrigin
+----------------------------
+
+init(android.content.Context )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.JPJ
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+
+
+com.github.catvod.spider.Jpys
+----------------------------
+
+sha1(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [14[CASE]], but top level block is 2[TRYBLOCK]
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.Kanqiu
+----------------------------
+
+N(byte[] )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+xxteaDecrypt(byte[] java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.KkSs
+----------------------------
+
+????(java.lang.Object )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+requestWebsites(java.lang.String[] java.util.List<com.github.catvod.spider.KkSs$WebsiteResponse> java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.Libvio
+----------------------------
+
+B(java.util.regex.Pattern java.lang.String )
+  Loose catch block
+F5(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object )
+  Unable to fully structure code
+G4(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 16[TRYBLOCK] [16 : 2109->2171)] java.lang.Exception
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [13[CASE]], but top level block is 2[TRYBLOCK]
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 6[TRYBLOCK] [6 : 780->800)] java.lang.Exception
+
+
+com.github.catvod.spider.LiveGz
+----------------------------
+
+SN(org.json.JSONObject int )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.Music
+----------------------------
+
+Gc(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+KJ(com.github.catvod.spider.merge.Va java.lang.String java.lang.String )
+  Unable to fully structure code
+proxyInput(java.util.Map<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+  Could not resolve type clashes
+q(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [15[CASE]], but top level block is 2[TRYBLOCK]
+t0()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [18[CASE]], but top level block is 2[TRYBLOCK]
+
+
+com.github.catvod.spider.MyDrive
+----------------------------
+
+G(java.lang.String java.lang.String java.lang.String java.lang.String java.lang.String java.util.List<java.lang.String> java.util.List<com.github.catvod.spider.merge.Ef> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G4(java.lang.String java.lang.String java.lang.String java.lang.String java.lang.String java.util.List<java.lang.String> java.util.List<com.github.catvod.spider.merge.Ef> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.String java.lang.String java.lang.String java.lang.String java.lang.String java.util.List<java.lang.String> java.util.List<com.github.catvod.spider.merge.Ef> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 39[TRYBLOCK] [45 : 4066->4074)] java.lang.Exception
+formatQuotedSkipEmpty(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+q(java.lang.String java.lang.String java.lang.String java.lang.String java.lang.String java.lang.String java.util.List<java.lang.String> java.util.List<com.github.catvod.spider.merge.Ef> boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 7[TRYBLOCK] [9 : 666->674)] java.lang.Exception
+????(java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+action(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 3[TRYBLOCK] [4 : 259->277)] java.lang.Exception
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.N
+----------------------------
+
+call()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.NewCz
+----------------------------
+
+SN(com.github.catvod.spider.merge.Va )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tF()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [14[CASE]], but top level block is 1[TRYBLOCK]
+????(java.lang.Object )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 4[TRYBLOCK] [4 : 716->733)] java.lang.Exception
+
+
+com.github.catvod.spider.Nmyswv
+----------------------------
+
+removeView(android.view.View )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Handled duff style switch with additional control
+detailContent(java.util.List<java.lang.String> )
+  Unable to fully structure code
+homeContent(boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.ProxyOrigin
+----------------------------
+
+Gc()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 0[TRYBLOCK] [0 : 56->266)] java.lang.Exception
+SN(android.view.View int android.view.KeyEvent )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 3[TRYBLOCK] [4 : 154->166)] java.lang.Exception
+drivePort()
+  Unable to fully structure code
+getan()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 9[TRYBLOCK] [15 : 779->808)] java.lang.Exception
+proxy(java.util.Map<java.lang.String, java.lang.String> )
+  Handled duff style switch with additional control
+  Unable to fully structure code
+proxyDrive(java.util.Map<java.lang.String, java.lang.String> java.lang.String java.util.Map<java.lang.String, java.lang.String> java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 9[TRYBLOCK] [15 : 839->846)] java.lang.Exception
+proxyLivelist(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.S_zps
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [0[TRYBLOCK]], but top level block is 22[UNCONDITIONALDOLOOP]
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.Seedhub
+----------------------------
+
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [28[CASE]], but top level block is 30[SWITCH]
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [39[CASE]], but top level block is 7[TRYBLOCK]
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [25[CASE]], but top level block is 5[TRYBLOCK]
+
+
+com.github.catvod.spider.T4
+----------------------------
+
+N(java.lang.String java.lang.Boolean java.util.HashMap )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+SN(java.lang.String )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [5 : 594->708)] java.lang.Exception
+detailContent(java.util.List<java.lang.String> )
+  Unable to fully structure code
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [22[CASE]], but top level block is 4[TRYBLOCK]
+searchContentApi(java.lang.String boolean java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContentWeb(java.lang.String boolean java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.Tingshu275
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.UuSs
+----------------------------
+
+????(java.lang.Object )
+  Unable to fully structure code
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+init(android.content.Context java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [13[CASE]], but top level block is 2[TRYBLOCK]
+requestWebsites(java.lang.String[] java.util.List<com.github.catvod.spider.UuSs$WebsiteResponse> java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+searchContent(java.lang.String boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.WebDAV
+----------------------------
+
+vod(java.util.Map<java.lang.String, java.lang.String> java.lang.String java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.WoGG
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 2[TRYBLOCK] [3 : 224->312)] java.lang.Exception
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+homeContent(boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.YCyz
+----------------------------
+
+N(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+proxyM3u8(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 17[TRYBLOCK] [19 : 1402->1411)] java.lang.Exception
+tF(com.github.catvod.spider.merge.kb_0 )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 35[TRYBLOCK] [72 : 2949->2953)] java.lang.Throwable
+playerContent(java.lang.String java.lang.String java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 59[TRYBLOCK] [81 : 5850->5864)] java.lang.Exception
+searchContent(java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 4[TRYBLOCK] [4 : 642->659)] java.lang.Exception
+yq(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [14[CASE]], but top level block is 2[TRYBLOCK]
+
+
+com.github.catvod.spider.YGP
+----------------------------
+
+categoryContent(java.lang.String java.lang.String boolean java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 3[TRYBLOCK] [4 : 184->287)] java.lang.Exception
+detailContent(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [0[TRYBLOCK]], but top level block is 13[UNCONDITIONALDOLOOP]
+homeContent(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.lR
+----------------------------
+
+M()
+  Ignored method signature, as it can't be verified against descriptor
+yq()
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.Bo
+----------------------------
+
+B(java.lang.String java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.CK
+----------------------------
+
+t0(com.github.catvod.spider.merge.CK com.github.catvod.spider.merge.CK boolean com.github.catvod.spider.merge.le_1<com.github.catvod.spider.merge.CK, com.github.catvod.spider.merge.CK, com.github.catvod.spider.merge.CK> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Started 2 blocks at once
+
+
+com.github.catvod.spider.merge.CT
+----------------------------
+
+N(java.lang.String int java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.DC
+----------------------------
+
+B(java.lang.String java.util.HashMap )
+  Ignored method signature, as it can't be verified against descriptor
+G(java.lang.String java.lang.String )
+  Unable to fully structure code
+  Could not resolve type clashes
+i(java.lang.String java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+tF(java.lang.String java.util.HashMap )
+  Ignored method signature, as it can't be verified against descriptor
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.dl_0
+----------------------------
+
+q()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+xa(java.lang.String java.lang.String java.lang.String )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+<init>(com.github.catvod.spider.merge.dl_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.do_0
+----------------------------
+
+zH(boolean boolean )
+  Unable to fully structure code
+M()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.kR
+----------------------------
+
+v(com.github.catvod.spider.merge.kR$q )
+  Unable to fully structure code
+tF(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+zH(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+tF(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+zH(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+tF(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+zH(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+tF(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+zH(com.github.catvod.spider.merge.kR )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.s0
+----------------------------
+
+yq(com.github.catvod.spider.merge.s0 java.util.Set )
+  Ignored method signature, as it can't be verified against descriptor
+yq(com.github.catvod.spider.merge.s0 java.util.Set )
+  Ignored method signature, as it can't be verified against descriptor
+yq(com.github.catvod.spider.merge.s0 java.util.Set )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.fo_0
+----------------------------
+
+<init>(com.github.catvod.spider.merge.hy )
+  Ignored method signature, as it can't be verified against descriptor
+un(com.github.catvod.spider.merge.fo_0 com.github.catvod.spider.merge.hE int )
+  Unable to fully structure code
+Zm()
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.fy_0
+----------------------------
+
+<init>(com.github.catvod.spider.merge.hy java.util.concurrent.Callable )
+  Ignored method signature, as it can't be verified against descriptor
+<init>(com.github.catvod.spider.merge.fy_0 java.util.concurrent.Callable )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.gg_0
+----------------------------
+
+q(java.lang.StringBuffer java.lang.String java.lang.Object boolean )
+  Unable to fully structure code
+t0(java.lang.StringBuffer java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+t0(java.lang.StringBuffer java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.GR
+----------------------------
+
+zH(java.lang.CharSequence java.lang.CharSequence int int boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.HG
+----------------------------
+
+SN(long java.lang.String )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.Hj
+----------------------------
+
+SN(char[] )
+  Could not resolve type clashes
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.RL
+----------------------------
+
+run()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.LY
+----------------------------
+
+Gc(com.github.catvod.spider.merge.yo com.github.catvod.spider.merge.NJ java.lang.String com.github.catvod.spider.merge.Ud byte[] )
+  Loose catch block
+
+
+com.github.catvod.spider.merge.I8
+----------------------------
+
+zH(java.lang.Object com.github.catvod.spider.merge.Ud )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Started 3 blocks at once
+
+
+com.github.catvod.spider.merge.j_0
+----------------------------
+
+<init>()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+B(java.lang.String java.lang.String boolean java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+E1(java.lang.String java.lang.String java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Fz(java.lang.String java.lang.String com.github.catvod.spider.merge.n6 java.util.List<com.github.catvod.spider.merge.n6> java.util.List<com.github.catvod.spider.merge.n6> java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G(java.lang.String java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+M(java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [35[CASE]], but top level block is 37[SWITCH]
+RQ(com.github.catvod.spider.merge.n6 java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 7[TRYBLOCK] [16 : 638->663)] java.lang.Throwable
+ee(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+i(com.github.catvod.spider.merge.j_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+k(com.github.catvod.spider.merge.n6 java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [12 : 451->476)] java.lang.Throwable
+m()
+  Unable to fully structure code
+tO(java.lang.String java.lang.String )
+  Unable to fully structure code
+  Could not resolve type clashes
+w(java.lang.String org.json.JSONObject boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+xa()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [8[CASE]], but top level block is 1[TRYBLOCK]
+zH(com.github.catvod.spider.merge.j_0 int java.lang.String java.lang.String com.github.catvod.spider.merge.n6 java.util.List java.util.List java.util.List )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+F5(com.github.catvod.spider.merge.n6 boolean int )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+G4()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+H(java.lang.String java.lang.String java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+J(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N0(java.util.Map java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+R(java.util.Map<java.lang.String, java.lang.String> java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Z(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [29[CASE]], but top level block is 5[TRYBLOCK]
+b(com.github.catvod.spider.merge.n6 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+g(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+g9(java.lang.String java.lang.String )
+  Unable to fully structure code
+  Could not resolve type clashes
+i3(boolean boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 10[TRYBLOCK] [20 : 1609->1671)] java.lang.Throwable
+v3(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.Jw
+----------------------------
+
+N()
+  Unable to fully structure code
+tF(java.lang.String java.lang.ClassLoader )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.TO
+----------------------------
+
+SN(java.io.File )
+  Loose catch block
+i(java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.MJ
+----------------------------
+
+yq(byte[] int )
+  Unable to fully structure code
+  Could not resolve type clashes
+yq(byte[] int )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.Mg
+----------------------------
+
+yq()
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.My
+----------------------------
+
+tF()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.N0
+----------------------------
+
+<init>()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+B(com.github.catvod.spider.merge.N0 com.github.catvod.spider.merge.tX java.lang.String java.lang.String java.util.List java.util.List int )
+  Unable to fully structure code
+Dr(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+L(com.github.catvod.spider.merge.tX java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 9[TRYBLOCK] [20 : 863->890)] java.lang.Throwable
+LY(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N(com.github.catvod.spider.merge.N0 java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+N0(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Qz(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+W(com.github.catvod.spider.merge.N0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+Z(okhttp3.Response java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+ee(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+g(com.github.catvod.spider.merge.tX java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 13[TRYBLOCK] [15 : 1204->1216)] java.lang.Exception
+h(java.lang.String java.lang.String java.lang.String )
+  Unable to fully structure code
+kR(com.github.catvod.spider.merge.tX java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 20[TRYBLOCK] [39, 40 : 1759->1779)] java.lang.Exception
+nQ(com.github.catvod.spider.merge.tX java.lang.String java.lang.String java.util.List<com.github.catvod.spider.merge.tX> java.util.List<com.github.catvod.spider.merge.tX> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+p(java.lang.String com.github.catvod.spider.merge.tX )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [19[CASE]], but top level block is 2[TRYBLOCK]
+tO(org.json.JSONObject java.lang.String com.github.catvod.spider.merge.tX )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [6 : 691->741)] java.lang.Exception
+xa(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [5 : 341->349)] java.lang.Exception
+yq(com.github.catvod.spider.merge.N0 java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+Cu(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Gd()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+H()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+O(java.lang.String )
+  Unable to fully structure code
+  Could not resolve type clashes
+OB(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+OW(com.github.catvod.spider.merge.tX java.lang.String boolean java.lang.String java.io.File )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+XO(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+cS(java.util.Map java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+i3(com.github.catvod.spider.merge.tX )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+mG(java.lang.String com.github.catvod.spider.merge.tX java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+s(org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+un(java.lang.String java.util.List<com.github.catvod.spider.merge.tX> )
+  Unable to fully structure code
+x()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.N2
+----------------------------
+
+i(com.github.catvod.spider.merge.q2 com.github.catvod.spider.merge.Mx )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.N3
+----------------------------
+
+KJ(com.github.catvod.spider.merge.we$Nl )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.N5
+----------------------------
+
+i()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.Nr
+----------------------------
+
+M(java.lang.String java.lang.String )
+  Loose catch block
+
+
+com.github.catvod.spider.merge.O9
+----------------------------
+
+t0(com.github.catvod.spider.merge.x1 com.github.catvod.spider.merge.nS )
+  Unable to fully structure code
+t0(com.github.catvod.spider.merge.x1 com.github.catvod.spider.merge.nS )
+  Unable to fully structure code
+  Could not resolve type clashes
+t0(com.github.catvod.spider.merge.x1 com.github.catvod.spider.merge.nS )
+  Unable to fully structure code
+t0(com.github.catvod.spider.merge.x1 com.github.catvod.spider.merge.nS )
+  Unable to fully structure code
+  Could not resolve type clashes
+t0(com.github.catvod.spider.merge.x1 com.github.catvod.spider.merge.nS )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.OI
+----------------------------
+
+<init>(java.io.File java.io.File )
+  Loose catch block
+Gc(android.content.Context long long java.util.List )
+  Ignored method signature, as it can't be verified against descriptor
+SN(java.util.zip.ZipFile java.util.zip.ZipEntry java.io.File java.lang.String )
+  Loose catch block
+i(android.content.Context )
+  Ignored method signature, as it can't be verified against descriptor
+zH(android.content.Context boolean )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.dU
+----------------------------
+
+<init>(com.github.catvod.spider.merge.o int )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.Q9
+----------------------------
+
+yq(java.lang.String java.util.Locale )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.QB
+----------------------------
+
+KJ()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.QZ
+----------------------------
+
+k(com.github.catvod.spider.merge.iK )
+  Unable to fully structure code
+LY()
+  Unable to fully structure code
+cp()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.T2
+----------------------------
+
+yq(java.lang.StringBuilder java.lang.Iterable<? extends java.lang.Object> )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.TZ
+----------------------------
+
+SN(java.util.List<com.github.catvod.spider.merge.H7> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.x_0
+----------------------------
+
+yq(java.util.concurrent.Callable )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.Xu
+----------------------------
+
+SN(java.lang.String java.lang.String )
+  Unable to fully structure code
+yq(java.lang.String java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.YG
+----------------------------
+
+zH(java.lang.Iterable<?> java.lang.String )
+  Handled impossible loop by duplicating code
+
+
+com.github.catvod.spider.merge.Ys
+----------------------------
+
+call()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Started 3 blocks at once
+
+
+com.github.catvod.spider.merge.Z8
+----------------------------
+
+zH(java.io.RandomAccessFile com.github.catvod.spider.merge.DS com.github.catvod.spider.merge.a0 )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.bb_0
+----------------------------
+
+yq(com.github.catvod.spider.merge.j com.github.catvod.spider.merge.CK com.github.catvod.spider.merge.aq java.util.Set java.util.BitSet )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.cr_0
+----------------------------
+
+toString()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.dN
+----------------------------
+
+<init>(java.lang.String java.util.TimeZone java.util.Locale )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [15[CASE], 1[CASE]], but top level block is 21[SWITCH]
+
+
+com.github.catvod.spider.merge.ef_0
+----------------------------
+
+<init>(java.lang.String java.lang.String java.lang.String java.util.Map java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+<init>(java.lang.String java.lang.String java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.ei_0
+----------------------------
+
+KJ(java.lang.Class )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.ev_0
+----------------------------
+
+yq(java.lang.CharSequence int java.io.Writer )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.ew_0
+----------------------------
+
+Gc(java.io.File java.io.InputStream double )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Started 2 blocks at once
+zH(com.github.catvod.spider.merge.ew_0 java.lang.String )
+  Unable to fully structure code
+i(java.lang.String )
+  Loose catch block
+
+
+com.github.catvod.spider.merge.fk
+----------------------------
+
+SN(com.github.catvod.spider.merge.fk )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(com.github.catvod.spider.merge.fk java.nio.channels.Pipe$SinkChannel )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 13[TRYBLOCK] [31 : 1086->1094)] java.lang.Throwable
+tF()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.gE
+----------------------------
+
+yq(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.gh
+----------------------------
+
+yq(java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.hm
+----------------------------
+
+tF()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.i3
+----------------------------
+
+<init>()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+C(java.lang.String com.github.catvod.spider.merge.H7 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+E1(org.json.JSONObject java.lang.String com.github.catvod.spider.merge.H7 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 8[TRYBLOCK] [9 : 913->925)] java.lang.Exception
+G4(com.github.catvod.spider.merge.i3 java.util.Map java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Hj(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+SN(com.github.catvod.spider.merge.i3 java.lang.String )
+  Handled duff style switch with additional control
+XO(com.github.catvod.spider.merge.H7 java.lang.String java.lang.String java.util.List<com.github.catvod.spider.merge.H7> java.util.List<com.github.catvod.spider.merge.H7> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Z(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Zm(com.github.catvod.spider.merge.H7 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(com.github.catvod.spider.merge.i3 java.lang.String )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+  Unable to fully structure code
+h(java.lang.String java.lang.String long )
+  Unable to fully structure code
+k(okhttp3.Response java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+lF()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [20[CASE]], but top level block is 3[TRYBLOCK]
+q(com.github.catvod.spider.merge.i3 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+onClick(android.content.DialogInterface int )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+v(java.lang.String org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+x(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 6[TRYBLOCK] [7 : 1228->1306)] java.lang.Exception
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+Cu(java.util.Map java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Dr()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Gd(java.lang.String )
+  Handled duff style switch with additional control
+LY(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [15[CASE]], but top level block is 3[TRYBLOCK]
+Nl()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 6[TRYBLOCK] [6 : 632->638)] java.lang.Exception
+OW(org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+Q4(java.lang.String com.github.catvod.spider.merge.H7 java.lang.String boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+b(com.github.catvod.spider.merge.H7 boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+cS()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 2[TRYBLOCK] [3 : 608->613)] java.lang.Throwable
+cp(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+ee()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+j(com.github.catvod.spider.merge.H7 java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 21[TRYBLOCK] [47, 48 : 1785->1789)] java.lang.Exception
+mG(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+o(com.github.catvod.spider.merge.H7 java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 8[TRYBLOCK] [15, 16 : 516->529)] java.lang.Exception
+p(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+u7()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+w(com.github.catvod.spider.merge.H7 )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+xU(com.github.catvod.spider.merge.H7 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+xa(com.github.catvod.spider.merge.H7 java.lang.String boolean java.lang.String java.io.File )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.rd
+----------------------------
+
+KJ()
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.jo
+----------------------------
+
+yq()
+  Loose catch block
+
+
+com.github.catvod.spider.merge.jv
+----------------------------
+
+yq(java.lang.Object java.lang.Object[] )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.kH
+----------------------------
+
+t0()
+  Loose catch block
+yq()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 1[TRYBLOCK] [8 : 39->64)] java.lang.Throwable
+
+
+com.github.catvod.spider.merge.m_0
+----------------------------
+
+run()
+  Loose catch block
+
+
+com.github.catvod.spider.merge.mV
+----------------------------
+
+<clinit>()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.md
+----------------------------
+
+B(com.github.catvod.spider.merge.QY com.github.catvod.spider.merge.Mx com.github.catvod.spider.merge.lC int com.github.catvod.spider.merge.ei_0 )
+  Unable to fully structure code
+  Could not resolve type clashes
+Gc(com.github.catvod.spider.merge.Q4 int boolean )
+  Unable to fully structure code
+t0(com.github.catvod.spider.merge.C com.github.catvod.spider.merge.Q4 java.util.Set<com.github.catvod.spider.merge.C> boolean boolean int boolean )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.nS
+----------------------------
+
+tF()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.oE
+----------------------------
+
+yq(java.lang.String )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.of
+----------------------------
+
+compare(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.rl_0
+----------------------------
+
+yq()
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.rs_1
+----------------------------
+
+B(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+F5(byte[] )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+W(java.lang.String java.lang.Object[] )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.Throwable )
+  Unable to fully structure code
+i(int int )
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+t0(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(byte[] java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+zH(com.github.catvod.spider.merge.f_0 int com.github.catvod.spider.merge.HA int com.github.catvod.spider.merge.t_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????(int int java.lang.Object )
+  Unable to fully structure code
+????(int int java.lang.Object )
+  Unable to fully structure code
+????(int int java.lang.Object )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.sI
+----------------------------
+
+SN()
+  Loose catch block
+
+
+com.github.catvod.spider.merge.sx
+----------------------------
+
+i()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 22[TRYBLOCK] [135, 134, 133, 132, 131, 130 : 763->768)] java.lang.Throwable
+
+
+com.github.catvod.spider.merge.tm_0
+----------------------------
+
+yq(java.lang.CharSequence int java.io.Writer )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+com.github.catvod.spider.merge.tw_0
+----------------------------
+
+KJ(java.lang.StringBuilder java.lang.String )
+  Unable to fully structure code
+SN(com.github.catvod.spider.merge.tw_0 char int java.util.Calendar )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [1[CASE], 8[CASE]], but top level block is 20[SWITCH]
+
+
+com.github.catvod.spider.merge.u7_0
+----------------------------
+
+hasNext()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [0[DOLOOP]], but top level block is 1[WHILELOOP]
+
+
+com.github.catvod.spider.merge.uA
+----------------------------
+
+B(android.content.Context )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [15[CASE]], but top level block is 3[TRYBLOCK]
+G4()
+  Unable to fully structure code
+Gc()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+M()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(boolean )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [6 : 443->461)] java.lang.Exception
+i()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [26[CASE]], but top level block is 28[SWITCH]
+t0()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+run()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+yq(android.content.Context )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+????()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.vv_0
+----------------------------
+
+tF(com.github.catvod.spider.merge.xc com.github.catvod.spider.merge.QZ )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [1[CASE]], but top level block is 13[SWITCH]
+
+
+com.github.catvod.spider.merge.w2
+----------------------------
+
+G4(java.lang.String java.util.Map java.util.Map java.lang.String )
+  Ignored method signature, as it can't be verified against descriptor
+tF(okhttp3.OkHttpClient java.lang.String java.util.Map com.github.catvod.spider.merge.Ah )
+  Ignored method signature, as it can't be verified against descriptor
+zH(java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.w4
+----------------------------
+
+O(okhttp3.Response )
+  Loose catch block
+tF(com.github.catvod.spider.merge.w4 boolean java.nio.channels.Pipe$SinkChannel )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 7[TRYBLOCK] [13 : 150->160)] java.lang.Throwable
+
+
+com.github.catvod.spider.merge.we
+----------------------------
+
+Dr()
+  Unable to fully structure code
+RQ()
+  Unable to fully structure code
+V()
+  Unable to fully structure code
+m()
+  Unable to fully structure code
+n()
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.xu_0
+----------------------------
+
+<init>()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+B(com.github.catvod.spider.merge.xu_0 java.lang.String )
+  Handled duff style switch with additional control
+Fz()
+  Recovered potentially malformed switches.  Disable with '--allowmalformedswitch false'
+G(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [2[TRYBLOCK]], but top level block is 32[UNCONDITIONALDOLOOP]
+J(java.lang.String java.util.HashMap<java.lang.String, java.lang.String> java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+M(com.github.catvod.spider.merge.xu_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [6[CASE]], but top level block is 1[TRYBLOCK]
+N0(com.github.catvod.spider.merge.dl_0 java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 14[TRYBLOCK] [30 : 1350->1374)] java.lang.Throwable
+SN(com.github.catvod.spider.merge.xu_0 com.github.catvod.spider.merge.dl_0 java.lang.String java.lang.String java.util.List java.util.HashMap java.util.List int )
+  Handled duff style switch with additional control
+V(com.github.catvod.spider.merge.dl_0 java.lang.String java.lang.String java.util.List<com.github.catvod.spider.merge.dl_0> java.util.List<com.github.catvod.spider.merge.dl_0> java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+dT(java.lang.String java.util.HashMap<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 6[TRYBLOCK] [7 : 448->456)] java.lang.Exception
+g(org.json.JSONObject java.lang.String com.github.catvod.spider.merge.dl_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [6 : 675->715)] java.lang.Exception
+j(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+k(com.github.catvod.spider.merge.dl_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 5[TRYBLOCK] [6 : 480->492)] java.lang.Exception
+s(com.github.catvod.spider.merge.dl_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+xU(com.github.catvod.spider.merge.dl_0 java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 12[TRYBLOCK] [25, 26 : 1111->1270)] java.lang.Exception
+yq(com.github.catvod.spider.merge.xu_0 java.lang.String java.lang.String long )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [19[CASE]], but top level block is 2[TRYBLOCK]
+????(java.lang.Object java.lang.Object )
+  Unable to fully structure code
+????(java.lang.Object )
+  Unable to fully structure code
+C(java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+F5()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [33[CASE]], but top level block is 4[TRYBLOCK]
+Q4(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+R(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [15[CASE]], but top level block is 3[TRYBLOCK]
+RQ(java.util.Map<java.lang.String, java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+U(com.github.catvod.spider.merge.dl_0 )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+ee(org.json.JSONObject )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+m(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+n()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+p()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+tO(java.lang.String java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 13[TRYBLOCK] [14 : 1248->1311)] java.lang.Exception
+v(java.util.List<java.lang.String> )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [0[TRYBLOCK]], but top level block is 25[UNCONDITIONALDOLOOP]
+v3(com.github.catvod.spider.merge.dl_0 java.lang.String boolean java.lang.String java.io.File )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Back jump on a try block [egrp 20[TRYBLOCK] [43, 44 : 1995->2004)] java.lang.Exception
+w()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.xe
+----------------------------
+
+KJ(java.io.OutputStream )
+  Unable to fully structure code
+
+
+com.github.catvod.spider.merge.y5
+----------------------------
+
+N(com.github.catvod.spider.merge.y5 )
+  Unable to fully structure code
+SN(com.github.catvod.spider.merge.y5 java.nio.channels.Pipe$SinkChannel )
+  Loose catch block
+
+
+com.github.catvod.spider.merge.yb
+----------------------------
+
+<init>(java.lang.String java.lang.String java.lang.String java.util.Map )
+  Ignored method signature, as it can't be verified against descriptor
+<init>(java.lang.String java.lang.String java.lang.String java.util.Map java.util.Map com.github.catvod.spider.merge.Ah )
+  Ignored method signature, as it can't be verified against descriptor
+
+
+com.github.catvod.spider.merge.zE
+----------------------------
+
+N(java.lang.String )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+
+
+com.github.catvod.spider.merge.zm_0
+----------------------------
+
+N(java.lang.String java.util.HashMap )
+  Ignored method signature, as it can't be verified against descriptor
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Extractable last case doesn't follow previous, and can't clone.
+SN(java.lang.String java.util.Map<java.lang.String, java.lang.String> int )
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Tried to end blocks [17[CASE]], but top level block is 0[TRYBLOCK]
+
+
+com.github.catvod.spider.yq
+----------------------------
+
+run()
+  Exception : org.benf.cfr.reader.util.ConfusedCFRException: Started 2 blocks at once

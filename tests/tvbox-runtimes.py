@@ -54,7 +54,7 @@ def java_test():
             origin='http://127.0.0.1:'+str(json.loads(child.stdout.readline())['port'])
             for archive in [jar,dex,raw]:
                 identity=hashlib.md5(archive.read_bytes()).hexdigest()
-                data={'api':'csp_TvBoxFixture','key':'fixture','ext':'custom-extension','jarData':base64.b64encode(archive.read_bytes()).decode(),'identity':identity}
+                data={'api':'csp_TvBoxFixture','key':'fixture','ext':'custom-extension','jarData':base64.b64encode(archive.read_bytes()).decode(),'identity':identity,'jarHash':identity}
                 verify(origin,data,'test-secret')
                 web=json.loads(request(origin+'/call',{**data,'action':'play','args':{'id':'web-id','flag':'4K','flags':[]}},'test-secret'))
                 assert web['url'].startswith('proxy://go=SuperParse&flag=4K&url=')

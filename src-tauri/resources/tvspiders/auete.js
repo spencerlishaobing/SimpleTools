@@ -21,6 +21,13 @@ function fetchHtml(path) {
   return r.content;
 }
 
+function absolute(path) {
+  const value = String(path || '').trim();
+  if (!value) return '';
+  if (value.startsWith('//')) return 'https:' + value;
+  try { return new URL(value, BASE + '/').href; } catch (_) { return value; }
+}
+
 function firstHref(html) {
   const m = html.match(/href="([^"]+)"/);
   return m ? m[1] : '';
@@ -33,9 +40,9 @@ function parseItems(html) {
     const name = pdfh(block, 'h2&&a&&title') || pdfh(block, 'h2&&a&&Text') || '';
     if (!href || !name) continue;
     out.push({
-      vod_id: href,
+      vod_id: absolute(href),
       vod_name: name,
-      vod_pic: pdfh(block, 'img&&src') || pdfh(block, 'img&&data-src') || '',
+      vod_pic: absolute(pdfh(block, 'img&&src') || pdfh(block, 'img&&data-src') || ''),
       vod_remarks: pdfh(block, 'span.hdtag&&Text') || '',
     });
   }
@@ -68,7 +75,7 @@ export default {
     // 标题：“《团圆必胜》 / 副标题” → 团圆必胜；完全匹配不到时用页面标题
     const raw = textVar(html, 'vod_name') || pdfh(html, 'h1&&Text') || pdfh(html, 'title&&Text') || '';
     const name = (raw.match(/《([^》]+)》/) || [null, raw.split('/')[0].trim()])[1];
-    const pic = textVar(html, 'vod_pic') || '';
+    const pic = absolute(textVar(html, 'vod_pic') || '');
     const summary = pdfh(html, 'div.message&&Text') || '';
     const from = [];
     const urls = [];
@@ -80,7 +87,7 @@ export default {
         const href = firstHref(item);
         if (!href) continue;
         const title = pdfh(item, 'a&&title') || pdfh(item, 'a&&Text') || '正片';
-        episodes.push(title + '$' + href);
+        episodes.push(title + '$' + absolute(href));
       }
       if (episodes.length) {
         from.push(line);

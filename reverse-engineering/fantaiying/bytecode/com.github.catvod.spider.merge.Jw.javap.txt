@@ -1,0 +1,430 @@
+final class com.github.catvod.spider.merge.Jw {
+  static java.lang.Class SN;
+    descriptor: Ljava/lang/Class;
+
+  private static boolean yq;
+    descriptor: Z
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: ldc           #16                 // String xml.stream.debug
+       2: invokestatic  #22                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+       5: ifnull        13
+       8: iconst_1
+       9: istore_0
+      10: goto          15
+      13: iconst_0
+      14: istore_0
+      15: iload_0
+      16: putstatic     #24                 // Field yq:Z
+      19: return
+      20: astore_1
+      21: goto          19
+    Exception table:
+       from    to  target type
+           0     8    20   Class java/lang/Exception
+          15    19    20   Class java/lang/Exception
+
+  static java.lang.Object N();
+    descriptor: ()Ljava/lang/Object;
+    Code:
+       0: ldc           #2                  // class com/github/catvod/spider/merge/Jw
+       2: astore_1
+       3: new           #35                 // class java/lang/StringBuffer
+       6: astore_3
+       7: aload_3
+       8: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+      11: getstatic     #40                 // Field SN:Ljava/lang/Class;
+      14: astore_2
+      15: aload_2
+      16: astore_0
+      17: aload_2
+      18: ifnonnull     33
+      21: invokestatic  #43                 // Method yq:()Ljava/lang/Class;
+      24: pop
+      25: ldc           #2                  // class com/github/catvod/spider/merge/Jw
+      27: putstatic     #40                 // Field SN:Ljava/lang/Class;
+      30: ldc           #2                  // class com/github/catvod/spider/merge/Jw
+      32: astore_0
+      33: aload_3
+      34: aload_0
+      35: invokevirtual #49                 // Method java/lang/Class.getName:()Ljava/lang/String;
+      38: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      41: pop
+      42: aload_3
+      43: ldc           #55                 // String $ClassLoaderFinderConcrete
+      45: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      48: pop
+      49: aload_3
+      50: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+      53: invokestatic  #62                 // Method java/lang/Class.forName:(Ljava/lang/String;)Ljava/lang/Class;
+      56: invokevirtual #65                 // Method java/lang/Class.newInstance:()Ljava/lang/Object;
+      59: checkcast     #6                  // class com/github/catvod/spider/merge/Jw$yq
+      62: invokevirtual #68                 // Method com/github/catvod/spider/merge/Jw$yq.yq:()Ljava/lang/ClassLoader;
+      65: astore_0
+      66: goto          127
+      69: astore_0
+      70: new           #70                 // class com/github/catvod/spider/merge/s1
+      73: dup
+      74: aload_0
+      75: invokevirtual #71                 // Method java/lang/Object.toString:()Ljava/lang/String;
+      78: aload_0
+      79: invokespecial #74                 // Method com/github/catvod/spider/merge/s1."<init>":(Ljava/lang/String;Ljava/lang/Exception;)V
+      82: athrow
+      83: astore_0
+      84: getstatic     #40                 // Field SN:Ljava/lang/Class;
+      87: astore_2
+      88: aload_2
+      89: astore_0
+      90: aload_2
+      91: ifnonnull     122
+      94: goto          108
+      97: astore_0
+      98: getstatic     #40                 // Field SN:Ljava/lang/Class;
+     101: astore_2
+     102: aload_2
+     103: astore_0
+     104: aload_2
+     105: ifnonnull     122
+     108: invokestatic  #43                 // Method yq:()Ljava/lang/Class;
+     111: pop
+     112: ldc           #2                  // class com/github/catvod/spider/merge/Jw
+     114: putstatic     #40                 // Field SN:Ljava/lang/Class;
+     117: aload_1
+     118: astore_0
+     119: goto          122
+     122: aload_0
+     123: invokevirtual #77                 // Method java/lang/Class.getClassLoader:()Ljava/lang/ClassLoader;
+     126: astore_0
+     127: ldc           #79                 // String javax.xml.stream.XMLInputFactory
+     129: invokestatic  #22                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     132: astore_1
+     133: aload_1
+     134: ifnull        176
+     137: new           #35                 // class java/lang/StringBuffer
+     140: astore_2
+     141: aload_2
+     142: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+     145: aload_2
+     146: ldc           #81                 // String found system property
+     148: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     151: pop
+     152: aload_2
+     153: aload_1
+     154: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     157: pop
+     158: aload_2
+     159: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     162: invokestatic  #84                 // Method SN:(Ljava/lang/String;)V
+     165: aload_1
+     166: aload_0
+     167: invokestatic  #88                 // Method tF:(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Object;
+     170: astore_1
+     171: aload_1
+     172: astore_0
+     173: goto          494
+     176: ldc           #90                 // String java.home
+     178: invokestatic  #22                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     181: astore_2
+     182: new           #35                 // class java/lang/StringBuffer
+     185: astore_1
+     186: aload_1
+     187: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+     190: aload_1
+     191: aload_2
+     192: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     195: pop
+     196: getstatic     #96                 // Field java/io/File.separator:Ljava/lang/String;
+     199: astore_2
+     200: aload_1
+     201: aload_2
+     202: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     205: pop
+     206: aload_1
+     207: ldc           #98                 // String lib
+     209: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     212: pop
+     213: aload_1
+     214: aload_2
+     215: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     218: pop
+     219: aload_1
+     220: ldc           #100                // String jaxp.properties
+     222: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     225: pop
+     226: aload_1
+     227: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     230: astore_2
+     231: new           #92                 // class java/io/File
+     234: astore_1
+     235: aload_1
+     236: aload_2
+     237: invokespecial #102                // Method java/io/File."<init>":(Ljava/lang/String;)V
+     240: aload_1
+     241: invokevirtual #106                // Method java/io/File.exists:()Z
+     244: ifeq          337
+     247: new           #108                // class java/util/Properties
+     250: astore_3
+     251: aload_3
+     252: invokespecial #109                // Method java/util/Properties."<init>":()V
+     255: new           #111                // class java/io/FileInputStream
+     258: astore_2
+     259: aload_2
+     260: aload_1
+     261: invokespecial #114                // Method java/io/FileInputStream."<init>":(Ljava/io/File;)V
+     264: aload_3
+     265: aload_2
+     266: invokevirtual #118                // Method java/util/Properties.load:(Ljava/io/InputStream;)V
+     269: aload_3
+     270: ldc           #79                 // String javax.xml.stream.XMLInputFactory
+     272: invokevirtual #119                // Method java/util/Properties.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     275: astore_2
+     276: aload_2
+     277: ifnull        337
+     280: aload_2
+     281: invokevirtual #125                // Method java/lang/String.length:()I
+     284: ifle          337
+     287: new           #35                 // class java/lang/StringBuffer
+     290: astore_1
+     291: aload_1
+     292: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+     295: aload_1
+     296: ldc           #127                // String found java.home property
+     298: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     301: pop
+     302: aload_1
+     303: aload_2
+     304: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     307: pop
+     308: aload_1
+     309: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     312: invokestatic  #84                 // Method SN:(Ljava/lang/String;)V
+     315: aload_2
+     316: aload_0
+     317: invokestatic  #88                 // Method tF:(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Object;
+     320: astore_1
+     321: aload_1
+     322: astore_0
+     323: goto          494
+     326: astore_1
+     327: getstatic     #24                 // Field yq:Z
+     330: ifeq          337
+     333: aload_1
+     334: invokevirtual #132                // Method java/lang/Throwable.printStackTrace:()V
+     337: aload_0
+     338: ifnonnull     350
+     341: ldc           #134                // String META-INF/services/javax.xml.stream.XMLInputFactory
+     343: invokestatic  #140                // Method java/lang/ClassLoader.getSystemResourceAsStream:(Ljava/lang/String;)Ljava/io/InputStream;
+     346: astore_1
+     347: goto          357
+     350: aload_0
+     351: ldc           #134                // String META-INF/services/javax.xml.stream.XMLInputFactory
+     353: invokevirtual #143                // Method java/lang/ClassLoader.getResourceAsStream:(Ljava/lang/String;)Ljava/io/InputStream;
+     356: astore_1
+     357: aload_1
+     358: ifnull        482
+     361: new           #35                 // class java/lang/StringBuffer
+     364: astore_2
+     365: aload_2
+     366: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+     369: aload_2
+     370: ldc           #145                // String found
+     372: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     375: pop
+     376: aload_2
+     377: ldc           #134                // String META-INF/services/javax.xml.stream.XMLInputFactory
+     379: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     382: pop
+     383: aload_2
+     384: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     387: invokestatic  #84                 // Method SN:(Ljava/lang/String;)V
+     390: new           #147                // class java/io/BufferedReader
+     393: astore_2
+     394: new           #149                // class java/io/InputStreamReader
+     397: astore_3
+     398: aload_3
+     399: aload_1
+     400: ldc           #151                // String UTF-8
+     402: invokespecial #154                // Method java/io/InputStreamReader."<init>":(Ljava/io/InputStream;Ljava/lang/String;)V
+     405: aload_2
+     406: aload_3
+     407: invokespecial #157                // Method java/io/BufferedReader."<init>":(Ljava/io/Reader;)V
+     410: aload_2
+     411: invokevirtual #160                // Method java/io/BufferedReader.readLine:()Ljava/lang/String;
+     414: astore_1
+     415: aload_2
+     416: invokevirtual #163                // Method java/io/BufferedReader.close:()V
+     419: aload_1
+     420: ifnull        482
+     423: ldc           #165                // String
+     425: aload_1
+     426: invokevirtual #169                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     429: ifne          482
+     432: new           #35                 // class java/lang/StringBuffer
+     435: astore_2
+     436: aload_2
+     437: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+     440: aload_2
+     441: ldc           #171                // String loaded from services:
+     443: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     446: pop
+     447: aload_2
+     448: aload_1
+     449: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     452: pop
+     453: aload_2
+     454: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     457: invokestatic  #84                 // Method SN:(Ljava/lang/String;)V
+     460: aload_1
+     461: aload_0
+     462: invokestatic  #88                 // Method tF:(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Object;
+     465: astore_1
+     466: aload_1
+     467: astore_0
+     468: goto          494
+     471: astore_1
+     472: getstatic     #24                 // Field yq:Z
+     475: ifeq          482
+     478: aload_1
+     479: invokevirtual #132                // Method java/lang/Throwable.printStackTrace:()V
+     482: ldc           #173                // String loaded from fallback value: com.bea.xml.stream.MXParserFactory
+     484: invokestatic  #84                 // Method SN:(Ljava/lang/String;)V
+     487: ldc           #175                // String com.bea.xml.stream.MXParserFactory
+     489: aload_0
+     490: invokestatic  #88                 // Method tF:(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Object;
+     493: astore_0
+     494: aload_0
+     495: areturn
+     496: astore_1
+     497: goto          176
+    Exception table:
+       from    to  target type
+           3    15    97   Class java/lang/LinkageError
+           3    15    83   Class java/lang/ClassNotFoundException
+           3    15    69   Class java/lang/Exception
+          21    30    97   Class java/lang/LinkageError
+          21    30    83   Class java/lang/ClassNotFoundException
+          21    30    69   Class java/lang/Exception
+          33    66    97   Class java/lang/LinkageError
+          33    66    83   Class java/lang/ClassNotFoundException
+          33    66    69   Class java/lang/Exception
+         127   133   496   Class java/lang/SecurityException
+         137   171   496   Class java/lang/SecurityException
+         176   276   326   Class java/lang/Exception
+         280   321   326   Class java/lang/Exception
+         341   347   471   Class java/lang/Exception
+         350   357   471   Class java/lang/Exception
+         361   419   471   Class java/lang/Exception
+         423   466   471   Class java/lang/Exception
+
+  private static void SN(java.lang.String);
+    descriptor: (Ljava/lang/String;)V
+    Code:
+       0: getstatic     #24                 // Field yq:Z
+       3: ifeq          39
+       6: getstatic     #179                // Field java/lang/System.err:Ljava/io/PrintStream;
+       9: astore_1
+      10: new           #35                 // class java/lang/StringBuffer
+      13: dup
+      14: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+      17: astore_2
+      18: aload_2
+      19: ldc           #181                // String STREAM:
+      21: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      24: pop
+      25: aload_2
+      26: aload_0
+      27: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      30: pop
+      31: aload_1
+      32: aload_2
+      33: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+      36: invokevirtual #186                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      39: return
+
+  private static java.lang.Object tF(java.lang.String, java.lang.ClassLoader);
+    descriptor: (Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Object;
+    Code:
+       0: aload_1
+       1: ifnonnull     12
+       4: aload_0
+       5: invokestatic  #62                 // Method java/lang/Class.forName:(Ljava/lang/String;)Ljava/lang/Class;
+       8: astore_1
+       9: goto          18
+      12: aload_1
+      13: aload_0
+      14: invokevirtual #189                // Method java/lang/ClassLoader.loadClass:(Ljava/lang/String;)Ljava/lang/Class;
+      17: astore_1
+      18: aload_1
+      19: invokevirtual #65                 // Method java/lang/Class.newInstance:()Ljava/lang/Object;
+      22: astore_1
+      23: aload_1
+      24: areturn
+      25: astore_1
+      26: new           #35                 // class java/lang/StringBuffer
+      29: dup
+      30: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+      33: astore_2
+      34: aload_2
+      35: ldc           #191                // String Provider
+      37: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      40: pop
+      41: aload_2
+      42: aload_0
+      43: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      46: pop
+      47: aload_2
+      48: ldc           #193                // String  could not be instantiated:
+      50: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      53: pop
+      54: aload_2
+      55: aload_1
+      56: invokevirtual #196                // Method java/lang/StringBuffer.append:(Ljava/lang/Object;)Ljava/lang/StringBuffer;
+      59: pop
+      60: new           #70                 // class com/github/catvod/spider/merge/s1
+      63: dup
+      64: aload_2
+      65: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+      68: aload_1
+      69: invokespecial #74                 // Method com/github/catvod/spider/merge/s1."<init>":(Ljava/lang/String;Ljava/lang/Exception;)V
+      72: athrow
+      73: astore_2
+      74: new           #35                 // class java/lang/StringBuffer
+      77: dup
+      78: invokespecial #38                 // Method java/lang/StringBuffer."<init>":()V
+      81: astore_1
+      82: aload_1
+      83: ldc           #191                // String Provider
+      85: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      88: pop
+      89: aload_1
+      90: aload_0
+      91: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+      94: pop
+      95: aload_1
+      96: ldc           #198                // String  not found
+      98: invokevirtual #53                 // Method java/lang/StringBuffer.append:(Ljava/lang/String;)Ljava/lang/StringBuffer;
+     101: pop
+     102: new           #70                 // class com/github/catvod/spider/merge/s1
+     105: dup
+     106: aload_1
+     107: invokevirtual #58                 // Method java/lang/StringBuffer.toString:()Ljava/lang/String;
+     110: aload_2
+     111: invokespecial #74                 // Method com/github/catvod/spider/merge/s1."<init>":(Ljava/lang/String;Ljava/lang/Exception;)V
+     114: athrow
+    Exception table:
+       from    to  target type
+           4     9    73   Class java/lang/ClassNotFoundException
+           4     9    25   Class java/lang/Exception
+          12    18    73   Class java/lang/ClassNotFoundException
+          12    18    25   Class java/lang/Exception
+          18    23    73   Class java/lang/ClassNotFoundException
+          18    23    25   Class java/lang/Exception
+
+  static java.lang.Class yq();
+    descriptor: ()Ljava/lang/Class;
+    Code:
+       0: ldc           #2                  // class com/github/catvod/spider/merge/Jw
+       2: areturn
+}

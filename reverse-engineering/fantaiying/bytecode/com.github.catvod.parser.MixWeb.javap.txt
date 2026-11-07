@@ -1,0 +1,365 @@
+public class com.github.catvod.parser.MixWeb {
+  static java.util.HashMap<java.lang.String, java.util.ArrayList<java.lang.String>> SN;
+    descriptor: Ljava/util/HashMap;
+
+  public static java.util.HashMap<java.lang.String, java.util.ArrayList<java.lang.String>> yq;
+    descriptor: Ljava/util/HashMap;
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: new           #12                 // class java/util/HashMap
+       3: dup
+       4: invokespecial #15                 // Method java/util/HashMap."<init>":()V
+       7: putstatic     #17                 // Field yq:Ljava/util/HashMap;
+      10: aconst_null
+      11: putstatic     #19                 // Field SN:Ljava/util/HashMap;
+      14: return
+
+  public com.github.catvod.parser.MixWeb();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #21                 // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static java.lang.Object[] loadHtml(java.lang.String, java.lang.String);
+    descriptor: (Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/Object;
+    Code:
+       0: new           #25                 // class java/lang/String
+       3: astore_3
+       4: aload_3
+       5: aload_1
+       6: bipush        10
+       8: invokestatic  #31                 // Method android/util/Base64.decode:(Ljava/lang/String;I)[B
+      11: ldc           #33                 // String UTF-8
+      13: invokespecial #36                 // Method java/lang/String."<init>":([BLjava/lang/String;)V
+      16: new           #38                 // class java/lang/StringBuilder
+      19: astore_1
+      20: aload_1
+      21: invokespecial #39                 // Method java/lang/StringBuilder."<init>":()V
+      24: getstatic     #17                 // Field yq:Ljava/util/HashMap;
+      27: aload_0
+      28: invokevirtual #43                 // Method java/util/HashMap.containsKey:(Ljava/lang/Object;)Z
+      31: ifeq          105
+      34: getstatic     #17                 // Field yq:Ljava/util/HashMap;
+      37: aload_0
+      38: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+      41: checkcast     #49                 // class java/util/ArrayList
+      44: astore_0
+      45: iconst_0
+      46: istore_2
+      47: iload_2
+      48: aload_0
+      49: invokevirtual #53                 // Method java/util/ArrayList.size:()I
+      52: if_icmpge     105
+      55: aload_1
+      56: ldc           #55                 // String \"
+      58: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      61: pop
+      62: aload_1
+      63: aload_0
+      64: iload_2
+      65: invokevirtual #62                 // Method java/util/ArrayList.get:(I)Ljava/lang/Object;
+      68: checkcast     #25                 // class java/lang/String
+      71: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      74: pop
+      75: aload_1
+      76: ldc           #55                 // String \"
+      78: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      81: pop
+      82: iload_2
+      83: aload_0
+      84: invokevirtual #53                 // Method java/util/ArrayList.size:()I
+      87: iconst_1
+      88: isub
+      89: if_icmpge     99
+      92: aload_1
+      93: ldc           #64                 // String ,
+      95: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      98: pop
+      99: iinc          2, 1
+     102: goto          47
+     105: new           #66                 // class java/io/ByteArrayInputStream
+     108: dup
+     109: ldc           #68                 // String \n<!doctype html>\n<html>\n<head>\n<title>����</title>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=EmulateIE10\" />\n<meta name=\"renderer\" content=\"webkit|ie-comp|ie-stand\">\n<meta name=\"viewport\" content=\"width=device-width\">\n</head>\n<body>\n<script>\nvar apiArray=[#jxs#];\nvar urlPs=\"#url#\";\nvar iframeHtml=\"\";\nfor(var i=0;i<apiArray.length;i++){\nvar URL=apiArray[i]+urlPs;\niframeHtml=iframeHtml+\"<iframe sandbox=\'allow-scripts allow-same-origin allow-forms\' frameborder=\'0\' allowfullscreen=\'true\' webkitallowfullscreen=\'true\' mozallowfullscreen=\'true\' src=\"+URL+\"></iframe>\";\n}\ndocument.write(iframeHtml);\n</script>\n</body>\n</html>
+     111: ldc           #70                 // String #url#
+     113: aload_3
+     114: invokevirtual #74                 // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+     117: ldc           #76                 // String #jxs#
+     119: aload_1
+     120: invokevirtual #80                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     123: invokevirtual #74                 // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+     126: invokevirtual #81                 // Method java/lang/String.toString:()Ljava/lang/String;
+     129: ldc           #33                 // String UTF-8
+     131: invokevirtual #85                 // Method java/lang/String.getBytes:(Ljava/lang/String;)[B
+     134: invokespecial #88                 // Method java/io/ByteArrayInputStream."<init>":([B)V
+     137: astore_0
+     138: iconst_3
+     139: anewarray     #4                  // class java/lang/Object
+     142: dup
+     143: iconst_0
+     144: sipush        200
+     147: invokestatic  #94                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     150: aastore
+     151: dup
+     152: iconst_1
+     153: ldc           #96                 // String text/html; charset=\"UTF-8\"
+     155: aastore
+     156: dup
+     157: iconst_2
+     158: aload_0
+     159: aastore
+     160: areturn
+     161: astore_0
+     162: aload_0
+     163: invokevirtual #101                // Method java/lang/Throwable.printStackTrace:()V
+     166: aconst_null
+     167: areturn
+    Exception table:
+       from    to  target type
+           0    45   161   any
+          47    99   161   any
+         105   138   161   any
+
+  public static org.json.JSONObject parse(java.util.LinkedHashMap<java.lang.String, java.util.HashMap<java.lang.String, java.lang.String>>, java.lang.String, java.lang.String, java.lang.String);
+    descriptor: (Ljava/util/LinkedHashMap;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;
+    Code:
+       0: getstatic     #19                 // Field SN:Ljava/util/HashMap;
+       3: astore_1
+       4: iconst_0
+       5: istore        5
+       7: aload_1
+       8: ifnonnull     189
+      11: new           #12                 // class java/util/HashMap
+      14: astore_1
+      15: aload_1
+      16: invokespecial #15                 // Method java/util/HashMap."<init>":()V
+      19: aload_1
+      20: putstatic     #19                 // Field SN:Ljava/util/HashMap;
+      23: aload_0
+      24: invokevirtual #110                // Method java/util/LinkedHashMap.keySet:()Ljava/util/Set;
+      27: invokeinterface #116,  1          // InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+      32: astore        8
+      34: aload         8
+      36: invokeinterface #122,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      41: ifeq          189
+      44: aload         8
+      46: invokeinterface #126,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      51: checkcast     #25                 // class java/lang/String
+      54: astore        9
+      56: aload_0
+      57: aload         9
+      59: invokevirtual #127                // Method java/util/LinkedHashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+      62: checkcast     #12                 // class java/util/HashMap
+      65: astore_1
+      66: aload_1
+      67: ldc           #129                // String type
+      69: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+      72: checkcast     #25                 // class java/lang/String
+      75: ldc           #131                // String 0
+      77: invokevirtual #134                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      80: istore        6
+      82: iload         6
+      84: ifeq          34
+      87: new           #136                // class org/json/JSONObject
+      90: astore        7
+      92: aload         7
+      94: aload_1
+      95: ldc           #138                // String ext
+      97: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     100: checkcast     #25                 // class java/lang/String
+     103: invokespecial #141                // Method org/json/JSONObject."<init>":(Ljava/lang/String;)V
+     106: aload         7
+     108: ldc           #143                // String flag
+     110: invokevirtual #147                // Method org/json/JSONObject.getJSONArray:(Ljava/lang/String;)Lorg/json/JSONArray;
+     113: astore        10
+     115: iconst_0
+     116: istore        4
+     118: iload         4
+     120: aload         10
+     122: invokevirtual #152                // Method org/json/JSONArray.length:()I
+     125: if_icmpge     34
+     128: aload         10
+     130: iload         4
+     132: invokevirtual #156                // Method org/json/JSONArray.getString:(I)Ljava/lang/String;
+     135: astore        11
+     137: getstatic     #19                 // Field SN:Ljava/util/HashMap;
+     140: aload         11
+     142: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     145: checkcast     #49                 // class java/util/ArrayList
+     148: astore        7
+     150: aload         7
+     152: astore_1
+     153: aload         7
+     155: ifnonnull     176
+     158: new           #49                 // class java/util/ArrayList
+     161: astore_1
+     162: aload_1
+     163: invokespecial #157                // Method java/util/ArrayList."<init>":()V
+     166: getstatic     #19                 // Field SN:Ljava/util/HashMap;
+     169: aload         11
+     171: aload_1
+     172: invokevirtual #161                // Method java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+     175: pop
+     176: aload_1
+     177: aload         9
+     179: invokevirtual #164                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     182: pop
+     183: iinc          4, 1
+     186: goto          118
+     189: new           #49                 // class java/util/ArrayList
+     192: astore_1
+     193: aload_1
+     194: invokespecial #157                // Method java/util/ArrayList."<init>":()V
+     197: getstatic     #19                 // Field SN:Ljava/util/HashMap;
+     200: aload_2
+     201: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     204: checkcast     #49                 // class java/util/ArrayList
+     207: astore        7
+     209: aload         7
+     211: ifnull        294
+     214: aload         7
+     216: invokevirtual #167                // Method java/util/ArrayList.isEmpty:()Z
+     219: ifne          294
+     222: iload         5
+     224: istore        4
+     226: iload         4
+     228: aload         7
+     230: invokevirtual #53                 // Method java/util/ArrayList.size:()I
+     233: if_icmpge     370
+     236: aload_0
+     237: aload         7
+     239: iload         4
+     241: invokevirtual #62                 // Method java/util/ArrayList.get:(I)Ljava/lang/Object;
+     244: checkcast     #25                 // class java/lang/String
+     247: invokevirtual #127                // Method java/util/LinkedHashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     250: checkcast     #12                 // class java/util/HashMap
+     253: astore        8
+     255: aload         8
+     257: ldc           #129                // String type
+     259: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     262: checkcast     #25                 // class java/lang/String
+     265: ldc           #131                // String 0
+     267: invokevirtual #134                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     270: ifeq          288
+     273: aload_1
+     274: aload         8
+     276: ldc           #169                // String url
+     278: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     281: checkcast     #25                 // class java/lang/String
+     284: invokevirtual #164                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     287: pop
+     288: iinc          4, 1
+     291: goto          226
+     294: aload_0
+     295: invokevirtual #110                // Method java/util/LinkedHashMap.keySet:()Ljava/util/Set;
+     298: invokeinterface #116,  1          // InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+     303: astore        8
+     305: aload         8
+     307: invokeinterface #122,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+     312: ifeq          370
+     315: aload_0
+     316: aload         8
+     318: invokeinterface #126,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+     323: checkcast     #25                 // class java/lang/String
+     326: invokevirtual #127                // Method java/util/LinkedHashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     329: checkcast     #12                 // class java/util/HashMap
+     332: astore        7
+     334: aload         7
+     336: ldc           #129                // String type
+     338: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     341: checkcast     #25                 // class java/lang/String
+     344: ldc           #131                // String 0
+     346: invokevirtual #134                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     349: ifeq          305
+     352: aload_1
+     353: aload         7
+     355: ldc           #169                // String url
+     357: invokevirtual #47                 // Method java/util/HashMap.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     360: checkcast     #25                 // class java/lang/String
+     363: invokevirtual #164                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     366: pop
+     367: goto          305
+     370: aload_1
+     371: invokevirtual #167                // Method java/util/ArrayList.isEmpty:()Z
+     374: ifne          386
+     377: getstatic     #17                 // Field yq:Ljava/util/HashMap;
+     380: aload_2
+     381: aload_1
+     382: invokevirtual #161                // Method java/util/HashMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+     385: pop
+     386: aload_1
+     387: invokevirtual #167                // Method java/util/ArrayList.isEmpty:()Z
+     390: ifne          478
+     393: new           #136                // class org/json/JSONObject
+     396: astore_1
+     397: aload_1
+     398: invokespecial #170                // Method org/json/JSONObject."<init>":()V
+     401: new           #38                 // class java/lang/StringBuilder
+     404: astore_0
+     405: aload_0
+     406: invokespecial #39                 // Method java/lang/StringBuilder."<init>":()V
+     409: aload_0
+     410: ldc           #172                // String proxy://do=MixWeb&flag=
+     412: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     415: pop
+     416: aload_0
+     417: aload_2
+     418: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     421: pop
+     422: aload_0
+     423: ldc           #174                // String &url=
+     425: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     428: pop
+     429: aload_0
+     430: aload_3
+     431: invokevirtual #177                // Method java/lang/String.getBytes:()[B
+     434: bipush        10
+     436: invokestatic  #181                // Method android/util/Base64.encodeToString:([BI)Ljava/lang/String;
+     439: invokevirtual #59                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     442: pop
+     443: aload_1
+     444: ldc           #169                // String url
+     446: aload_0
+     447: invokevirtual #80                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     450: invokevirtual #184                // Method org/json/JSONObject.put:(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+     453: pop
+     454: aload_1
+     455: ldc           #185                // String parse
+     457: iconst_1
+     458: invokevirtual #188                // Method org/json/JSONObject.put:(Ljava/lang/String;I)Lorg/json/JSONObject;
+     461: pop
+     462: aload_1
+     463: ldc           #190                // String ua
+     465: ldc           #192                // String Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+     467: invokevirtual #184                // Method org/json/JSONObject.put:(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+     470: pop
+     471: aload_1
+     472: areturn
+     473: astore_0
+     474: aload_0
+     475: invokestatic  #198                // Method com/github/catvod/crawler/SpiderDebug.log:(Ljava/lang/Throwable;)V
+     478: new           #136                // class org/json/JSONObject
+     481: dup
+     482: invokespecial #170                // Method org/json/JSONObject."<init>":()V
+     485: areturn
+     486: astore_1
+     487: goto          34
+    Exception table:
+       from    to  target type
+           0     4   473   any
+          11    34   473   any
+          34    82   473   any
+          87   115   486   any
+         118   150   486   any
+         158   176   486   any
+         176   183   486   any
+         189   209   473   any
+         214   222   473   any
+         226   288   473   any
+         294   305   473   any
+         305   367   473   any
+         370   386   473   any
+         386   471   473   any
+}

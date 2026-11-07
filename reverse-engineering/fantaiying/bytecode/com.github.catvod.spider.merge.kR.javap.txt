@@ -1,0 +1,1486 @@
+public abstract class com.github.catvod.spider.merge.kR<V> extends com.github.catvod.spider.merge.PY implements com.github.catvod.spider.merge.hE<V> {
+  private static final com.github.catvod.spider.merge.kR$yq i;
+    descriptor: Lcom/github/catvod/spider/merge/kR$yq;
+
+  private static final java.lang.Object t0;
+    descriptor: Ljava/lang/Object;
+
+  static final boolean tF;
+    descriptor: Z
+
+  private static final java.util.logging.Logger zH;
+    descriptor: Ljava/util/logging/Logger;
+
+  private volatile com.github.catvod.spider.merge.kR$q N;
+    descriptor: Lcom/github/catvod/spider/merge/kR$q;
+
+  private volatile com.github.catvod.spider.merge.kR$tF SN;
+    descriptor: Lcom/github/catvod/spider/merge/kR$tF;
+
+  private volatile java.lang.Object yq;
+    descriptor: Ljava/lang/Object;
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: ldc           #56                 // String guava.concurrent.generate_cancellation_cause
+       2: ldc           #58                 // String false
+       4: invokestatic  #64                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       7: invokestatic  #70                 // Method java/lang/Boolean.parseBoolean:(Ljava/lang/String;)Z
+      10: istore_0
+      11: goto          17
+      14: astore_1
+      15: iconst_0
+      16: istore_0
+      17: iload_0
+      18: putstatic     #72                 // Field tF:Z
+      21: ldc           #2                  // class com/github/catvod/spider/merge/kR
+      23: invokevirtual #78                 // Method java/lang/Class.getName:()Ljava/lang/String;
+      26: invokestatic  #84                 // Method java/util/logging/Logger.getLogger:(Ljava/lang/String;)Ljava/util/logging/Logger;
+      29: putstatic     #86                 // Field zH:Ljava/util/logging/Logger;
+      32: aconst_null
+      33: astore_3
+      34: new           #12                 // class com/github/catvod/spider/merge/kR$KJ
+      37: astore_1
+      38: aload_1
+      39: invokespecial #89                 // Method com/github/catvod/spider/merge/kR$KJ."<init>":()V
+      42: aconst_null
+      43: astore_2
+      44: goto          113
+      47: astore_2
+      48: new           #43                 // class com/github/catvod/spider/merge/kR$zH
+      51: astore_1
+      52: aload_1
+      53: ldc           #31                 // class com/github/catvod/spider/merge/kR$q
+      55: ldc           #91                 // class java/lang/Thread
+      57: ldc           #92                 // String yq
+      59: invokestatic  #98                 // Method java/util/concurrent/atomic/AtomicReferenceFieldUpdater.newUpdater:(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+      62: ldc           #31                 // class com/github/catvod/spider/merge/kR$q
+      64: ldc           #31                 // class com/github/catvod/spider/merge/kR$q
+      66: ldc           #99                 // String SN
+      68: invokestatic  #98                 // Method java/util/concurrent/atomic/AtomicReferenceFieldUpdater.newUpdater:(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+      71: ldc           #2                  // class com/github/catvod/spider/merge/kR
+      73: ldc           #31                 // class com/github/catvod/spider/merge/kR$q
+      75: ldc           #100                // String N
+      77: invokestatic  #98                 // Method java/util/concurrent/atomic/AtomicReferenceFieldUpdater.newUpdater:(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+      80: ldc           #2                  // class com/github/catvod/spider/merge/kR
+      82: ldc           #37                 // class com/github/catvod/spider/merge/kR$tF
+      84: ldc           #99                 // String SN
+      86: invokestatic  #98                 // Method java/util/concurrent/atomic/AtomicReferenceFieldUpdater.newUpdater:(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+      89: ldc           #2                  // class com/github/catvod/spider/merge/kR
+      91: ldc           #102                // class java/lang/Object
+      93: ldc           #92                 // String yq
+      95: invokestatic  #98                 // Method java/util/concurrent/atomic/AtomicReferenceFieldUpdater.newUpdater:(Ljava/lang/Class;Ljava/lang/Class;Ljava/lang/String;)Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+      98: invokespecial #105                // Method com/github/catvod/spider/merge/kR$zH."<init>":(Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;)V
+     101: goto          113
+     104: astore_3
+     105: new           #34                 // class com/github/catvod/spider/merge/kR$t0
+     108: dup
+     109: invokespecial #106                // Method com/github/catvod/spider/merge/kR$t0."<init>":()V
+     112: astore_1
+     113: aload_1
+     114: putstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+     117: aload_3
+     118: ifnull        148
+     121: getstatic     #86                 // Field zH:Ljava/util/logging/Logger;
+     124: astore        4
+     126: getstatic     #114                // Field java/util/logging/Level.SEVERE:Ljava/util/logging/Level;
+     129: astore_1
+     130: aload         4
+     132: aload_1
+     133: ldc           #116                // String UnsafeAtomicHelper is broken!
+     135: aload_2
+     136: invokevirtual #120                // Method java/util/logging/Logger.log:(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V
+     139: aload         4
+     141: aload_1
+     142: ldc           #122                // String SafeAtomicHelper is broken!
+     144: aload_3
+     145: invokevirtual #120                // Method java/util/logging/Logger.log:(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V
+     148: new           #102                // class java/lang/Object
+     151: dup
+     152: invokespecial #123                // Method java/lang/Object."<init>":()V
+     155: putstatic     #125                // Field t0:Ljava/lang/Object;
+     158: return
+    Exception table:
+       from    to  target type
+           0    11    14   Class java/lang/SecurityException
+          34    42    47   any
+          48   101   104   any
+
+  protected com.github.catvod.spider.merge.kR();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #127                // Method com/github/catvod/spider/merge/PY."<init>":()V
+       4: return
+
+  private void B(java.lang.StringBuilder, java.lang.Object);
+    descriptor: (Ljava/lang/StringBuilder;Ljava/lang/Object;)V
+    Code:
+       0: aload_2
+       1: ifnonnull     10
+       4: ldc           #131                // String null
+       6: astore_2
+       7: goto          48
+      10: aload_2
+      11: aload_0
+      12: if_acmpne     21
+      15: ldc           #133                // String this future
+      17: astore_2
+      18: goto          48
+      21: aload_1
+      22: aload_2
+      23: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      26: invokevirtual #78                 // Method java/lang/Class.getName:()Ljava/lang/String;
+      29: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      32: pop
+      33: aload_1
+      34: ldc           #145                // String @
+      36: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      39: pop
+      40: aload_2
+      41: invokestatic  #149                // Method java/lang/System.identityHashCode:(Ljava/lang/Object;)I
+      44: invokestatic  #155                // Method java/lang/Integer.toHexString:(I)Ljava/lang/String;
+      47: astore_2
+      48: aload_1
+      49: aload_2
+      50: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      53: pop
+      54: return
+
+  private static <V> V F5(java.util.concurrent.Future<V>);
+    descriptor: (Ljava/util/concurrent/Future;)Ljava/lang/Object;
+    Code:
+       0: iconst_0
+       1: istore_1
+       2: aload_0
+       3: invokeinterface #166,  1          // InterfaceMethod java/util/concurrent/Future.get:()Ljava/lang/Object;
+       8: astore_2
+       9: iload_1
+      10: ifeq          19
+      13: invokestatic  #170                // Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+      16: invokevirtual #173                // Method java/lang/Thread.interrupt:()V
+      19: aload_2
+      20: areturn
+      21: astore_0
+      22: iload_1
+      23: ifeq          32
+      26: invokestatic  #170                // Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+      29: invokevirtual #173                // Method java/lang/Thread.interrupt:()V
+      32: aload_0
+      33: athrow
+      34: astore_2
+      35: iconst_1
+      36: istore_1
+      37: goto          2
+    Exception table:
+       from    to  target type
+           2     9    34   Class java/lang/InterruptedException
+           2     9    21   any
+
+  private static void G(com.github.catvod.spider.merge.kR<?>);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;)V
+    Code:
+       0: aload_0
+       1: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+       8: aload_0
+       9: invokevirtual #186                // Method com/github/catvod/spider/merge/kR$yq.zH:(Lcom/github/catvod/spider/merge/kR;)Lcom/github/catvod/spider/merge/kR$q;
+      12: astore_1
+      13: aload_1
+      14: ifnull        43
+      17: aload_1
+      18: getfield      #189                // Field com/github/catvod/spider/merge/kR$q.yq:Ljava/lang/Thread;
+      21: astore_2
+      22: aload_2
+      23: ifnull        35
+      26: aload_1
+      27: aconst_null
+      28: putfield      #189                // Field com/github/catvod/spider/merge/kR$q.yq:Ljava/lang/Thread;
+      31: aload_2
+      32: invokestatic  #195                // Method java/util/concurrent/locks/LockSupport.unpark:(Ljava/lang/Thread;)V
+      35: aload_1
+      36: getfield      #197                // Field com/github/catvod/spider/merge/kR$q.SN:Lcom/github/catvod/spider/merge/kR$q;
+      39: astore_1
+      40: goto          13
+      43: aload_0
+      44: invokevirtual #199                // Method q:()V
+      47: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      50: aload_0
+      51: invokevirtual #202                // Method com/github/catvod/spider/merge/kR$yq.tF:(Lcom/github/catvod/spider/merge/kR;)Lcom/github/catvod/spider/merge/kR$tF;
+      54: astore_0
+      55: aconst_null
+      56: astore_1
+      57: aload_1
+      58: astore_2
+      59: aload_0
+      60: ifnull        80
+      63: aload_0
+      64: getfield      #204                // Field com/github/catvod/spider/merge/kR$tF.N:Lcom/github/catvod/spider/merge/kR$tF;
+      67: astore_2
+      68: aload_0
+      69: aload_1
+      70: putfield      #204                // Field com/github/catvod/spider/merge/kR$tF.N:Lcom/github/catvod/spider/merge/kR$tF;
+      73: aload_0
+      74: astore_1
+      75: aload_2
+      76: astore_0
+      77: goto          57
+      80: aload_2
+      81: ifnull        133
+      84: aload_2
+      85: getfield      #204                // Field com/github/catvod/spider/merge/kR$tF.N:Lcom/github/catvod/spider/merge/kR$tF;
+      88: astore_0
+      89: aload_2
+      90: getfield      #207                // Field com/github/catvod/spider/merge/kR$tF.yq:Ljava/lang/Runnable;
+      93: astore_1
+      94: aload_1
+      95: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+      98: pop
+      99: aload_1
+     100: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     103: ifne          126
+     106: aload_2
+     107: getfield      #210                // Field com/github/catvod/spider/merge/kR$tF.SN:Ljava/util/concurrent/Executor;
+     110: astore_2
+     111: aload_2
+     112: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     115: pop
+     116: aload_1
+     117: aload_2
+     118: invokestatic  #214                // Method G4:(Ljava/lang/Runnable;Ljava/util/concurrent/Executor;)V
+     121: aload_0
+     122: astore_2
+     123: goto          80
+     126: aload_1
+     127: checkcast     #28                 // class com/github/catvod/spider/merge/kR$i
+     130: astore_0
+     131: aconst_null
+     132: athrow
+     133: return
+
+  private static void G4(java.lang.Runnable, java.util.concurrent.Executor);
+    descriptor: (Ljava/lang/Runnable;Ljava/util/concurrent/Executor;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: invokeinterface #222,  2          // InterfaceMethod java/util/concurrent/Executor.execute:(Ljava/lang/Runnable;)V
+       7: goto          94
+      10: astore        5
+      12: getstatic     #86                 // Field zH:Ljava/util/logging/Logger;
+      15: astore        4
+      17: getstatic     #114                // Field java/util/logging/Level.SEVERE:Ljava/util/logging/Level;
+      20: astore_3
+      21: aload_0
+      22: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      25: astore_0
+      26: aload_1
+      27: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      30: astore        6
+      32: aload_0
+      33: invokevirtual #232                // Method java/lang/String.length:()I
+      36: istore_2
+      37: new           #139                // class java/lang/StringBuilder
+      40: dup
+      41: aload         6
+      43: invokevirtual #232                // Method java/lang/String.length:()I
+      46: iload_2
+      47: bipush        57
+      49: iadd
+      50: iadd
+      51: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+      54: astore_1
+      55: aload_1
+      56: ldc           #237                // String RuntimeException while executing runnable
+      58: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      61: pop
+      62: aload_1
+      63: aload_0
+      64: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      67: pop
+      68: aload_1
+      69: ldc           #239                // String  with executor
+      71: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      74: pop
+      75: aload_1
+      76: aload         6
+      78: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      81: pop
+      82: aload         4
+      84: aload_3
+      85: aload_1
+      86: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      89: aload         5
+      91: invokevirtual #120                // Method java/util/logging/Logger.log:(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V
+      94: return
+    Exception table:
+       from    to  target type
+           0     7    10   Class java/lang/RuntimeException
+
+  static com.github.catvod.spider.merge.kR$q Gc(com.github.catvod.spider.merge.kR);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;)Lcom/github/catvod/spider/merge/kR$q;
+    Code:
+       0: aload_0
+       1: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+       4: areturn
+
+  private void KJ(java.lang.StringBuilder);
+    descriptor: (Ljava/lang/StringBuilder;)V
+    Code:
+       0: ldc           #251                // String ]
+       2: astore_2
+       3: aload_0
+       4: invokestatic  #253                // Method F5:(Ljava/util/concurrent/Future;)Ljava/lang/Object;
+       7: astore_3
+       8: aload_1
+       9: ldc           #255                // String SUCCESS, result=[
+      11: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      14: pop
+      15: aload_0
+      16: aload_1
+      17: aload_3
+      18: invokespecial #257                // Method B:(Ljava/lang/StringBuilder;Ljava/lang/Object;)V
+      21: aload_1
+      22: ldc           #251                // String ]
+      24: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      27: pop
+      28: goto          88
+      31: astore_2
+      32: aload_1
+      33: ldc_w         #259                // String UNKNOWN, cause=[
+      36: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      39: pop
+      40: aload_1
+      41: aload_2
+      42: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      45: invokevirtual #262                // Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+      48: pop
+      49: ldc_w         #264                // String  thrown from get()]
+      52: astore_2
+      53: goto          82
+      56: astore_2
+      57: ldc_w         #266                // String CANCELLED
+      60: astore_2
+      61: goto          82
+      64: astore_3
+      65: aload_1
+      66: ldc_w         #268                // String FAILURE, cause=[
+      69: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      72: pop
+      73: aload_1
+      74: aload_3
+      75: invokevirtual #274                // Method java/lang/Throwable.getCause:()Ljava/lang/Throwable;
+      78: invokevirtual #262                // Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+      81: pop
+      82: aload_1
+      83: aload_2
+      84: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      87: pop
+      88: return
+    Exception table:
+       from    to  target type
+           3    28    64   Class java/util/concurrent/ExecutionException
+           3    28    56   Class java/util/concurrent/CancellationException
+           3    28    31   Class java/lang/RuntimeException
+
+  static com.github.catvod.spider.merge.kR$q M(com.github.catvod.spider.merge.kR, com.github.catvod.spider.merge.kR$q);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$q;)Lcom/github/catvod/spider/merge/kR$q;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: putfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+       5: aload_1
+       6: areturn
+
+  static com.github.catvod.spider.merge.kR$yq N();
+    descriptor: ()Lcom/github/catvod/spider/merge/kR$yq;
+    Code:
+       0: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+       3: areturn
+
+  private V dT(java.lang.Object);
+    descriptor: (Ljava/lang/Object;)Ljava/lang/Object;
+    Code:
+       0: aload_1
+       1: instanceof    #25                 // class com/github/catvod/spider/merge/kR$SN
+       4: ifne          42
+       7: aload_1
+       8: instanceof    #20                 // class com/github/catvod/spider/merge/kR$N
+      11: ifne          27
+      14: aload_1
+      15: astore_2
+      16: aload_1
+      17: getstatic     #125                // Field t0:Ljava/lang/Object;
+      20: if_acmpne     25
+      23: aconst_null
+      24: astore_2
+      25: aload_2
+      26: areturn
+      27: new           #247                // class java/util/concurrent/ExecutionException
+      30: dup
+      31: aload_1
+      32: checkcast     #20                 // class com/github/catvod/spider/merge/kR$N
+      35: getfield      #281                // Field com/github/catvod/spider/merge/kR$N.yq:Ljava/lang/Throwable;
+      38: invokespecial #284                // Method java/util/concurrent/ExecutionException."<init>":(Ljava/lang/Throwable;)V
+      41: athrow
+      42: aload_1
+      43: checkcast     #25                 // class com/github/catvod/spider/merge/kR$SN
+      46: getfield      #286                // Field com/github/catvod/spider/merge/kR$SN.SN:Ljava/lang/Throwable;
+      49: astore_1
+      50: new           #249                // class java/util/concurrent/CancellationException
+      53: dup
+      54: ldc_w         #288                // String Task was cancelled.
+      57: invokespecial #291                // Method java/util/concurrent/CancellationException."<init>":(Ljava/lang/String;)V
+      60: astore_2
+      61: aload_2
+      62: aload_1
+      63: invokevirtual #295                // Method java/lang/Throwable.initCause:(Ljava/lang/Throwable;)Ljava/lang/Throwable;
+      66: pop
+      67: aload_2
+      68: athrow
+
+  static com.github.catvod.spider.merge.kR$tF i(com.github.catvod.spider.merge.kR);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;)Lcom/github/catvod/spider/merge/kR$tF;
+    Code:
+       0: aload_0
+       1: getfield      #297                // Field SN:Lcom/github/catvod/spider/merge/kR$tF;
+       4: areturn
+
+  static com.github.catvod.spider.merge.kR$tF t0(com.github.catvod.spider.merge.kR, com.github.catvod.spider.merge.kR$tF);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$tF;)Lcom/github/catvod/spider/merge/kR$tF;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: putfield      #297                // Field SN:Lcom/github/catvod/spider/merge/kR$tF;
+       5: aload_1
+       6: areturn
+
+  static java.lang.Object tF(com.github.catvod.spider.merge.kR);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;)Ljava/lang/Object;
+    Code:
+       0: aload_0
+       1: getfield      #301                // Field yq:Ljava/lang/Object;
+       4: areturn
+
+  private void v(com.github.catvod.spider.merge.kR$q);
+    descriptor: (Lcom/github/catvod/spider/merge/kR$q;)V
+    Code:
+       0: aload_1
+       1: aconst_null
+       2: putfield      #189                // Field com/github/catvod/spider/merge/kR$q.yq:Ljava/lang/Thread;
+       5: aload_0
+       6: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+       9: astore_1
+      10: aload_1
+      11: getstatic     #304                // Field com/github/catvod/spider/merge/kR$q.N:Lcom/github/catvod/spider/merge/kR$q;
+      14: if_acmpne     18
+      17: return
+      18: aconst_null
+      19: astore_3
+      20: aload_1
+      21: ifnull        90
+      24: aload_1
+      25: getfield      #197                // Field com/github/catvod/spider/merge/kR$q.SN:Lcom/github/catvod/spider/merge/kR$q;
+      28: astore        4
+      30: aload_1
+      31: getfield      #189                // Field com/github/catvod/spider/merge/kR$q.yq:Ljava/lang/Thread;
+      34: ifnull        42
+      37: aload_1
+      38: astore_2
+      39: goto          82
+      42: aload_3
+      43: ifnull        64
+      46: aload_3
+      47: aload         4
+      49: putfield      #197                // Field com/github/catvod/spider/merge/kR$q.SN:Lcom/github/catvod/spider/merge/kR$q;
+      52: aload_3
+      53: astore_2
+      54: aload_3
+      55: getfield      #189                // Field com/github/catvod/spider/merge/kR$q.yq:Ljava/lang/Thread;
+      58: ifnonnull     82
+      61: goto          5
+      64: aload_3
+      65: astore_2
+      66: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      69: aload_0
+      70: aload_1
+      71: aload         4
+      73: invokevirtual #307                // Method com/github/catvod/spider/merge/kR$yq.N:(Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$q;Lcom/github/catvod/spider/merge/kR$q;)Z
+      76: ifne          82
+      79: goto          5
+      82: aload         4
+      84: astore_1
+      85: aload_2
+      86: astore_3
+      87: goto          20
+      90: return
+
+  static java.lang.Object zH(com.github.catvod.spider.merge.kR, java.lang.Object);
+    descriptor: (Lcom/github/catvod/spider/merge/kR;Ljava/lang/Object;)Ljava/lang/Object;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: putfield      #301                // Field yq:Ljava/lang/Object;
+       5: aload_1
+       6: areturn
+
+  protected final java.lang.Throwable SN();
+    descriptor: ()Ljava/lang/Throwable;
+    Code:
+       0: aload_0
+       1: instanceof    #9                  // class com/github/catvod/spider/merge/kR$Gc
+       4: ifeq          27
+       7: aload_0
+       8: getfield      #301                // Field yq:Ljava/lang/Object;
+      11: astore_1
+      12: aload_1
+      13: instanceof    #20                 // class com/github/catvod/spider/merge/kR$N
+      16: ifeq          27
+      19: aload_1
+      20: checkcast     #20                 // class com/github/catvod/spider/merge/kR$N
+      23: getfield      #281                // Field com/github/catvod/spider/merge/kR$N.yq:Ljava/lang/Throwable;
+      26: areturn
+      27: aconst_null
+      28: areturn
+
+  protected java.lang.String W();
+    descriptor: ()Ljava/lang/String;
+    Code:
+       0: aload_0
+       1: instanceof    #311                // class java/util/concurrent/ScheduledFuture
+       4: ifeq          57
+       7: aload_0
+       8: checkcast     #311                // class java/util/concurrent/ScheduledFuture
+      11: getstatic     #317                // Field java/util/concurrent/TimeUnit.MILLISECONDS:Ljava/util/concurrent/TimeUnit;
+      14: invokeinterface #323,  2          // InterfaceMethod java/util/concurrent/Delayed.getDelay:(Ljava/util/concurrent/TimeUnit;)J
+      19: lstore_1
+      20: new           #139                // class java/lang/StringBuilder
+      23: dup
+      24: bipush        41
+      26: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+      29: astore_3
+      30: aload_3
+      31: ldc_w         #325                // String remaining delay=[
+      34: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      37: pop
+      38: aload_3
+      39: lload_1
+      40: invokevirtual #328                // Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+      43: pop
+      44: aload_3
+      45: ldc_w         #330                // String  ms]
+      48: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      51: pop
+      52: aload_3
+      53: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      56: areturn
+      57: aconst_null
+      58: areturn
+
+  public boolean cancel(boolean);
+    descriptor: (Z)Z
+    Code:
+       0: aload_0
+       1: getfield      #301                // Field yq:Ljava/lang/Object;
+       4: astore        6
+       6: iconst_1
+       7: istore_3
+       8: aload         6
+      10: ifnonnull     18
+      13: iconst_1
+      14: istore_2
+      15: goto          20
+      18: iconst_0
+      19: istore_2
+      20: iload_2
+      21: aload         6
+      23: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+      26: ior
+      27: ifeq          162
+      30: getstatic     #72                 // Field tF:Z
+      33: ifeq          63
+      36: new           #25                 // class com/github/catvod/spider/merge/kR$SN
+      39: dup
+      40: iload_1
+      41: new           #249                // class java/util/concurrent/CancellationException
+      44: dup
+      45: ldc_w         #334                // String Future.cancel() was called.
+      48: invokespecial #291                // Method java/util/concurrent/CancellationException."<init>":(Ljava/lang/String;)V
+      51: invokespecial #337                // Method com/github/catvod/spider/merge/kR$SN."<init>":(ZLjava/lang/Throwable;)V
+      54: astore        5
+      56: aload         6
+      58: astore        4
+      60: goto          94
+      63: iload_1
+      64: ifeq          75
+      67: getstatic     #340                // Field com/github/catvod/spider/merge/kR$SN.N:Lcom/github/catvod/spider/merge/kR$SN;
+      70: astore        4
+      72: goto          80
+      75: getstatic     #342                // Field com/github/catvod/spider/merge/kR$SN.tF:Lcom/github/catvod/spider/merge/kR$SN;
+      78: astore        4
+      80: aload         4
+      82: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+      85: pop
+      86: aload         4
+      88: astore        5
+      90: aload         6
+      92: astore        4
+      94: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      97: aload_0
+      98: aload         4
+     100: aload         5
+     102: invokevirtual #345                // Method com/github/catvod/spider/merge/kR$yq.SN:(Lcom/github/catvod/spider/merge/kR;Ljava/lang/Object;Ljava/lang/Object;)Z
+     105: ifeq          144
+     108: iload_1
+     109: ifeq          116
+     112: aload_0
+     113: invokevirtual #348                // Method v3:()V
+     116: aload_0
+     117: invokestatic  #350                // Method G:(Lcom/github/catvod/spider/merge/kR;)V
+     120: aload         4
+     122: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     125: ifne          133
+     128: iload_3
+     129: istore_1
+     130: goto          164
+     133: aload         4
+     135: checkcast     #28                 // class com/github/catvod/spider/merge/kR$i
+     138: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     141: pop
+     142: aconst_null
+     143: athrow
+     144: aload_0
+     145: getfield      #301                // Field yq:Ljava/lang/Object;
+     148: astore        6
+     150: aload         6
+     152: astore        4
+     154: aload         6
+     156: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     159: ifne          94
+     162: iconst_0
+     163: istore_1
+     164: iload_1
+     165: ireturn
+
+  protected boolean ee(V);
+    descriptor: (Ljava/lang/Object;)Z
+    Code:
+       0: aload_1
+       1: astore_2
+       2: aload_1
+       3: ifnonnull     10
+       6: getstatic     #125                // Field t0:Ljava/lang/Object;
+       9: astore_2
+      10: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      13: aload_0
+      14: aconst_null
+      15: aload_2
+      16: invokevirtual #345                // Method com/github/catvod/spider/merge/kR$yq.SN:(Lcom/github/catvod/spider/merge/kR;Ljava/lang/Object;Ljava/lang/Object;)Z
+      19: ifeq          28
+      22: aload_0
+      23: invokestatic  #350                // Method G:(Lcom/github/catvod/spider/merge/kR;)V
+      26: iconst_1
+      27: ireturn
+      28: iconst_0
+      29: ireturn
+
+  protected boolean g9(java.lang.Throwable);
+    descriptor: (Ljava/lang/Throwable;)Z
+    Code:
+       0: aload_1
+       1: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: pop
+       5: new           #20                 // class com/github/catvod/spider/merge/kR$N
+       8: dup
+       9: aload_1
+      10: invokespecial #356                // Method com/github/catvod/spider/merge/kR$N."<init>":(Ljava/lang/Throwable;)V
+      13: astore_1
+      14: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      17: aload_0
+      18: aconst_null
+      19: aload_1
+      20: invokevirtual #345                // Method com/github/catvod/spider/merge/kR$yq.SN:(Lcom/github/catvod/spider/merge/kR;Ljava/lang/Object;Ljava/lang/Object;)Z
+      23: ifeq          32
+      26: aload_0
+      27: invokestatic  #350                // Method G:(Lcom/github/catvod/spider/merge/kR;)V
+      30: iconst_1
+      31: ireturn
+      32: iconst_0
+      33: ireturn
+
+  public V get();
+    descriptor: ()Ljava/lang/Object;
+    Code:
+       0: invokestatic  #361                // Method java/lang/Thread.interrupted:()Z
+       3: ifne          169
+       6: aload_0
+       7: getfield      #301                // Field yq:Ljava/lang/Object;
+      10: astore_2
+      11: aload_2
+      12: ifnull        20
+      15: iconst_1
+      16: istore_1
+      17: goto          22
+      20: iconst_0
+      21: istore_1
+      22: iload_1
+      23: aload_2
+      24: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+      27: iconst_1
+      28: ixor
+      29: iand
+      30: ifeq          39
+      33: aload_0
+      34: aload_2
+      35: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+      38: areturn
+      39: aload_0
+      40: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+      43: astore_2
+      44: aload_2
+      45: getstatic     #304                // Field com/github/catvod/spider/merge/kR$q.N:Lcom/github/catvod/spider/merge/kR$q;
+      48: if_acmpeq     153
+      51: new           #31                 // class com/github/catvod/spider/merge/kR$q
+      54: dup
+      55: invokespecial #364                // Method com/github/catvod/spider/merge/kR$q."<init>":()V
+      58: astore        4
+      60: invokestatic  #366                // Method N:()Lcom/github/catvod/spider/merge/kR$yq;
+      63: aload         4
+      65: aload_2
+      66: invokevirtual #369                // Method com/github/catvod/spider/merge/kR$yq.i:(Lcom/github/catvod/spider/merge/kR$q;Lcom/github/catvod/spider/merge/kR$q;)V
+      69: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      72: aload_0
+      73: aload_2
+      74: aload         4
+      76: invokevirtual #307                // Method com/github/catvod/spider/merge/kR$yq.N:(Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$q;Lcom/github/catvod/spider/merge/kR$q;)Z
+      79: ifeq          139
+      82: aload_0
+      83: invokestatic  #373                // Method java/util/concurrent/locks/LockSupport.park:(Ljava/lang/Object;)V
+      86: invokestatic  #361                // Method java/lang/Thread.interrupted:()Z
+      89: ifne          125
+      92: aload_0
+      93: getfield      #301                // Field yq:Ljava/lang/Object;
+      96: astore_2
+      97: aload_2
+      98: ifnull        106
+     101: iconst_1
+     102: istore_1
+     103: goto          108
+     106: iconst_0
+     107: istore_1
+     108: iload_1
+     109: aload_2
+     110: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     113: iconst_1
+     114: ixor
+     115: iand
+     116: ifeq          82
+     119: aload_0
+     120: aload_2
+     121: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+     124: areturn
+     125: aload_0
+     126: aload         4
+     128: invokespecial #375                // Method v:(Lcom/github/catvod/spider/merge/kR$q;)V
+     131: new           #160                // class java/lang/InterruptedException
+     134: dup
+     135: invokespecial #376                // Method java/lang/InterruptedException."<init>":()V
+     138: athrow
+     139: aload_0
+     140: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+     143: astore_3
+     144: aload_3
+     145: astore_2
+     146: aload_3
+     147: getstatic     #304                // Field com/github/catvod/spider/merge/kR$q.N:Lcom/github/catvod/spider/merge/kR$q;
+     150: if_acmpne     60
+     153: aload_0
+     154: getfield      #301                // Field yq:Ljava/lang/Object;
+     157: astore_2
+     158: aload_2
+     159: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     162: pop
+     163: aload_0
+     164: aload_2
+     165: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+     168: areturn
+     169: new           #160                // class java/lang/InterruptedException
+     172: dup
+     173: invokespecial #376                // Method java/lang/InterruptedException."<init>":()V
+     176: astore_2
+     177: goto          182
+     180: aload_2
+     181: athrow
+     182: goto          180
+
+  public V get(long, java.util.concurrent.TimeUnit);
+    descriptor: (JLjava/util/concurrent/TimeUnit;)Ljava/lang/Object;
+    Code:
+       0: aload_3
+       1: lload_1
+       2: invokevirtual #382                // Method java/util/concurrent/TimeUnit.toNanos:(J)J
+       5: lstore        10
+       7: invokestatic  #361                // Method java/lang/Thread.interrupted:()Z
+      10: ifne          794
+      13: aload_0
+      14: getfield      #301                // Field yq:Ljava/lang/Object;
+      17: astore        12
+      19: aload         12
+      21: ifnull        30
+      24: iconst_1
+      25: istore        4
+      27: goto          33
+      30: iconst_0
+      31: istore        4
+      33: iload         4
+      35: aload         12
+      37: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+      40: iconst_1
+      41: ixor
+      42: iand
+      43: ifeq          53
+      46: aload_0
+      47: aload         12
+      49: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+      52: areturn
+      53: lload         10
+      55: lconst_0
+      56: lcmp
+      57: ifle          71
+      60: invokestatic  #386                // Method java/lang/System.nanoTime:()J
+      63: lload         10
+      65: ladd
+      66: lstore        8
+      68: goto          74
+      71: lconst_0
+      72: lstore        8
+      74: lload         10
+      76: lstore        6
+      78: lload         10
+      80: ldc2_w        #387                // long 1000l
+      83: lcmp
+      84: iflt          270
+      87: aload_0
+      88: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+      91: astore        12
+      93: aload         12
+      95: getstatic     #304                // Field com/github/catvod/spider/merge/kR$q.N:Lcom/github/catvod/spider/merge/kR$q;
+      98: if_acmpeq     254
+     101: new           #31                 // class com/github/catvod/spider/merge/kR$q
+     104: dup
+     105: invokespecial #364                // Method com/github/catvod/spider/merge/kR$q."<init>":()V
+     108: astore        14
+     110: invokestatic  #366                // Method N:()Lcom/github/catvod/spider/merge/kR$yq;
+     113: aload         14
+     115: aload         12
+     117: invokevirtual #369                // Method com/github/catvod/spider/merge/kR$yq.i:(Lcom/github/catvod/spider/merge/kR$q;Lcom/github/catvod/spider/merge/kR$q;)V
+     120: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+     123: aload_0
+     124: aload         12
+     126: aload         14
+     128: invokevirtual #307                // Method com/github/catvod/spider/merge/kR$yq.N:(Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$q;Lcom/github/catvod/spider/merge/kR$q;)Z
+     131: ifeq          236
+     134: aload_0
+     135: lload         10
+     137: ldc2_w        #389                // long 2147483647999999999l
+     140: invokestatic  #396                // Method java/lang/Math.min:(JJ)J
+     143: invokestatic  #400                // Method java/util/concurrent/locks/LockSupport.parkNanos:(Ljava/lang/Object;J)V
+     146: invokestatic  #361                // Method java/lang/Thread.interrupted:()Z
+     149: ifne          222
+     152: aload_0
+     153: getfield      #301                // Field yq:Ljava/lang/Object;
+     156: astore        12
+     158: aload         12
+     160: ifnull        169
+     163: iconst_1
+     164: istore        4
+     166: goto          172
+     169: iconst_0
+     170: istore        4
+     172: iload         4
+     174: aload         12
+     176: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     179: iconst_1
+     180: ixor
+     181: iand
+     182: ifeq          192
+     185: aload_0
+     186: aload         12
+     188: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+     191: areturn
+     192: lload         8
+     194: invokestatic  #386                // Method java/lang/System.nanoTime:()J
+     197: lsub
+     198: lstore        6
+     200: lload         6
+     202: lstore        10
+     204: lload         6
+     206: ldc2_w        #387                // long 1000l
+     209: lcmp
+     210: ifge          134
+     213: aload_0
+     214: aload         14
+     216: invokespecial #375                // Method v:(Lcom/github/catvod/spider/merge/kR$q;)V
+     219: goto          270
+     222: aload_0
+     223: aload         14
+     225: invokespecial #375                // Method v:(Lcom/github/catvod/spider/merge/kR$q;)V
+     228: new           #160                // class java/lang/InterruptedException
+     231: dup
+     232: invokespecial #376                // Method java/lang/InterruptedException."<init>":()V
+     235: athrow
+     236: aload_0
+     237: getfield      #244                // Field N:Lcom/github/catvod/spider/merge/kR$q;
+     240: astore        13
+     242: aload         13
+     244: astore        12
+     246: aload         13
+     248: getstatic     #304                // Field com/github/catvod/spider/merge/kR$q.N:Lcom/github/catvod/spider/merge/kR$q;
+     251: if_acmpne     110
+     254: aload_0
+     255: getfield      #301                // Field yq:Ljava/lang/Object;
+     258: astore_3
+     259: aload_3
+     260: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     263: pop
+     264: aload_0
+     265: aload_3
+     266: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+     269: areturn
+     270: lload         6
+     272: lconst_0
+     273: lcmp
+     274: ifle          342
+     277: aload_0
+     278: getfield      #301                // Field yq:Ljava/lang/Object;
+     281: astore        12
+     283: aload         12
+     285: ifnull        294
+     288: iconst_1
+     289: istore        4
+     291: goto          297
+     294: iconst_0
+     295: istore        4
+     297: iload         4
+     299: aload         12
+     301: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     304: iconst_1
+     305: ixor
+     306: iand
+     307: ifeq          317
+     310: aload_0
+     311: aload         12
+     313: invokespecial #363                // Method dT:(Ljava/lang/Object;)Ljava/lang/Object;
+     316: areturn
+     317: invokestatic  #361                // Method java/lang/Thread.interrupted:()Z
+     320: ifne          334
+     323: lload         8
+     325: invokestatic  #386                // Method java/lang/System.nanoTime:()J
+     328: lsub
+     329: lstore        6
+     331: goto          270
+     334: new           #160                // class java/lang/InterruptedException
+     337: dup
+     338: invokespecial #376                // Method java/lang/InterruptedException."<init>":()V
+     341: athrow
+     342: aload_0
+     343: invokevirtual #401                // Method toString:()Ljava/lang/String;
+     346: astore        14
+     348: aload_3
+     349: invokevirtual #402                // Method java/lang/Object.toString:()Ljava/lang/String;
+     352: astore        13
+     354: getstatic     #408                // Field java/util/Locale.ROOT:Ljava/util/Locale;
+     357: astore        12
+     359: aload         13
+     361: aload         12
+     363: invokevirtual #412                // Method java/lang/String.toLowerCase:(Ljava/util/Locale;)Ljava/lang/String;
+     366: astore        15
+     368: aload_3
+     369: invokevirtual #402                // Method java/lang/Object.toString:()Ljava/lang/String;
+     372: aload         12
+     374: invokevirtual #412                // Method java/lang/String.toLowerCase:(Ljava/util/Locale;)Ljava/lang/String;
+     377: astore        12
+     379: new           #139                // class java/lang/StringBuilder
+     382: dup
+     383: aload         12
+     385: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     388: invokevirtual #232                // Method java/lang/String.length:()I
+     391: bipush        28
+     393: iadd
+     394: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+     397: astore        13
+     399: aload         13
+     401: ldc_w         #414                // String Waited
+     404: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     407: pop
+     408: aload         13
+     410: lload_1
+     411: invokevirtual #328                // Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+     414: pop
+     415: aload         13
+     417: ldc_w         #416                // String
+     420: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     423: pop
+     424: aload         13
+     426: aload         12
+     428: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     431: pop
+     432: aload         13
+     434: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     437: astore        13
+     439: aload         13
+     441: astore        12
+     443: lload         6
+     445: ldc2_w        #387                // long 1000l
+     448: ladd
+     449: lconst_0
+     450: lcmp
+     451: ifge          703
+     454: aload         13
+     456: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     459: ldc_w         #418                // String  (plus
+     462: invokevirtual #422                // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+     465: astore        12
+     467: lload         6
+     469: lneg
+     470: lstore        6
+     472: aload_3
+     473: lload         6
+     475: getstatic     #425                // Field java/util/concurrent/TimeUnit.NANOSECONDS:Ljava/util/concurrent/TimeUnit;
+     478: invokevirtual #429                // Method java/util/concurrent/TimeUnit.convert:(JLjava/util/concurrent/TimeUnit;)J
+     481: lstore_1
+     482: lload         6
+     484: aload_3
+     485: lload_1
+     486: invokevirtual #382                // Method java/util/concurrent/TimeUnit.toNanos:(J)J
+     489: lsub
+     490: lstore        6
+     492: lload_1
+     493: lconst_0
+     494: lcmp
+     495: ifeq          516
+     498: lload         6
+     500: ldc2_w        #387                // long 1000l
+     503: lcmp
+     504: ifle          510
+     507: goto          516
+     510: iconst_0
+     511: istore        4
+     513: goto          519
+     516: iconst_1
+     517: istore        4
+     519: aload         12
+     521: astore_3
+     522: lload_1
+     523: lconst_0
+     524: lcmp
+     525: ifle          632
+     528: aload         12
+     530: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     533: astore_3
+     534: aload_3
+     535: invokevirtual #232                // Method java/lang/String.length:()I
+     538: istore        5
+     540: new           #139                // class java/lang/StringBuilder
+     543: dup
+     544: aload         15
+     546: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     549: invokevirtual #232                // Method java/lang/String.length:()I
+     552: iload         5
+     554: bipush        21
+     556: iadd
+     557: iadd
+     558: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+     561: astore        12
+     563: aload         12
+     565: aload_3
+     566: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     569: pop
+     570: aload         12
+     572: lload_1
+     573: invokevirtual #328                // Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+     576: pop
+     577: aload         12
+     579: ldc_w         #416                // String
+     582: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     585: pop
+     586: aload         12
+     588: aload         15
+     590: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     593: pop
+     594: aload         12
+     596: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     599: astore        12
+     601: aload         12
+     603: astore_3
+     604: iload         4
+     606: ifeq          621
+     609: aload         12
+     611: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     614: ldc_w         #431                // String ,
+     617: invokevirtual #422                // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+     620: astore_3
+     621: aload_3
+     622: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     625: ldc_w         #416                // String
+     628: invokevirtual #422                // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+     631: astore_3
+     632: aload_3
+     633: astore        12
+     635: iload         4
+     637: ifeq          690
+     640: aload_3
+     641: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     644: astore        12
+     646: new           #139                // class java/lang/StringBuilder
+     649: dup
+     650: aload         12
+     652: invokevirtual #232                // Method java/lang/String.length:()I
+     655: bipush        33
+     657: iadd
+     658: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+     661: astore_3
+     662: aload_3
+     663: aload         12
+     665: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     668: pop
+     669: aload_3
+     670: lload         6
+     672: invokevirtual #328                // Method java/lang/StringBuilder.append:(J)Ljava/lang/StringBuilder;
+     675: pop
+     676: aload_3
+     677: ldc_w         #433                // String  nanoseconds
+     680: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     683: pop
+     684: aload_3
+     685: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     688: astore        12
+     690: aload         12
+     692: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     695: ldc_w         #435                // String delay)
+     698: invokevirtual #422                // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+     701: astore        12
+     703: aload_0
+     704: invokevirtual #438                // Method isDone:()Z
+     707: ifeq          729
+     710: new           #440                // class java/util/concurrent/TimeoutException
+     713: dup
+     714: aload         12
+     716: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     719: ldc_w         #442                // String  but future completed as timeout expired
+     722: invokevirtual #422                // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+     725: invokespecial #443                // Method java/util/concurrent/TimeoutException."<init>":(Ljava/lang/String;)V
+     728: athrow
+     729: aload         12
+     731: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     734: invokevirtual #232                // Method java/lang/String.length:()I
+     737: istore        4
+     739: new           #139                // class java/lang/StringBuilder
+     742: dup
+     743: aload         14
+     745: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     748: invokevirtual #232                // Method java/lang/String.length:()I
+     751: iload         4
+     753: iconst_5
+     754: iadd
+     755: iadd
+     756: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+     759: astore_3
+     760: aload_3
+     761: aload         12
+     763: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     766: pop
+     767: aload_3
+     768: ldc_w         #445                // String  for
+     771: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     774: pop
+     775: aload_3
+     776: aload         14
+     778: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     781: pop
+     782: new           #440                // class java/util/concurrent/TimeoutException
+     785: dup
+     786: aload_3
+     787: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     790: invokespecial #443                // Method java/util/concurrent/TimeoutException."<init>":(Ljava/lang/String;)V
+     793: athrow
+     794: new           #160                // class java/lang/InterruptedException
+     797: dup
+     798: invokespecial #376                // Method java/lang/InterruptedException."<init>":()V
+     801: astore_3
+     802: goto          807
+     805: aload_3
+     806: athrow
+     807: goto          805
+
+  public boolean isCancelled();
+    descriptor: ()Z
+    Code:
+       0: aload_0
+       1: getfield      #301                // Field yq:Ljava/lang/Object;
+       4: instanceof    #25                 // class com/github/catvod/spider/merge/kR$SN
+       7: ireturn
+
+  public boolean isDone();
+    descriptor: ()Z
+    Code:
+       0: aload_0
+       1: getfield      #301                // Field yq:Ljava/lang/Object;
+       4: astore_2
+       5: aload_2
+       6: ifnull        14
+       9: iconst_1
+      10: istore_1
+      11: goto          16
+      14: iconst_0
+      15: istore_1
+      16: aload_2
+      17: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+      20: iconst_1
+      21: ixor
+      22: iload_1
+      23: iand
+      24: ireturn
+
+  protected void q();
+    descriptor: ()V
+    Code:
+       0: return
+
+  public final java.lang.String toString();
+    descriptor: ()Ljava/lang/String;
+    Code:
+       0: new           #139                // class java/lang/StringBuilder
+       3: dup
+       4: invokespecial #449                // Method java/lang/StringBuilder."<init>":()V
+       7: astore_3
+       8: aload_0
+       9: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      12: invokevirtual #78                 // Method java/lang/Class.getName:()Ljava/lang/String;
+      15: ldc_w         #451                // String com.google.common.util.concurrent.
+      18: invokevirtual #454                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+      21: ifeq          35
+      24: aload_0
+      25: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      28: invokevirtual #457                // Method java/lang/Class.getSimpleName:()Ljava/lang/String;
+      31: astore_2
+      32: goto          43
+      35: aload_0
+      36: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      39: invokevirtual #78                 // Method java/lang/Class.getName:()Ljava/lang/String;
+      42: astore_2
+      43: aload_3
+      44: aload_2
+      45: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      48: pop
+      49: aload_3
+      50: bipush        64
+      52: invokevirtual #460                // Method java/lang/StringBuilder.append:(C)Ljava/lang/StringBuilder;
+      55: pop
+      56: aload_3
+      57: aload_0
+      58: invokestatic  #149                // Method java/lang/System.identityHashCode:(Ljava/lang/Object;)I
+      61: invokestatic  #155                // Method java/lang/Integer.toHexString:(I)Ljava/lang/String;
+      64: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      67: pop
+      68: aload_3
+      69: ldc_w         #462                // String [status=
+      72: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      75: pop
+      76: aload_0
+      77: invokevirtual #464                // Method isCancelled:()Z
+      80: ifeq          94
+      83: aload_3
+      84: ldc_w         #266                // String CANCELLED
+      87: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      90: pop
+      91: goto          292
+      94: aload_0
+      95: invokevirtual #438                // Method isDone:()Z
+      98: ifeq          109
+     101: aload_0
+     102: aload_3
+     103: invokespecial #466                // Method KJ:(Ljava/lang/StringBuilder;)V
+     106: goto          292
+     109: aload_3
+     110: invokevirtual #467                // Method java/lang/StringBuilder.length:()I
+     113: istore_1
+     114: aload_3
+     115: ldc_w         #469                // String PENDING
+     118: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     121: pop
+     122: aload_0
+     123: getfield      #301                // Field yq:Ljava/lang/Object;
+     126: astore_2
+     127: aload_2
+     128: instanceof    #28                 // class com/github/catvod/spider/merge/kR$i
+     131: ifeq          184
+     134: aload_3
+     135: ldc_w         #471                // String , setFuture=[
+     138: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     141: pop
+     142: aload_2
+     143: checkcast     #28                 // class com/github/catvod/spider/merge/kR$i
+     146: invokestatic  #183                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     149: pop
+     150: aload_3
+     151: aconst_null
+     152: invokevirtual #262                // Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+     155: pop
+     156: goto          263
+     159: astore_2
+     160: goto          164
+     163: astore_2
+     164: aload_3
+     165: ldc_w         #473                // String Exception thrown from implementation:
+     168: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     171: pop
+     172: aload_3
+     173: aload_2
+     174: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+     177: invokevirtual #262                // Method java/lang/StringBuilder.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;
+     180: pop
+     181: goto          263
+     184: aload_0
+     185: invokevirtual #475                // Method W:()Ljava/lang/String;
+     188: invokestatic  #479                // Method com/github/catvod/spider/merge/rs.B:(Ljava/lang/String;)Ljava/lang/String;
+     191: astore_2
+     192: goto          245
+     195: astore_2
+     196: goto          200
+     199: astore_2
+     200: aload_2
+     201: invokevirtual #137                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+     204: invokestatic  #228                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     207: astore        4
+     209: new           #139                // class java/lang/StringBuilder
+     212: dup
+     213: aload         4
+     215: invokevirtual #232                // Method java/lang/String.length:()I
+     218: bipush        38
+     220: iadd
+     221: invokespecial #235                // Method java/lang/StringBuilder."<init>":(I)V
+     224: astore_2
+     225: aload_2
+     226: ldc_w         #473                // String Exception thrown from implementation:
+     229: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     232: pop
+     233: aload_2
+     234: aload         4
+     236: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     239: pop
+     240: aload_2
+     241: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     244: astore_2
+     245: aload_2
+     246: ifnull        270
+     249: aload_3
+     250: ldc_w         #481                // String , info=[
+     253: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     256: pop
+     257: aload_3
+     258: aload_2
+     259: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     262: pop
+     263: aload_3
+     264: ldc           #251                // String ]
+     266: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     269: pop
+     270: aload_0
+     271: invokevirtual #438                // Method isDone:()Z
+     274: ifeq          292
+     277: aload_3
+     278: iload_1
+     279: aload_3
+     280: invokevirtual #467                // Method java/lang/StringBuilder.length:()I
+     283: invokevirtual #485                // Method java/lang/StringBuilder.delete:(II)Ljava/lang/StringBuilder;
+     286: pop
+     287: aload_0
+     288: aload_3
+     289: invokespecial #466                // Method KJ:(Ljava/lang/StringBuilder;)V
+     292: aload_3
+     293: ldc           #251                // String ]
+     295: invokevirtual #143                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     298: pop
+     299: aload_3
+     300: invokevirtual #242                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     303: areturn
+    Exception table:
+       from    to  target type
+         150   156   163   Class java/lang/RuntimeException
+         150   156   159   Class java/lang/StackOverflowError
+         184   192   199   Class java/lang/RuntimeException
+         184   192   195   Class java/lang/StackOverflowError
+
+  protected void v3();
+    descriptor: ()V
+    Code:
+       0: return
+
+  protected final boolean xa();
+    descriptor: ()Z
+    Code:
+       0: aload_0
+       1: getfield      #301                // Field yq:Ljava/lang/Object;
+       4: astore_2
+       5: aload_2
+       6: instanceof    #25                 // class com/github/catvod/spider/merge/kR$SN
+       9: ifeq          27
+      12: aload_2
+      13: checkcast     #25                 // class com/github/catvod/spider/merge/kR$SN
+      16: getfield      #488                // Field com/github/catvod/spider/merge/kR$SN.yq:Z
+      19: ifeq          27
+      22: iconst_1
+      23: istore_1
+      24: goto          29
+      27: iconst_0
+      28: istore_1
+      29: iload_1
+      30: ireturn
+
+  public void yq(java.lang.Runnable, java.util.concurrent.Executor);
+    descriptor: (Ljava/lang/Runnable;Ljava/util/concurrent/Executor;)V
+    Code:
+       0: aload_2
+       1: ldc_w         #490                // String Executor was null.
+       4: invokestatic  #493                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+       7: pop
+       8: aload_0
+       9: invokevirtual #438                // Method isDone:()Z
+      12: ifne          75
+      15: aload_0
+      16: getfield      #297                // Field SN:Lcom/github/catvod/spider/merge/kR$tF;
+      19: astore_3
+      20: aload_3
+      21: getstatic     #495                // Field com/github/catvod/spider/merge/kR$tF.tF:Lcom/github/catvod/spider/merge/kR$tF;
+      24: if_acmpeq     75
+      27: new           #37                 // class com/github/catvod/spider/merge/kR$tF
+      30: dup
+      31: aload_1
+      32: aload_2
+      33: invokespecial #497                // Method com/github/catvod/spider/merge/kR$tF."<init>":(Ljava/lang/Runnable;Ljava/util/concurrent/Executor;)V
+      36: astore        5
+      38: aload         5
+      40: aload_3
+      41: putfield      #204                // Field com/github/catvod/spider/merge/kR$tF.N:Lcom/github/catvod/spider/merge/kR$tF;
+      44: getstatic     #108                // Field i:Lcom/github/catvod/spider/merge/kR$yq;
+      47: aload_0
+      48: aload_3
+      49: aload         5
+      51: invokevirtual #500                // Method com/github/catvod/spider/merge/kR$yq.yq:(Lcom/github/catvod/spider/merge/kR;Lcom/github/catvod/spider/merge/kR$tF;Lcom/github/catvod/spider/merge/kR$tF;)Z
+      54: ifeq          58
+      57: return
+      58: aload_0
+      59: getfield      #297                // Field SN:Lcom/github/catvod/spider/merge/kR$tF;
+      62: astore        4
+      64: aload         4
+      66: astore_3
+      67: aload         4
+      69: getstatic     #495                // Field com/github/catvod/spider/merge/kR$tF.tF:Lcom/github/catvod/spider/merge/kR$tF;
+      72: if_acmpne     38
+      75: aload_1
+      76: aload_2
+      77: invokestatic  #214                // Method G4:(Ljava/lang/Runnable;Ljava/util/concurrent/Executor;)V
+      80: return
+}

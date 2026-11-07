@@ -1,0 +1,571 @@
+public class com.github.catvod.spider.Cloud_ali extends com.github.catvod.crawler.Spider {
+  public static boolean N;
+    descriptor: Z
+
+  private static java.lang.String SN;
+    descriptor: Ljava/lang/String;
+
+  public static final java.util.regex.Pattern yq;
+    descriptor: Ljava/util/regex/Pattern;
+
+  static {};
+    descriptor: ()V
+    Code:
+       0: ldc           #14                 // String (www.aliyundrive.com|www.alipan.com)/s/([^/]+)(/folder/([^/]+))?
+       2: invokestatic  #20                 // Method java/util/regex/Pattern.compile:(Ljava/lang/String;)Ljava/util/regex/Pattern;
+       5: putstatic     #22                 // Field yq:Ljava/util/regex/Pattern;
+       8: ldc           #24                 // String
+      10: putstatic     #26                 // Field SN:Ljava/lang/String;
+      13: iconst_0
+      14: putstatic     #28                 // Field N:Z
+      17: return
+
+  public com.github.catvod.spider.Cloud_ali();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: invokespecial #32                 // Method com/github/catvod/crawler/Spider."<init>":()V
+       4: return
+
+  public static java.lang.Object[] proxy(java.util.Map<java.lang.String, java.lang.String>);
+    descriptor: (Ljava/util/Map;)[Ljava/lang/Object;
+    Code:
+       0: aload_0
+       1: ldc           #37                 // String type
+       3: invokeinterface #43,  2           // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+       8: checkcast     #45                 // class java/lang/String
+      11: astore_3
+      12: aload_0
+      13: ldc           #47                 // String flag
+      15: invokeinterface #43,  2           // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+      20: checkcast     #45                 // class java/lang/String
+      23: astore_2
+      24: aload_3
+      25: ldc           #49                 // String sub
+      27: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      30: ifeq          41
+      33: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      36: aload_0
+      37: invokevirtual #62                 // Method com/github/catvod/spider/merge/J.J:(Ljava/util/Map;)[Ljava/lang/Object;
+      40: areturn
+      41: aload_3
+      42: ldc           #64                 // String token
+      44: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      47: ifeq          98
+      50: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      53: astore_0
+      54: aload_0
+      55: invokestatic  #69                 // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+      58: pop
+      59: iconst_3
+      60: anewarray     #71                 // class java/lang/Object
+      63: dup
+      64: iconst_0
+      65: sipush        200
+      68: invokestatic  #77                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+      71: aastore
+      72: dup
+      73: iconst_1
+      74: ldc           #79                 // String text/plain
+      76: aastore
+      77: dup
+      78: iconst_2
+      79: new           #81                 // class java/io/ByteArrayInputStream
+      82: dup
+      83: aload_0
+      84: getfield      #85                 // Field com/github/catvod/spider/merge/J.Gc:Lcom/github/catvod/spider/merge/nb;
+      87: invokevirtual #91                 // Method com/github/catvod/spider/merge/nb.t0:()Ljava/lang/String;
+      90: invokevirtual #95                 // Method java/lang/String.getBytes:()[B
+      93: invokespecial #98                 // Method java/io/ByteArrayInputStream."<init>":([B)V
+      96: aastore
+      97: areturn
+      98: aload_3
+      99: ldc           #100                // String m3u8
+     101: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     104: ifeq          116
+     107: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     110: aload_0
+     111: aload_2
+     112: invokevirtual #104                // Method com/github/catvod/spider/merge/J.R:(Ljava/util/Map;Ljava/lang/String;)[Ljava/lang/Object;
+     115: areturn
+     116: aload_3
+     117: ldc           #106                // String 302
+     119: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     122: ifeq          132
+     125: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     128: invokevirtual #110                // Method com/github/catvod/spider/merge/J.xU:()[Ljava/lang/Object;
+     131: areturn
+     132: aload_3
+     133: ldc           #112                // String input
+     135: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     138: istore_1
+     139: aconst_null
+     140: astore_3
+     141: aload_3
+     142: astore_2
+     143: iload_1
+     144: ifeq          236
+     147: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     150: astore        4
+     152: aload         4
+     154: invokestatic  #69                 // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+     157: pop
+     158: aload_0
+     159: ldc           #114                // String ����
+     161: invokeinterface #43,  2           // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+     166: checkcast     #45                 // class java/lang/String
+     169: invokestatic  #120                // Method java/net/URLDecoder.decode:(Ljava/lang/String;)Ljava/lang/String;
+     172: ldc           #122                // String
+     174: ldc           #124                // String +
+     176: invokevirtual #128                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+     179: astore_0
+     180: aload_3
+     181: astore_2
+     182: aload_0
+     183: invokestatic  #134                // Method android/text/TextUtils.isEmpty:(Ljava/lang/CharSequence;)Z
+     186: ifne          236
+     189: invokestatic  #140                // Method com/github/catvod/spider/Pan.dismissInputQRCode:()Landroid/content/DialogInterface$OnDismissListener;
+     192: pop
+     193: aload         4
+     195: aload_0
+     196: putfield      #143                // Field com/github/catvod/spider/merge/J.zH:Ljava/lang/String;
+     199: ldc           #145                // String ��ϲ��Token���óɹ���
+     201: invokestatic  #151                // Method com/github/catvod/spider/InitOrigin.show:(Ljava/lang/String;)V
+     204: iconst_3
+     205: anewarray     #71                 // class java/lang/Object
+     208: astore_2
+     209: aload_2
+     210: iconst_0
+     211: sipush        200
+     214: invokestatic  #77                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     217: aastore
+     218: aload_2
+     219: iconst_1
+     220: ldc           #153                // String text/html
+     222: aastore
+     223: aload_2
+     224: iconst_2
+     225: new           #81                 // class java/io/ByteArrayInputStream
+     228: dup
+     229: iconst_0
+     230: newarray       byte
+     232: invokespecial #98                 // Method java/io/ByteArrayInputStream."<init>":([B)V
+     235: aastore
+     236: aload_2
+     237: areturn
+
+  public static java.lang.Object[] proxys(java.util.Map<java.lang.String, java.lang.String>, java.util.Map<java.lang.String, java.lang.String>, java.lang.String);
+    descriptor: (Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)[Ljava/lang/Object;
+    Code:
+       0: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+       3: aload_0
+       4: aload_1
+       5: invokevirtual #161                // Method com/github/catvod/spider/merge/J.N0:(Ljava/util/Map;Ljava/util/Map;)[Ljava/lang/Object;
+       8: areturn
+
+  public java.lang.String detailContent(java.util.List<java.lang.String>);
+    descriptor: (Ljava/util/List;)Ljava/lang/String;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: ldc           #24                 // String
+       4: invokevirtual #168                // Method detailVideo:(Ljava/util/List;Ljava/lang/String;)Lcom/github/catvod/spider/merge/Ef;
+       7: astore_1
+       8: aload_1
+       9: ifnonnull     15
+      12: ldc           #24                 // String
+      14: areturn
+      15: aload_1
+      16: invokestatic  #173                // Method com/github/catvod/spider/merge/Tq.v:(Lcom/github/catvod/spider/merge/Ef;)Ljava/lang/String;
+      19: areturn
+
+  public com.github.catvod.spider.merge.Ef detailVideo(java.util.List<java.lang.String>, java.lang.String);
+    descriptor: (Ljava/util/List;Ljava/lang/String;)Lcom/github/catvod/spider/merge/Ef;
+    Code:
+       0: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+       3: getfield      #85                 // Field com/github/catvod/spider/merge/J.Gc:Lcom/github/catvod/spider/merge/nb;
+       6: invokevirtual #176                // Method com/github/catvod/spider/merge/nb.SN:()Ljava/lang/String;
+       9: invokestatic  #182                // Method com/github/catvod/spider/merge/ME.ee:(Ljava/lang/String;)Z
+      12: istore_3
+      13: ldc           #24                 // String
+      15: astore        4
+      17: iload_3
+      18: ifeq          26
+      21: ldc           #24                 // String
+      23: putstatic     #26                 // Field SN:Ljava/lang/String;
+      26: aload_1
+      27: iconst_0
+      28: invokeinterface #187,  2          // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+      33: checkcast     #45                 // class java/lang/String
+      36: invokevirtual #190                // Method java/lang/String.trim:()Ljava/lang/String;
+      39: astore        5
+      41: getstatic     #22                 // Field yq:Ljava/util/regex/Pattern;
+      44: aload         5
+      46: invokevirtual #194                // Method java/util/regex/Pattern.matcher:(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
+      49: astore        7
+      51: aload         7
+      53: invokevirtual #200                // Method java/util/regex/Matcher.find:()Z
+      56: ifne          61
+      59: aconst_null
+      60: areturn
+      61: aload         7
+      63: iconst_2
+      64: invokevirtual #204                // Method java/util/regex/Matcher.group:(I)Ljava/lang/String;
+      67: astore        6
+      69: aload         4
+      71: astore_1
+      72: aload         7
+      74: invokevirtual #208                // Method java/util/regex/Matcher.groupCount:()I
+      77: iconst_4
+      78: if_icmpne     88
+      81: aload         7
+      83: iconst_4
+      84: invokevirtual #204                // Method java/util/regex/Matcher.group:(I)Ljava/lang/String;
+      87: astore_1
+      88: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      91: aload         5
+      93: aload         6
+      95: aload_1
+      96: aload_2
+      97: invokevirtual #212                // Method com/github/catvod/spider/merge/J.H:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/github/catvod/spider/merge/Ef;
+     100: areturn
+
+  public void init(android.content.Context, java.lang.String);
+    descriptor: (Landroid/content/Context;Ljava/lang/String;)V
+    Code:
+       0: ldc           #24                 // String
+       2: astore_1
+       3: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+       6: invokestatic  #69                 // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       9: pop
+      10: aload_2
+      11: invokestatic  #182                // Method com/github/catvod/spider/merge/ME.ee:(Ljava/lang/String;)Z
+      14: ifne          208
+      17: new           #218                // class org/json/JSONObject
+      20: astore        6
+      22: aload         6
+      24: aload_2
+      25: invokespecial #220                // Method org/json/JSONObject."<init>":(Ljava/lang/String;)V
+      28: aload         6
+      30: ldc           #222                // String Cloud-drive
+      32: invokevirtual #225                // Method org/json/JSONObject.optString:(Ljava/lang/String;)Ljava/lang/String;
+      35: astore_2
+      36: aload_2
+      37: astore_1
+      38: aload_2
+      39: ldc           #227                // String ./
+      41: invokevirtual #230                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+      44: istore        5
+      46: aload_2
+      47: astore        6
+      49: iload         5
+      51: ifeq          135
+      54: aload_2
+      55: astore_1
+      56: new           #232                // class java/lang/StringBuilder
+      59: astore        6
+      61: aload_2
+      62: astore_1
+      63: aload         6
+      65: invokespecial #233                // Method java/lang/StringBuilder."<init>":()V
+      68: aload_2
+      69: astore_1
+      70: aload         6
+      72: invokestatic  #238                // Method com/github/catvod/spider/ProxyOrigin.getFileUrl:()Ljava/lang/String;
+      75: invokevirtual #242                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      78: pop
+      79: aload_2
+      80: astore_1
+      81: aload         6
+      83: aload_2
+      84: ldc           #244                // String .
+      86: ldc           #24                 // String
+      88: invokevirtual #128                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+      91: invokevirtual #242                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      94: pop
+      95: aload_2
+      96: astore_1
+      97: aload         6
+      99: invokevirtual #247                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     102: aconst_null
+     103: invokestatic  #253                // Method com/github/catvod/spider/merge/Bo.B:(Ljava/lang/String;Ljava/util/Map;)Ljava/lang/String;
+     106: astore        6
+     108: aload_2
+     109: astore_1
+     110: new           #218                // class org/json/JSONObject
+     113: astore        7
+     115: aload_2
+     116: astore_1
+     117: aload         7
+     119: aload         6
+     121: invokespecial #220                // Method org/json/JSONObject."<init>":(Ljava/lang/String;)V
+     124: aload_2
+     125: astore_1
+     126: aload         7
+     128: ldc           #64                 // String token
+     130: invokevirtual #225                // Method org/json/JSONObject.optString:(Ljava/lang/String;)Ljava/lang/String;
+     133: astore        6
+     135: aload         6
+     137: astore_2
+     138: aload         6
+     140: astore_1
+     141: aload         6
+     143: ldc           #255                // String http
+     145: invokevirtual #230                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+     148: ifeq          211
+     151: aload         6
+     153: astore_1
+     154: aload         6
+     156: aconst_null
+     157: iconst_3
+     158: invokestatic  #260                // Method com/github/catvod/spider/merge/w2.v:(Ljava/lang/String;Ljava/util/Map;I)Ljava/lang/String;
+     161: astore        6
+     163: aload         6
+     165: astore_2
+     166: aload         6
+     168: astore_1
+     169: aload         6
+     171: ldc           #64                 // String token
+     173: invokevirtual #263                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     176: ifeq          211
+     179: aload         6
+     181: astore_1
+     182: new           #218                // class org/json/JSONObject
+     185: astore_2
+     186: aload         6
+     188: astore_1
+     189: aload_2
+     190: aload         6
+     192: invokespecial #220                // Method org/json/JSONObject."<init>":(Ljava/lang/String;)V
+     195: aload         6
+     197: astore_1
+     198: aload_2
+     199: ldc           #64                 // String token
+     201: invokevirtual #225                // Method org/json/JSONObject.optString:(Ljava/lang/String;)Ljava/lang/String;
+     204: astore_2
+     205: goto          211
+     208: ldc           #24                 // String
+     210: astore_2
+     211: aload_2
+     212: astore        6
+     214: aload_2
+     215: astore_1
+     216: aload_2
+     217: invokevirtual #266                // Method java/lang/String.length:()I
+     220: bipush        32
+     222: if_icmpeq     229
+     225: ldc           #24                 // String
+     227: astore        6
+     229: aload         6
+     231: astore_1
+     232: new           #268                // class java/util/ArrayList
+     235: astore_2
+     236: aload         6
+     238: astore_1
+     239: aload_2
+     240: invokespecial #269                // Method java/util/ArrayList."<init>":()V
+     243: aload         6
+     245: astore_1
+     246: invokestatic  #273                // Method com/github/catvod/spider/InitOrigin.context:()Landroid/app/Application;
+     249: astore        7
+     251: aload         6
+     253: astore_1
+     254: invokestatic  #273                // Method com/github/catvod/spider/InitOrigin.context:()Landroid/app/Application;
+     257: pop
+     258: iconst_0
+     259: istore_3
+     260: aload         6
+     262: astore_1
+     263: aload         7
+     265: ldc_w         #275                // String pan_source_sort
+     268: iconst_0
+     269: invokevirtual #281                // Method android/content/Context.getSharedPreferences:(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+     272: ldc_w         #283                // String sort
+     275: ldc           #24                 // String
+     277: invokeinterface #289,  3          // InterfaceMethod android/content/SharedPreferences.getString:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     282: astore        7
+     284: aload         6
+     286: astore_1
+     287: aload         7
+     289: invokestatic  #134                // Method android/text/TextUtils.isEmpty:(Ljava/lang/CharSequence;)Z
+     292: ifne          386
+     295: aload         6
+     297: astore_1
+     298: aload         7
+     300: ldc_w         #291                // String \\|
+     303: invokevirtual #295                // Method java/lang/String.split:(Ljava/lang/String;)[Ljava/lang/String;
+     306: astore        7
+     308: aload         6
+     310: astore_1
+     311: aload         7
+     313: arraylength
+     314: iconst_2
+     315: invokestatic  #301                // Method java/lang/Math.min:(II)I
+     318: istore        4
+     320: iload_3
+     321: iload         4
+     323: if_icmpge     386
+     326: aload         6
+     328: astore_1
+     329: ldc_w         #303                // String 4K
+     332: aload         7
+     334: iload_3
+     335: aaload
+     336: invokevirtual #306                // Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+     339: ifeq          353
+     342: aload         6
+     344: astore_1
+     345: aload_2
+     346: ldc_w         #308                // String ����ԭ
+     349: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     352: pop
+     353: aload         6
+     355: astore_1
+     356: ldc_w         #313                // String AUTO
+     359: aload         7
+     361: iload_3
+     362: aaload
+     363: invokevirtual #306                // Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+     366: ifeq          380
+     369: aload         6
+     371: astore_1
+     372: aload_2
+     373: ldc_w         #315                // String ������
+     376: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     379: pop
+     380: iinc          3, 1
+     383: goto          320
+     386: aload         6
+     388: astore_1
+     389: aload_2
+     390: invokevirtual #317                // Method java/util/ArrayList.isEmpty:()Z
+     393: ifeq          418
+     396: aload         6
+     398: astore_1
+     399: aload_2
+     400: ldc_w         #308                // String ����ԭ
+     403: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     406: pop
+     407: aload         6
+     409: astore_1
+     410: aload_2
+     411: ldc_w         #315                // String ������
+     414: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     417: pop
+     418: aload         6
+     420: astore_1
+     421: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     424: aload         6
+     426: aload_2
+     427: invokevirtual #321                // Method com/github/catvod/spider/merge/J.Q4:(Ljava/lang/String;Ljava/util/List;)V
+     430: goto          466
+     433: astore_2
+     434: new           #268                // class java/util/ArrayList
+     437: dup
+     438: invokespecial #269                // Method java/util/ArrayList."<init>":()V
+     441: astore_2
+     442: aload_2
+     443: ldc_w         #308                // String ����ԭ
+     446: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     449: pop
+     450: aload_2
+     451: ldc_w         #315                // String ������
+     454: invokevirtual #311                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+     457: pop
+     458: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     461: aload_1
+     462: aload_2
+     463: invokevirtual #321                // Method com/github/catvod/spider/merge/J.Q4:(Ljava/lang/String;Ljava/util/List;)V
+     466: return
+     467: astore_2
+     468: goto          434
+    Exception table:
+       from    to  target type
+          10    36   467   Class java/lang/Exception
+          38    46   433   Class java/lang/Exception
+          56    61   433   Class java/lang/Exception
+          63    68   433   Class java/lang/Exception
+          70    79   433   Class java/lang/Exception
+          81    95   433   Class java/lang/Exception
+          97   108   433   Class java/lang/Exception
+         110   115   433   Class java/lang/Exception
+         117   124   433   Class java/lang/Exception
+         126   135   433   Class java/lang/Exception
+         141   151   433   Class java/lang/Exception
+         154   163   433   Class java/lang/Exception
+         169   179   433   Class java/lang/Exception
+         182   186   433   Class java/lang/Exception
+         189   195   433   Class java/lang/Exception
+         198   205   433   Class java/lang/Exception
+         216   225   433   Class java/lang/Exception
+         232   236   433   Class java/lang/Exception
+         239   243   433   Class java/lang/Exception
+         246   251   433   Class java/lang/Exception
+         254   258   433   Class java/lang/Exception
+         263   284   433   Class java/lang/Exception
+         287   295   433   Class java/lang/Exception
+         298   308   433   Class java/lang/Exception
+         311   320   433   Class java/lang/Exception
+         329   342   433   Class java/lang/Exception
+         345   353   433   Class java/lang/Exception
+         356   369   433   Class java/lang/Exception
+         372   380   433   Class java/lang/Exception
+         389   396   433   Class java/lang/Exception
+         399   407   433   Class java/lang/Exception
+         410   418   433   Class java/lang/Exception
+         421   430   433   Class java/lang/Exception
+
+  public java.lang.String playerContent(java.lang.String, java.lang.String, java.util.List<java.lang.String>);
+    descriptor: (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ljava/lang/String;
+    Code:
+       0: getstatic     #28                 // Field N:Z
+       3: ifne          43
+       6: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+       9: getfield      #85                 // Field com/github/catvod/spider/merge/J.Gc:Lcom/github/catvod/spider/merge/nb;
+      12: invokevirtual #91                 // Method com/github/catvod/spider/merge/nb.t0:()Ljava/lang/String;
+      15: invokestatic  #182                // Method com/github/catvod/spider/merge/ME.ee:(Ljava/lang/String;)Z
+      18: ifeq          33
+      21: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      24: getfield      #143                // Field com/github/catvod/spider/merge/J.zH:Ljava/lang/String;
+      27: invokestatic  #182                // Method com/github/catvod/spider/merge/ME.ee:(Ljava/lang/String;)Z
+      30: ifne          43
+      33: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      36: invokevirtual #327                // Method com/github/catvod/spider/merge/J.G4:()V
+      39: iconst_1
+      40: putstatic     #28                 // Field N:Z
+      43: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      46: getfield      #85                 // Field com/github/catvod/spider/merge/J.Gc:Lcom/github/catvod/spider/merge/nb;
+      49: invokevirtual #176                // Method com/github/catvod/spider/merge/nb.SN:()Ljava/lang/String;
+      52: invokestatic  #182                // Method com/github/catvod/spider/merge/ME.ee:(Ljava/lang/String;)Z
+      55: ifeq          98
+      58: getstatic     #26                 // Field SN:Ljava/lang/String;
+      61: ldc_w         #329                // String [��ԭ��]
+      64: ldc           #24                 // String
+      66: invokevirtual #332                // Method java/lang/String.replaceAll:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      69: aload_1
+      70: ldc_w         #329                // String [��ԭ��]
+      73: ldc           #24                 // String
+      75: invokevirtual #332                // Method java/lang/String.replaceAll:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      78: invokevirtual #53                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      81: ifne          98
+      84: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+      87: invokevirtual #327                // Method com/github/catvod/spider/merge/J.G4:()V
+      90: aload_1
+      91: putstatic     #26                 // Field SN:Ljava/lang/String;
+      94: iconst_1
+      95: putstatic     #28                 // Field N:Z
+      98: aload_1
+      99: putstatic     #336                // Field com/github/catvod/spider/merge/QB.G4:Ljava/lang/String;
+     102: invokestatic  #59                 // Method com/github/catvod/spider/merge/J.v:()Lcom/github/catvod/spider/merge/J;
+     105: aload_2
+     106: aload_1
+     107: invokevirtual #338                // Method com/github/catvod/spider/merge/J.Z:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     110: areturn
+
+  public void setFlag(java.lang.String);
+    descriptor: (Ljava/lang/String;)V
+    Code:
+       0: ldc           #24                 // String
+       2: putstatic     #26                 // Field SN:Ljava/lang/String;
+       5: return
+}

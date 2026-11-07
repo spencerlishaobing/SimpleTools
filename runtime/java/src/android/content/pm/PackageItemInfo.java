@@ -3,5 +3,5 @@ package android.content.pm;
 public class PackageItemInfo {
 
     public String packageName,name;
-    public android.content.pm.ApplicationInfo applicationInfo=new android.content.pm.ApplicationInfo();
+    public android.content.pm.ApplicationInfo applicationInfo;
 }

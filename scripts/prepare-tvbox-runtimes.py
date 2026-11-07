@@ -23,4 +23,13 @@ if not (python/'Lib/site-packages/requests').exists():
 shutil.copytree(root/'runtime/python',resources/'tvpython',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
 subprocess.run([sys.executable,root/'scripts/build-tvbox-java.py'],check=True)
 subprocess.run([python/'python.exe','-c','import requests,lxml,Crypto,bs4,pyquery,jsonpath,ujson,cachetools'],check=True)
+# 同步 host.jar / lib / dex-runtime 到 target/release/resources（tauri 增量构建不会覆盖旧文件，避免 JVM 加载旧 host.jar）
+target_java=root/'src-tauri/target/release/resources/java'
+if target_java.exists():
+    for item in ['host.jar']:
+        shutil.copy(resources/'java'/item,target_java/item)
+    for sub in ['lib','dex','dex-runtime']:
+        if (resources/'java'/sub).exists():
+            shutil.copytree(resources/'java'/sub,target_java/sub,dirs_exist_ok=True)
+    print('Synced Java loader to target/release/resources/java')
 print('TVBox Python and Java/DEX loader resources prepared.')

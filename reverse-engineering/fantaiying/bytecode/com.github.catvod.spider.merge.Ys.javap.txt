@@ -1,0 +1,163 @@
+public final class com.github.catvod.spider.merge.Ys implements java.util.concurrent.Callable {
+  public final java.lang.String yq;
+    descriptor: Ljava/lang/String;
+
+  public com.github.catvod.spider.merge.Ys(java.lang.String);
+    descriptor: (Ljava/lang/String;)V
+    Code:
+       0: aload_0
+       1: invokespecial #13                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #15                 // Field yq:Ljava/lang/String;
+       9: return
+
+  public final java.lang.Object call();
+    descriptor: ()Ljava/lang/Object;
+    Code:
+       0: aload_0
+       1: getfield      #15                 // Field yq:Ljava/lang/String;
+       4: astore        4
+       6: getstatic     #26                 // Field com/github/catvod/spider/ProxyOrigin.Gc:I
+       9: istore_1
+      10: invokestatic  #32                 // Method java/lang/System.currentTimeMillis:()J
+      13: lstore_2
+      14: aload         4
+      16: invokestatic  #38                 // Method com/github/catvod/spider/merge/wg.N:()Ljava/lang/String;
+      19: invokestatic  #44                 // Method com/github/catvod/spider/merge/ME.M:(Ljava/lang/String;)Ljava/util/HashMap;
+      22: iconst_5
+      23: invokestatic  #49                 // Method com/github/catvod/spider/merge/w2.M:(Ljava/lang/String;Ljava/util/Map;I)Lokhttp3/Response;
+      26: astore        5
+      28: aload         5
+      30: ifnull        252
+      33: aload         5
+      35: invokevirtual #55                 // Method okhttp3/Response.body:()Lokhttp3/ResponseBody;
+      38: invokevirtual #61                 // Method okhttp3/ResponseBody.byteStream:()Ljava/io/InputStream;
+      41: astore        8
+      43: new           #63                 // class java/io/ByteArrayOutputStream
+      46: astore        7
+      48: aload         7
+      50: invokespecial #64                 // Method java/io/ByteArrayOutputStream."<init>":()V
+      53: invokestatic  #70                 // Method java/util/concurrent/Executors.newSingleThreadScheduledExecutor:()Ljava/util/concurrent/ScheduledExecutorService;
+      56: astore        4
+      58: new           #72                 // class com/github/catvod/spider/merge/tO
+      61: astore        6
+      63: aload         6
+      65: aload         8
+      67: iconst_5
+      68: invokespecial #75                 // Method com/github/catvod/spider/merge/tO."<init>":(Ljava/lang/Object;I)V
+      71: aload         4
+      73: aload         6
+      75: ldc2_w        #76                 // long 5000l
+      78: getstatic     #83                 // Field java/util/concurrent/TimeUnit.MILLISECONDS:Ljava/util/concurrent/TimeUnit;
+      81: invokeinterface #89,  5           // InterfaceMethod java/util/concurrent/ScheduledExecutorService.schedule:(Ljava/lang/Runnable;JLjava/util/concurrent/TimeUnit;)Ljava/util/concurrent/ScheduledFuture;
+      86: astore        6
+      88: sipush        1024
+      91: newarray       byte
+      93: astore        9
+      95: aload         8
+      97: aload         9
+      99: invokevirtual #95                 // Method java/io/InputStream.read:([B)I
+     102: istore_1
+     103: iload_1
+     104: iconst_m1
+     105: if_icmpeq     147
+     108: aload         7
+     110: aload         9
+     112: iconst_0
+     113: iload_1
+     114: invokevirtual #99                 // Method java/io/ByteArrayOutputStream.write:([BII)V
+     117: invokestatic  #32                 // Method java/lang/System.currentTimeMillis:()J
+     120: lload_2
+     121: lsub
+     122: ldc2_w        #76                 // long 5000l
+     125: lcmp
+     126: ifgt          132
+     129: goto          95
+     132: new           #101                // class java/io/IOException
+     135: astore        7
+     137: aload         7
+     139: ldc           #103                // String Total timeout exceeded: File download took too long
+     141: invokespecial #105                // Method java/io/IOException."<init>":(Ljava/lang/String;)V
+     144: aload         7
+     146: athrow
+     147: aload         6
+     149: iconst_1
+     150: invokeinterface #111,  2          // InterfaceMethod java/util/concurrent/Future.cancel:(Z)Z
+     155: pop
+     156: aload         4
+     158: invokeinterface #116,  1          // InterfaceMethod java/util/concurrent/ExecutorService.shutdown:()V
+     163: iconst_3
+     164: anewarray     #4                  // class java/lang/Object
+     167: astore        4
+     169: aload         4
+     171: iconst_0
+     172: sipush        200
+     175: invokestatic  #122                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     178: aastore
+     179: aload         4
+     181: iconst_1
+     182: ldc           #124                // String image/*
+     184: aastore
+     185: aload         4
+     187: iconst_2
+     188: new           #126                // class java/io/ByteArrayInputStream
+     191: dup
+     192: aload         7
+     194: invokevirtual #130                // Method java/io/ByteArrayOutputStream.toByteArray:()[B
+     197: invokespecial #133                // Method java/io/ByteArrayInputStream."<init>":([B)V
+     200: aastore
+     201: aload         5
+     203: invokevirtual #136                // Method okhttp3/Response.close:()V
+     206: goto          265
+     209: astore        7
+     211: aload         6
+     213: iconst_1
+     214: invokeinterface #111,  2          // InterfaceMethod java/util/concurrent/Future.cancel:(Z)Z
+     219: pop
+     220: aload         4
+     222: invokeinterface #116,  1          // InterfaceMethod java/util/concurrent/ExecutorService.shutdown:()V
+     227: aload         7
+     229: athrow
+     230: astore        4
+     232: aload         5
+     234: invokevirtual #136                // Method okhttp3/Response.close:()V
+     237: goto          249
+     240: astore        5
+     242: aload         4
+     244: aload         5
+     246: invokevirtual #142                // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+     249: aload         4
+     251: athrow
+     252: aload         5
+     254: ifnull        262
+     257: aload         5
+     259: invokevirtual #136                // Method okhttp3/Response.close:()V
+     262: aconst_null
+     263: astore        4
+     265: aload         4
+     267: areturn
+     268: astore        4
+     270: ldc           #144                // String Error:
+     272: invokestatic  #149                // Method com/github/catvod/crawler/SpiderDebug.log:(Ljava/lang/String;)V
+     275: goto          281
+     278: aload         4
+     280: athrow
+     281: goto          278
+    Exception table:
+       from    to  target type
+          14    28   268   Class java/lang/Exception
+          33    88   230   any
+          88    95   209   any
+          95   103   209   any
+         108   129   209   any
+         132   147   209   any
+         147   179   230   any
+         185   201   230   any
+         201   206   268   Class java/lang/Exception
+         211   230   230   any
+         232   237   240   any
+         242   249   268   Class java/lang/Exception
+         249   252   268   Class java/lang/Exception
+         257   262   268   Class java/lang/Exception
+}

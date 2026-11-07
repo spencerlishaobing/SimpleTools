@@ -1,0 +1,128 @@
+public final class com.github.catvod.spider.yq implements java.lang.Runnable {
+  public final long N;
+    descriptor: J
+
+  public final long SN;
+    descriptor: J
+
+  public final com.github.catvod.spider.HgCencProxy$Session tF;
+    descriptor: Lcom/github/catvod/spider/HgCencProxy$Session;
+
+  public final java.nio.channels.Pipe yq;
+    descriptor: Ljava/nio/channels/Pipe;
+
+  public com.github.catvod.spider.yq(java.nio.channels.Pipe, long, long, com.github.catvod.spider.HgCencProxy$Session);
+    descriptor: (Ljava/nio/channels/Pipe;JJLcom/github/catvod/spider/HgCencProxy$Session;)V
+    Code:
+       0: aload_0
+       1: invokespecial #18                 // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #20                 // Field yq:Ljava/nio/channels/Pipe;
+       9: aload_0
+      10: lload_2
+      11: putfield      #22                 // Field SN:J
+      14: aload_0
+      15: lload         4
+      17: putfield      #24                 // Field N:J
+      20: aload_0
+      21: aload         6
+      23: putfield      #26                 // Field tF:Lcom/github/catvod/spider/HgCencProxy$Session;
+      26: return
+
+  public final void run();
+    descriptor: ()V
+    Code:
+       0: aload_0
+       1: getfield      #20                 // Field yq:Ljava/nio/channels/Pipe;
+       4: astore        6
+       6: aload_0
+       7: getfield      #22                 // Field SN:J
+      10: lstore_2
+      11: aload_0
+      12: getfield      #24                 // Field N:J
+      15: lstore        4
+      17: aload_0
+      18: getfield      #26                 // Field tF:Lcom/github/catvod/spider/HgCencProxy$Session;
+      21: astore        8
+      23: getstatic     #37                 // Field com/github/catvod/spider/HgCencProxy.tF:I
+      26: istore_1
+      27: aload         6
+      29: invokevirtual #43                 // Method java/nio/channels/Pipe.sink:()Ljava/nio/channels/Pipe$SinkChannel;
+      32: invokestatic  #49                 // Method java/nio/channels/Channels.newOutputStream:(Ljava/nio/channels/WritableByteChannel;)Ljava/io/OutputStream;
+      35: astore        7
+      37: lload_2
+      38: lload         4
+      40: lcmp
+      41: ifgt          110
+      44: aload         8
+      46: lload_2
+      47: ldc2_w        #50                 // long 1048576l
+      50: lload_2
+      51: ladd
+      52: lconst_1
+      53: lsub
+      54: lload         4
+      56: invokestatic  #57                 // Method java/lang/Math.min:(JJ)J
+      59: invokevirtual #62                 // Method com/github/catvod/spider/HgCencProxy$Session.SN:(JJ)[B
+      62: astore        9
+      64: aload         7
+      66: aload         9
+      68: invokevirtual #68                 // Method java/io/OutputStream.write:([B)V
+      71: aload         9
+      73: arraylength
+      74: istore_1
+      75: lload_2
+      76: iload_1
+      77: i2l
+      78: ladd
+      79: lstore_2
+      80: goto          37
+      83: astore        8
+      85: aload         7
+      87: ifnull        107
+      90: aload         7
+      92: invokevirtual #71                 // Method java/io/OutputStream.close:()V
+      95: goto          107
+      98: astore        7
+     100: aload         8
+     102: aload         7
+     104: invokevirtual #77                 // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+     107: aload         8
+     109: athrow
+     110: aload         7
+     112: ifnull        136
+     115: aload         7
+     117: invokevirtual #71                 // Method java/io/OutputStream.close:()V
+     120: goto          136
+     123: astore        7
+     125: aload         6
+     127: invokevirtual #43                 // Method java/nio/channels/Pipe.sink:()Ljava/nio/channels/Pipe$SinkChannel;
+     130: invokevirtual #80                 // Method java/nio/channels/spi/AbstractInterruptibleChannel.close:()V
+     133: aload         7
+     135: athrow
+     136: aload         6
+     138: invokevirtual #43                 // Method java/nio/channels/Pipe.sink:()Ljava/nio/channels/Pipe$SinkChannel;
+     141: invokevirtual #80                 // Method java/nio/channels/spi/AbstractInterruptibleChannel.close:()V
+     144: return
+     145: astore        7
+     147: goto          136
+     150: astore        6
+     152: goto          133
+     155: astore        6
+     157: goto          144
+    Exception table:
+       from    to  target type
+          27    37   145   Class java/lang/Exception
+          27    37   123   any
+          44    75    83   any
+          90    95    98   any
+         100   107   145   Class java/lang/Exception
+         100   107   123   any
+         107   110   145   Class java/lang/Exception
+         107   110   123   any
+         115   120   145   Class java/lang/Exception
+         115   120   123   any
+         125   133   150   Class java/io/IOException
+         136   144   155   Class java/io/IOException
+}
