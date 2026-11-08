@@ -21,6 +21,15 @@ function shareLinks(doc){
     const urls=value.match(/https?:\/\/(?:pan\.quark\.cn|drive\.uc\.cn|(?:pan|yun)\.baidu\.com|(?:www\.)?(?:alipan|aliyundrive)\.com)\/s\/[^"'<>\s)]+/gi)||[];
     for(const url of urls)if(!seen[url]){seen[url]=true;out.push(url);}
   }
+  // The bundled host supplies scraper-backed CSS selectors (also in QuickJS).
+  // When original resource nodes exist, never import unrelated clipboard links.
+  if(typeof pdfa==='function'&&typeof pdfh==='function'){
+    const nodes=pdfa(body,'div.module-row-info > a&&OuterHtml');
+    if(nodes.length){
+      for(const node of nodes)add(pdfh(node,'a&&data-clipboard-text'));
+      return out;
+    }
+  }
   // Clipboard values are the original WoGG resource contract; retain a legacy
   // HTTP-link fallback only when the page supplies no usable clipboard shares.
   const anchors=body.match(/<a\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi)||[];

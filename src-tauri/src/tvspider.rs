@@ -18,7 +18,10 @@ static LOCAL: Mutex<()> = Mutex::new(());
 fn html_query(html: String, rule: String, many: bool) -> String {
     let doc = scraper::Html::parse_document(&html);
     let mut parts: Vec<_> = rule.split("&&").collect();
-    let attribute = if many {
+    let attribute = if many && parts.last() == Some(&"OuterHtml") {
+        parts.pop();
+        "OuterHtml"
+    } else if many {
         "Html"
     } else {
         parts.pop().unwrap_or("Text")
@@ -54,6 +57,7 @@ fn html_query(html: String, rule: String, many: bool) -> String {
         .map(|node| match attribute {
             "Text" => node.text().collect::<String>().trim().to_string(),
             "Html" | "html" => node.inner_html(),
+            "OuterHtml" => node.html(),
             attr => node.value().attr(attr).unwrap_or("").to_string(),
         })
         .collect();
@@ -395,6 +399,27 @@ mod tests {
         let list: Value =
             serde_json::from_str(&html_query(html.into(), "body&&li".into(), true)).unwrap();
         assert_eq!(list.as_array().unwrap().len(), 2);
+    }
+    #[test]
+    fn wogg_shares_use_real_quickjs_and_html_helpers() {
+        let runtime = Runtime::new().unwrap();
+        let context = Context::full(&runtime).unwrap();
+        context.with(|ctx| {
+            ctx.globals().set("__html", Function::new(ctx.clone(), html_query).unwrap()).unwrap();
+            ctx.eval::<(), _>("globalThis.pdfa=(h,r)=>JSON.parse(__html(h,r,true));globalThis.pdfh=(h,r)=>__html(h,r,false);").unwrap();
+            let source = include_str!("../resources/tvspiders/wogg.js")
+                .replace("export default", "globalThis.adapter =");
+            ctx.eval::<(), _>(source).unwrap();
+            let result: String = ctx.eval(r#"JSON.stringify(shareLinks(`<a data-clipboard-text="q-:advert"></a>
+              <div class="module-row-info"><a data-clipboard-text="q-:real"></a>
+                <span><a data-clipboard-text="q-:nested"></a></span></div>
+              <script>const x="https://pan.quark.cn/s/script"</script>`))"#).unwrap();
+            assert_eq!(result, r#"["https://pan.quark.cn/s/real"]"#);
+            let result: String = ctx.eval(r#"JSON.stringify(shareLinks('<div class="module-row-info"><a data-clipboard-text="unsupported"></a></div><a href="https://pan.quark.cn/s/advert"></a>'))"#).unwrap();
+            assert_eq!(result, "[]");
+            let result: String = ctx.eval(r#"JSON.stringify(shareLinks('<a data-clipboard-text="bd-:one?pwd=1234"></a><a data-clipboard-text="a-:two"></a>'))"#).unwrap();
+            assert_eq!(result, r#"["https://pan.baidu.com/s/one?pwd=1234","https://www.alipan.com/s/two"]"#);
+        });
     }
     #[test]
     fn cat_factory_and_host_helpers_work_without_external_runtime() {
