@@ -9,6 +9,28 @@ const GENRES = ['喜剧','爱情','动作','恐怖','科幻','剧情','犯罪','
 const AREAS = [['中国大陆','大陆'],['中国香港','中国香港'],['中国台湾','中国台湾'],['美国','美国'],['韩国','韩国'],['日本','日本'],['西班牙','西班牙'],['泰国','泰国'],['法国','法国'],['英国','英国'],['德国','德国'],['印度','印度'],['其他','其他']];
 function decode(v){ return String(v||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&nbsp;/gi,' ').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n))); }
 function clean(v){ return decode(String(v||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim(); }
+function shareLinks(doc){
+  // Never treat dormant script/style/comment content as a playable resource.
+  const body=String(doc||'').replace(/<!--[\s\S]*?-->/g,'').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
+  const out=[],seen=Object.create(null);
+  const bases={'q-:':'https://pan.quark.cn/s/','u-:':'https://drive.uc.cn/s/','bd-:':'https://pan.baidu.com/s/','a-:':'https://www.alipan.com/s/'};
+  function add(raw){
+    let value=decode(raw).trim();
+    const short=value.match(/^(q-:|u-:|bd-:|a-:)([^\s<>"']+)$/i);
+    if(short)value=bases[short[1].toLowerCase()]+short[2];
+    const urls=value.match(/https?:\/\/(?:pan\.quark\.cn|drive\.uc\.cn|(?:pan|yun)\.baidu\.com|(?:www\.)?(?:alipan|aliyundrive)\.com)\/s\/[^"'<>\s)]+/gi)||[];
+    for(const url of urls)if(!seen[url]){seen[url]=true;out.push(url);}
+  }
+  // Clipboard values are the original WoGG resource contract; retain a legacy
+  // HTTP-link fallback only when the page supplies no usable clipboard shares.
+  const anchors=body.match(/<a\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi)||[];
+  for(const anchor of anchors){
+    const attr=anchor.match(/\sdata-clipboard-text\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    if(attr)add(attr[1]===undefined?(attr[2]===undefined?attr[3]:attr[2]):attr[1]);
+  }
+  if(!out.length)add(body);
+  return out;
+}
 function root(v){return String(v||'').replace(/\/+$/,'');}
 function abs(v){ v=decode(v); return /^https?:\/\//i.test(v)?v:root(activeBase)+'/'+String(v||'').replace(/^\/+/, ''); }
 // Match WoGG's Douban image headers without retaining a failing site proxy URL.
@@ -64,6 +86,6 @@ export default {
   home(){ const doc=get('/'); return {class:CATS.map(x=>({type_id:x[0],type_name:x[1]})),filters:filters(),list:cards(doc)}; },
   category(tid,page,filter,ext){ const p=Math.max(1,Number(page)||1), e=ext||{}, area=e['1']||'', genre=e['3']||'', letter=e['5']||'', year=e['11']||''; const path='/vodshow/'+encodeURIComponent(tid)+'-'+encodeURIComponent(area)+'--'+encodeURIComponent(genre)+'-'+''+'-'+encodeURIComponent(letter)+'---'+p+'---'+encodeURIComponent(year)+'.html', doc=get(path), list=cards(doc); return {page:p,pagecount:pageCount(doc,p),limit:list.length,total:list.length?2147483647:0,list}; },
   search(keyword,page){ const p=Math.max(1,Number(page)||1), path='/vodsearch/'+(p>1?'----------'+p+'---':'-------------')+'.html?wd='+encodeURIComponent(keyword||''), doc=get(path); if(doc.length<5000&&/维护/.test(doc))return {page:p,pagecount:p,limit:0,total:0,list:[]}; const list=cards(doc); return {page:p,pagecount:pageCount(doc,p),limit:list.length,total:list.length?2147483647:0,list}; },
-  detail(id){ const vid=idOf(id),doc=get('/voddetail/'+vid+'.html'); const name=clean((doc.match(/<h1\b[^>]*class=["'][^"']*page-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i)||[])[1]), pic=(doc.match(/<div\b[^>]*class=["'][^"']*video-cover[^"']*["'][\s\S]*?<img\b[^>]*data-src=["']([^"']+)/i)||[])[1], type=clean((doc.match(/class=["'][^"']*video-info-aux[^"']*["'][\s\S]*?class=["'][^"']*video-tag-icon[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)||[])[1]), content=clean((doc.match(/<p\b[^>]*class=["']sqjj_a[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)||doc.match(/<p\b[^>]*class=["']zkjj_a[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)||[])[1]), links=[],seen={}; let m; const re=/https?:\/\/(?:pan\.quark\.cn|drive\.uc\.cn|(?:pan|yun)\.baidu\.com|(?:www\.)?(?:alipan|aliyundrive)\.com)\/s\/[^"'<>\s)]+/gi; while((m=re.exec(decode(doc)))){const u=m[0].replace(/&amp;/g,'&');if(!seen[u]){seen[u]=1;links.push(u);}} const from=[],urls=[]; for(const u of links){const flag=/quark/i.test(u)?'夸克网盘':/uc\.cn/i.test(u)?'UC网盘':/baidu/i.test(u)?'百度网盘':'阿里云盘';from.push(flag);urls.push((name||'影片')+' · '+flag+'$'+u);} if(!links.length)throw Error('玩偶详情页没有可用网盘资源'); return {list:[{vod_id:vid,vod_name:name||('玩偶资源 '+vid),vod_pic:picture(pic||''),type_name:type,vod_year:field(doc,'年代'),vod_remarks:field(doc,'备注'),vod_director:field(doc,'导演'),vod_actor:field(doc,'主演'),vod_content:content,vod_play_from:from.join('$$$'),vod_play_url:urls.join('$$$')}]}; },
+  detail(id){ const vid=idOf(id),doc=get('/voddetail/'+vid+'.html'); const name=clean((doc.match(/<h1\b[^>]*class=["'][^"']*page-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i)||[])[1]), pic=(doc.match(/<div\b[^>]*class=["'][^"']*video-cover[^"']*["'][\s\S]*?<img\b[^>]*data-src=["']([^"']+)/i)||[])[1], type=clean((doc.match(/class=["'][^"']*video-info-aux[^"']*["'][\s\S]*?class=["'][^"']*video-tag-icon[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)||[])[1]), content=clean((doc.match(/<p\b[^>]*class=["']sqjj_a[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)||doc.match(/<p\b[^>]*class=["']zkjj_a[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)||[])[1]), links=shareLinks(doc); const from=[],urls=[]; for(const u of links){const flag=/quark/i.test(u)?'夸克网盘':/uc\.cn/i.test(u)?'UC网盘':/baidu/i.test(u)?'百度网盘':'阿里云盘';from.push(flag);urls.push((name||'影片')+' · '+flag+'$'+u);} if(!links.length)throw Error('玩偶详情页没有可用网盘资源'); return {list:[{vod_id:vid,vod_name:name||('玩偶资源 '+vid),vod_pic:picture(pic||''),type_name:type,vod_year:field(doc,'年代'),vod_remarks:field(doc,'备注'),vod_director:field(doc,'导演'),vod_actor:field(doc,'主演'),vod_content:content,vod_play_from:from.join('$$$'),vod_play_url:urls.join('$$$')}]}; },
   play(flag,id){ return {parse:0,url:id}; }
 };
