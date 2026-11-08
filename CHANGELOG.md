@@ -1,0 +1,18 @@
+# 更新日志
+
+本文件记录 SimpleTools 标准版的重要变化。TVBOX 专属变化请查看 `tvbox` 分支中的同名文件。
+
+## v0.58.17 - 2026-11-08
+
+- 标准版继续保持轻量，不携带 TVBOX、JVM、Python 和 libmpv 大型运行时。
+- 发布 Windows x64 安装包和免安装单文件。
+- 与 TVBOX v0.58.17 同步发布；TVBOX 版修复真实分辨率/FPS 显示、动态直播源及系统真全屏。
+
+## v0.56.0 - 2026-10-20
+
+- 应用设置新增“关于”页面，集中展示产品信息、版本和检查更新入口。
+- 完善版本检查流程与界面验收。
+
+## 更早版本
+
+更早版本的完整改动可通过 [GitHub Releases](https://github.com/spencerlishaobing/SimpleTools/releases) 和 Git 提交历史查询。
