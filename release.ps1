@@ -46,13 +46,12 @@ $v = $Version.Trim().TrimStart('v', 'V')
 if ($v -notmatch '^\d+\.\d+\.\d+$') { Fail "bad version '$Version' (expect X.Y.Z)" }
 $tag = "v$v"
 
-# ---------- 分支与版本（tvbox / copy_fantaiying 两个 TVBOX 变体） ----------
+# ---------- 分支与版本（仅维护 main / tvbox） ----------
 $branch = (git -C $RepoDir rev-parse --abbrev-ref HEAD).Trim()
 $isTvboxBranch = $branch -eq 'tvbox'
-$isFantaiyingBranch = $branch -eq 'copy_fantaiying'
-$flavor = if ($isFantaiyingBranch) { 'fantaiying' } else { 'tvbox' }
-if ($Tvbox -and -not ($isTvboxBranch -or $isFantaiyingBranch)) { Fail "-Tvbox requires branch tvbox or copy_fantaiying (current: $branch)" }
-if (-not $Tvbox -and ($isTvboxBranch -or $isFantaiyingBranch)) { Fail "on $branch branch use -Tvbox (refusing to publish the TVBOX build as a standard release)" }
+$flavor = 'tvbox'
+if ($Tvbox -and -not $isTvboxBranch) { Fail "-Tvbox requires branch tvbox (current: $branch)" }
+if (-not $Tvbox -and $isTvboxBranch) { Fail "on tvbox branch use -Tvbox (refusing to publish the TVBOX build as a standard release)" }
 if ($Tvbox) { $tag = "v$v-$flavor" }
 
 # ---------- 版本号一致校验（tauri.conf.json / package.json / Cargo.toml） ----------
@@ -113,6 +112,7 @@ if ($Tvbox) {
   $assetName = $assetName -replace '_x64-setup', "_${flavor}_x64-setup"
   $portableAssetName = "SimpleTools_${v}_x64-portable-${flavor}.exe"
 }
+
 $portableSha = (Get-FileHash -LiteralPath $PortableExe -Algorithm SHA256).Hash
 $portableMB = [math]::Round($portable.Length / 1MB, 2)
 $assets = @(
@@ -144,6 +144,18 @@ if ($Tvbox) {
     $assets += @{ Name = $zipItem.Name; File = $portableZipPath; MB = [math]::Round($zipItem.Length / 1MB, 2); Sha = (Get-FileHash -LiteralPath $portableZipPath -Algorithm SHA256).Hash }
   }
 }
+
+# 最终交付物统一归档到工作区 releases；target 只是可删除的编译缓存。
+$archiveRoot = Join-Path (Split-Path $RepoDir -Parent) "releases\$flavor\$v"
+New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
+$archivedAssets = @()
+foreach ($a in $assets) {
+  $archivedFile = Join-Path $archiveRoot $a.Name
+  Copy-Item -LiteralPath $a.File -Destination $archivedFile -Force
+  $archivedAssets += @{ Name = $a.Name; File = $archivedFile; MB = $a.MB; Sha = $a.Sha }
+}
+$assets = $archivedAssets
+Write-Output "STEP release artifacts archived: $archiveRoot"
 
 # ---------- git 封装（可选代理） ----------
 $gitArgs = @('-C', $RepoDir)
@@ -289,7 +301,7 @@ try {
 if (-not $release) {
   $release = Api 'POST' "$ApiBase/releases" @{
     tag_name   = $tag
-    name       = $(if ($Tvbox) { "SimpleTools $v · $(if ($isFantaiyingBranch) { '饭太硬复刻版（无 JAR）' } else { 'TVBOX 版' })" } else { "SimpleTools $tag" })
+    name       = $(if ($Tvbox) { "SimpleTools $v · TVBOX 版" } else { "SimpleTools $tag" })
     body       = $releaseNotes
     draft      = $false
     prerelease = $false

@@ -5,7 +5,7 @@ SimpleTools TVBOX 便携包打包（tvbox 分支专用）
   powershell -ExecutionPolicy Bypass -File scripts/package-portable.ps1 -Version 0.58.0
 
 产物：
-  src-tauri\target\release\bundle\SimpleTools_<v>_tvbox_portable.zip
+  ..\..\releases\tvbox\<v>\SimpleTools_<v>_tvbox_portable.zip
   内含 SimpleTools.exe + resources/ + 使用说明.txt
 
 说明：release.ps1 -Tvbox 发布时会自动把该 zip 作为第三个资产上传（存在才上传）。
@@ -47,10 +47,15 @@ TVBOX：顶部导航「影视 / 搜索 / 直播 / 收藏 / 历史 / 设置」；
 "@
 [System.IO.File]::WriteAllText((Join-Path $dst '使用说明.txt'), $readme, (New-Object System.Text.UTF8Encoding $true))
 
-$zip = Join-Path $bundle "$name.zip"
+$archive = Join-Path $PSScriptRoot "..\..\releases\tvbox\$v"
+New-Item -ItemType Directory -Force -Path $archive | Out-Null
+$zip = Join-Path $archive "$name.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -Force $zip }
 tar -a -cf $zip -C $bundle $name
 if ($LASTEXITCODE -ne 0) { throw 'zip 打包失败（tar -a）' }
+
+# staging 目录仅用于压缩，最终包生成后立即清理，避免重复占用一整套运行时。
+Remove-Item -LiteralPath $dst -Recurse -Force
 
 $sizeMB = [math]::Round((Get-Item -LiteralPath $zip).Length / 1MB, 1)
 Write-Output "PORTABLE-OK $zip ($sizeMB MB)"
