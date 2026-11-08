@@ -80,6 +80,18 @@ $assets = @(
   @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
 )
 
+# 最终交付物统一归档到工作区 releases；target 只是可删除的编译缓存。
+$archiveRoot = Join-Path (Split-Path $RepoDir -Parent) "releases\standard\$v"
+New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
+$archivedAssets = @()
+foreach ($a in $assets) {
+  $archivedFile = Join-Path $archiveRoot $a.Name
+  Copy-Item -LiteralPath $a.File -Destination $archivedFile -Force
+  $archivedAssets += @{ Name = $a.Name; File = $archivedFile; MB = $a.MB; Sha = $a.Sha }
+}
+$assets = $archivedAssets
+Write-Output "STEP release artifacts archived: $archiveRoot"
+
 # ---------- git 封装（可选代理） ----------
 $gitArgs = @('-C', $RepoDir)
 if ($Proxy) { $gitArgs += @('-c', "http.proxy=$Proxy", '-c', "https.proxy=$Proxy") }
