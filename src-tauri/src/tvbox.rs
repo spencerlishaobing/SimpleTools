@@ -11,6 +11,9 @@ const DESKTOP_BROWSER_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 // ---------- 安全 DNS（DoH，参考 Android TVBox 的安全 DNS） ----------
 // 0=关闭 1=阿里 2=腾讯 3=Cloudflare；对所有 Rust 出站 HTTP 请求生效（JVM/JAR 内部 DNS 不受影响）
 static DNS_MODE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+pub(crate) fn current_dns_mode() -> u8 {
+    DNS_MODE.load(std::sync::atomic::Ordering::Relaxed)
+}
 
 fn dns_endpoint(mode: u8) -> Option<&'static str> {
     match mode {
@@ -801,6 +804,12 @@ pub struct SubtitleItem {
 /// 下载在线字幕到临时目录（mpv sub-add 加载），返回本地路径
 #[tauri::command]
 pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
+    let files = tvbox_subtitle_prepare(url).await?;
+    files.first().and_then(|v|v["path"].as_str()).map(str::to_owned).ok_or("没有字幕文件".into())
+}
+
+#[tauri::command]
+pub async fn tvbox_subtitle_prepare(url: String) -> Result<Vec<serde_json::Value>, String> {
     let parsed: tauri::Url = url.parse().map_err(|_| "字幕地址无效".to_string())?;
     if parsed.scheme() != "http" && parsed.scheme() != "https" {
         return Err("字幕地址需为 http(s)".into());
@@ -817,14 +826,10 @@ pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
             .map_err(|e| format!("字幕详情获取失败：{e}"))?;
         let value: serde_json::Value = response.json().await.map_err(|e| format!("字幕详情解析失败：{e}"))?;
         let sub = value.pointer("/sub/subs/0").ok_or("字幕详情为空或共享额度暂不可用")?;
-        let direct = sub.get("filelist").and_then(|v| v.as_array()).into_iter().flatten()
-            .find_map(|f| {
-                let name = f.get("f").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
-                if [".srt", ".ass", ".ssa", ".vtt"].iter().any(|e| name.ends_with(e)) {
-                    f.get("url").and_then(|v| v.as_str()).map(str::to_owned)
-                } else { None }
-            })
-            .or_else(|| sub.get("url").and_then(|v| v.as_str()).map(str::to_owned))
+        let choices = assrt_subtitle_files(sub);
+        if choices.len()>1 { return Ok(choices); }
+        let direct = choices.first().and_then(|f|f["url"].as_str()).map(str::to_owned)
+            .or_else(|| sub.get("url").and_then(|v|v.as_str()).map(str::to_owned))
             .ok_or("字幕详情没有可下载文件")?;
         let response = client.get(&direct).header("User-Agent", ASSRT_UA).send().await
             .map_err(|e| format!("字幕下载失败：{e}"))?;
@@ -890,38 +895,26 @@ pub async fn tvbox_subtitle_load(url: String) -> Result<String, String> {
         }
         response.bytes().await.map_err(|e| e.to_string())?
     };
-    // Assrt 返回的是 zip 压缩包：解压第一个字幕文件
-    let (bytes, zipped_ext) = if bytes.starts_with(b"PK") {
-        let (data, ext) = unzip_first_subtitle(&bytes)?;
-        (data, ext)
+    let files = if bytes.starts_with(b"PK") {
+        unzip_subtitles(&bytes)?
     } else {
-        (bytes.to_vec(), String::new())
-    };
-    if bytes.len() > 8 * 1024 * 1024 {
-        return Err("字幕文件过大".into());
-    }
-    if bytes.is_empty() {
-        return Err("字幕内容为空".into());
-    }
-    let path = parsed.path().to_lowercase();
-    let ext = if !zipped_ext.is_empty() {
-        zipped_ext
-    } else {
-        ["srt", "ass", "ssa", "vtt", "sub"]
-            .iter()
-            .find(|e| path.ends_with(&format!(".{e}")))
-            .copied()
-            .unwrap_or("srt")
-            .to_string()
+        let ext = ["srt", "ass", "ssa", "vtt", "sub"].iter()
+            .find(|e|parsed.path().to_lowercase().ends_with(&format!(".{e}"))).copied().unwrap_or("srt");
+        vec![("字幕".to_string(), bytes.to_vec(), ext.to_string())]
     };
     use std::hash::{Hash, Hasher};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     url.hash(&mut hasher);
     let folder = std::env::temp_dir().join("simpletools-subs");
     std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
-    let file = folder.join(format!("sub-{:x}.{}", hasher.finish(), ext));
-    std::fs::write(&file, &bytes).map_err(|e| e.to_string())?;
-    Ok(file.to_string_lossy().to_string())
+    let mut choices=Vec::new();
+    for (index,(name,data,ext)) in files.into_iter().enumerate() {
+        if data.is_empty() || data.len()>8*1024*1024 { return Err("字幕内容为空或超过 8MB".into()); }
+        let file=folder.join(format!("sub-{:x}-{index}.{ext}",hasher.finish()));
+        std::fs::write(&file,&data).map_err(|e|e.to_string())?;
+        choices.push(serde_json::json!({"name":name,"path":file.to_string_lossy()}));
+    }
+    Ok(choices)
 }
 
 /// 用配置里的字幕接口搜索在线字幕（宽松兼容标准数组 / subtitles / Subs 等返回格式）
@@ -1013,21 +1006,36 @@ fn assrt_page_download_url(html: &str) -> Option<String> {
 }
 
 /// 解压 zip 中的第一个字幕文件，返回（内容，扩展名）
-fn unzip_first_subtitle(bytes: &[u8]) -> Result<(Vec<u8>, String), String> {
-    let reader = std::io::Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(reader).map_err(|e| format!("字幕压缩包解析失败：{e}"))?;
-    for i in 0..archive.len() {
-        let Ok(mut entry) = archive.by_index(i) else { continue };
-        let name = entry.name().to_lowercase();
-        let Some(ext) = [".srt", ".ass", ".ssa", ".vtt", ".sub"].iter().find(|e| name.ends_with(*e)) else { continue };
-        let mut out = Vec::new();
-        use std::io::Read;
-        entry.read_to_end(&mut out).map_err(|e| e.to_string())?;
-        if !out.is_empty() {
-            return Ok((out, ext.trim_start_matches('.').to_string()));
+fn assrt_subtitle_files(sub: &serde_json::Value) -> Vec<serde_json::Value> {
+    let mut files=Vec::new();
+    for file in sub.get("filelist").and_then(|v|v.as_array()).into_iter().flatten() {
+        let name=file.get("f").and_then(|v|v.as_str()).unwrap_or("");
+        let Some(url)=file.get("url").and_then(|v|v.as_str()) else {continue};
+        if ![".srt",".ass",".ssa",".vtt",".sub"].iter().any(|e|name.to_lowercase().ends_with(e)){continue;}
+        if !tauri::Url::parse(url).map(|u|matches!(u.scheme(),"http"|"https")).unwrap_or(false){continue;}
+        if !files.iter().any(|f:&serde_json::Value|f["url"].as_str()==Some(url)) {
+            files.push(serde_json::json!({"name":name,"url":url}));
         }
     }
-    Err("字幕压缩包里没有字幕文件".into())
+    files
+}
+
+fn unzip_subtitles(bytes: &[u8]) -> Result<Vec<(String,Vec<u8>,String)>, String> {
+    let mut archive=zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e|format!("字幕压缩包解析失败：{e}"))?;
+    let mut files=Vec::new();let mut total=0usize;
+    for i in 0..archive.len() {
+        let mut entry=archive.by_index(i).map_err(|e|e.to_string())?;
+        if entry.is_dir(){continue;}
+        let name=entry.name().to_string();let lower=name.to_lowercase();
+        let Some(ext)=["srt","ass","ssa","vtt","sub"].iter().find(|e|lower.ends_with(&format!(".{e}"))) else {continue};
+        if files.len()>=100 || entry.size()>8*1024*1024{return Err("字幕包文件数量或单文件大小超限".into());}
+        use std::io::Read;
+        let mut data=Vec::new();entry.by_ref().take(8*1024*1024+1).read_to_end(&mut data).map_err(|e|e.to_string())?;
+        total+=data.len();if data.len()>8*1024*1024 || total>64*1024*1024{return Err("字幕包解压大小超限".into());}
+        if !data.is_empty(){files.push((name,data,ext.to_string()));}
+    }
+    if files.is_empty(){return Err("字幕压缩包里没有字幕文件".into());}
+    Ok(files)
 }
 
 fn collect_subtitles(value: &serde_json::Value, out: &mut Vec<SubtitleItem>) {
@@ -1082,6 +1090,26 @@ fn encode_component(value: &str) -> String {
 mod tests {
     use super::*;
     use base64::Engine as _;
+
+    #[test]
+    fn subtitle_candidates_preserve_files_and_ignore_non_subtitles() {
+        let files=assrt_subtitle_files(&serde_json::json!({"filelist":[
+            {"f":"中文.srt","url":"https://example.test/a"},
+            {"f":"English.ASS","url":"https://example.test/b"},
+            {"f":"duplicate.srt","url":"https://example.test/a"},
+            {"f":"readme.txt","url":"https://example.test/c"},
+            {"f":"bad.srt","url":"file:///bad"}]}));
+        assert_eq!(files.len(),2);assert_eq!(files[1]["name"],"English.ASS");
+        use std::io::Write;
+        let mut archive=zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        for (name,data) in [("nested/中文.srt","first"),("English.ass","second"),("readme.txt","ignore")] {
+            archive.start_file(name,zip::write::SimpleFileOptions::default()).unwrap();
+            archive.write_all(data.as_bytes()).unwrap();
+        }
+        let bytes=archive.finish().unwrap().into_inner();let entries=unzip_subtitles(&bytes).unwrap();
+        assert_eq!(entries.len(),2);assert_eq!(entries[0].0,"nested/中文.srt");
+        assert_eq!(entries[1].1,b"second");assert_eq!(entries[1].2,"ass");
+    }
 
     fn encode(text: &str) -> String {
         base64::engine::general_purpose::STANDARD.encode(text.as_bytes())

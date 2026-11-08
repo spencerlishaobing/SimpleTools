@@ -5,8 +5,9 @@ const {JSDOM}=require('jsdom');
 const base='https://source.test/config.json';
 const tick=()=>new Promise(resolve=>setTimeout(resolve,20));
 async function app(t,config,respond=()=>undefined,extra={}) {
-  const dom=new JSDOM(fs.readFileSync('src/index.html','utf8'),{url:'http://localhost/',runScripts:'outside-only'});t.after(()=>dom.window.close());
+  const dom=new JSDOM(fs.readFileSync('src/index.html','utf8'),{url:'http://localhost/',runScripts:'outside-only',pretendToBeVisual:true});t.after(()=>dom.window.close());
   const w=dom.window,calls=[],events={},saved={profiles:[{id:'p1',name:'测试配置',config,base}],profileId:'p1',...extra};
+  w.IntersectionObserver=class {constructor(fn){events.intersection=fn;}observe(){}disconnect(){}};
   w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.showConfirm=async()=>true;
   w.HTMLMediaElement.prototype.pause=function(){};
   w.__TAURI__={core:{convertFileSrc:p=>'asset://'+p,invoke:async(name,args)=>{
@@ -18,6 +19,34 @@ async function app(t,config,respond=()=>undefined,extra={}) {
   return {w,get,calls,events,dom};
 }
 const source={name:'测试',key:'test',type:1,api:'/api'};
+
+test('fullscreen hides controls after idle, native click restores and Escape exits from input',async t=>{
+  const a=await app(t,{sites:[source]},catalogue);await episode(a);
+  const panel=a.w.document.getElementById('panel-tvbox');
+  await a.get('fullscreen').onclick();assert.ok(panel.classList.contains('tv-stage-full'));
+  await new Promise(r=>setTimeout(r,3100));assert.ok(panel.classList.contains('tv-controls-idle'));
+  const session=a.calls.findLast(c=>c.name==='tvplayer_play').args.session;
+  a.events['tvbox-player-event']({payload:{kind:'input',action:'tvbox-controls',session}});
+  assert.equal(panel.classList.contains('tv-controls-idle'),false);
+  a.get('keyword').dispatchEvent(new a.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();
+  assert.equal(panel.classList.contains('tv-stage-full'),false);
+  assert.equal(a.calls.findLast(c=>c.name==='tvplayer_fullscreen').args.fullscreen,false);
+});
+
+test('application settings dialog hides native surface and restores it on close',async t=>{
+  const a=await app(t,{sites:[source]},catalogue);await episode(a);
+  a.events['tvbox-player-event']({payload:{kind:'loaded',session:a.calls.findLast(c=>c.name==='tvplayer_play').args.session}});
+  a.get('surface').getBoundingClientRect=()=>({x:0,y:0,width:800,height:450});
+  const modal=a.w.document.getElementById('settings-modal');modal.getClientRects=()=>[{}];
+  modal.classList.remove('hidden');await tick();
+  assert.equal(a.calls.findLast(c=>c.name.startsWith('tvplayer_surface')).name,'tvplayer_surface_hide');
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls.findLast(c=>c.name==='tvplayer_control').args)),{action:'set-pause',value:true});
+  assert.equal(a.get('pause').getAttribute('aria-label'),'播放');
+  const pauseCalls=a.calls.filter(c=>c.name==='tvplayer_control'&&c.args.action==='set-pause').length;
+  modal.classList.add('hidden');await tick();
+  assert.equal(a.calls.findLast(c=>c.name.startsWith('tvplayer_surface')).name,'tvplayer_surface');
+  assert.equal(a.calls.filter(c=>c.name==='tvplayer_control'&&c.args.action==='set-pause').length,pauseCalls);
+});
 test('settings and search navigation preserve the library and phone configuration imports',async t=>{
   const a=await app(t,{sites:[source]},(name,args)=>name==='tvbox_remote_start'?{codes:[{url:'http://192.168.1.2:9978/#token',svg:'<svg xmlns="http://www.w3.org/2000/svg"/>'}]}:catalogue(name,args));
   a.get('settings-tab').click();assert.equal(a.get('library').classList.contains('hidden'),true);
@@ -87,6 +116,19 @@ test('inline and remote M3U channels appear and can play',async t=>{
   await sources[1].onclick();await tick();assert.match(a.get('results').textContent,/一/);
   await a.get('sidenav').querySelectorAll('button')[2].onclick();await tick();assert.match(a.get('results').textContent,/二/);
   await a.get('results').querySelector('button').onclick();assert.equal(a.calls.findLast(c=>c.name==='tvplayer_play').args.target,'https://live.test/2');
+});
+
+test('live failures try each channel line once and never silently switch channel',async t=>{
+  const a=await app(t,{lives:[{channels:[{name:'一',urls:['https://live.test/a','https://live.test/b']},{name:'二',urls:['https://live.test/c']}]}]},()=> '');
+  await a.get('live').onclick();await a.get('sidenav').querySelectorAll('button')[1].onclick();await tick();
+  await a.get('results').querySelector('button').onclick();
+  let session=a.calls.findLast(c=>c.name==='tvplayer_play').args.session;
+  a.events['tvbox-player-event']({payload:{kind:'ended',session,reason:4,error:-13}});await tick();
+  assert.equal(a.calls.findLast(c=>c.name==='tvplayer_play').args.target,'https://live.test/b');
+  session=a.calls.findLast(c=>c.name==='tvplayer_play').args.session;
+  a.events['tvbox-player-event']({payload:{kind:'ended',session,reason:4,error:-13}});await tick();
+  assert.equal(a.calls.filter(c=>c.name==='tvplayer_play').length,2);
+  assert.match(a.get('status').textContent,/所有线路均不可用/);
 });
 test('resume loads progress persisted in native data',async t=>{
   const a=await app(t,{sites:[source]},catalogue,{history:[{key:'p1:test:2:0:0',name:'电影',url:'https://video.test/a.mkv',position:120,duration:3600}]});await episode(a);
@@ -167,4 +209,144 @@ test('torrent episode bypasses webpage parser and starts native download',async 
 });
 test('local multiple selection supports next episode',async t=>{
   const a=await app(t,{});a.w.__TAURI__.dialog.open=async()=>['F:\\movie1.mkv','F:\\movie2.mkv'];await a.get('local').onclick();await a.get('episode-next').onclick();assert.equal(a.calls.findLast(c=>c.name==='tvplayer_play').args.target,'F:\\movie2.mkv');
+});
+
+test('structured play URL retains nested headers',async t=>{
+  const a=await app(t,{sites:[{...source,type:4}]},(name,args)=>{
+    if(name==='tvbox_fetch'&&new URL(args.url).searchParams.has('play'))return JSON.stringify({url:{url:'https://video.test/nested.mkv',headers:{Referer:'https://source.test/'}}});
+    return catalogue(name,args);
+  });
+  await episode(a);
+  const play=a.calls.findLast(c=>c.name==='tvplayer_play');
+  assert.equal(play.args.target,'https://video.test/nested.mkv');
+  assert.equal(play.args.headers.Referer,'https://source.test/');
+});
+test('cloud descriptor fallback preserves actual resolver error',async t=>{
+  const ep=JSON.stringify({sId:'fixture-share',fid:'fixture-file'});
+  const a=await app(t,{sites:[{...source,type:4}]},(name,args)=>{
+    if(name==='tvbox_cloud_play')throw Error('转存失败：网盘空间不足');
+    if(name==='tvbox_fetch'){
+      const u=new URL(args.url);
+      if(u.searchParams.has('play'))return JSON.stringify({url:ep,parse:0});
+      if(u.searchParams.has('ids'))return JSON.stringify({list:[{vod_id:2,vod_name:'电影',vod_play_from:'夸克',vod_play_url:'测试$'+ep}]});
+    }
+    return catalogue(name,args);
+  });
+  await episode(a);
+  assert.equal(a.calls.some(c=>c.name==='tvplayer_play'),false);
+  assert.match(a.get('status').textContent,/网盘空间不足/);
+  assert.doesNotMatch(a.get('status').textContent,/格式不兼容/);
+});
+
+test('failed stale search cannot increment a newer search completion count',async t=>{
+  const pending=new Map();
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_fetch'){
+      const word=new URL(args.url).searchParams.get('wd');
+      if(word)return new Promise((resolve,reject)=>pending.set(word,{resolve,reject}));
+    }
+    return catalogue(name,args);
+  });
+  a.get('keyword').value='旧查询';const old=a.get('search').onclick();await tick();
+  a.get('keyword').value='新查询';const current=a.get('search').onclick();await tick();
+  assert.ok(pending.has('旧查询'));assert.ok(pending.has('新查询'));
+  pending.get('旧查询').reject(new Error('late failure'));await old;
+  pending.get('新查询').resolve(JSON.stringify({list:[{vod_id:'new',vod_name:'新查询'}]}));await current;
+  assert.match(a.get('results').textContent,/1\/1 个源已返回/);
+  assert.doesNotMatch(a.get('results').textContent,/2\/1/);
+});
+
+test('subtitle RGB colors keep channels and online subtitles load one selection then close',async t=>{
+  let finish;
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_subtitle_search')return [{title:'字幕 A',url:'https://sub.test/a.srt'},{title:'字幕 B',url:'https://sub.test/b.srt'}];
+    if(name==='tvbox_subtitle_prepare')return new Promise(resolve=>finish=resolve);
+    return catalogue(name,args);
+  });
+  await episode(a);
+  for(const color of ['#ff0000','#00ff00','#0000ff','#ffff00']){
+    a.get('sub-color').value=color;a.get('sub-color').oninput();
+    assert.equal(a.calls.findLast(c=>c.name==='tvplayer_control'&&c.args.action==='sub-color').args.value,color);
+  }
+  await a.get('sub-online').onclick();
+  assert.ok(a.w.document.querySelector('.tv-sub-dialog'));
+  const choices=a.get('sub-list').querySelectorAll('button');
+  const first=choices[0].onclick();await tick();
+  await choices[1].onclick();
+  assert.equal(a.calls.filter(c=>c.name==='tvbox_subtitle_prepare').length,1);
+  assert.equal(choices[1].disabled,true);
+  finish([{name:'字幕 A',path:'C:/fixture/a.srt'}]);await first;
+  assert.equal(a.w.document.querySelector('.tv-sub-dialog'),null);
+  assert.equal(a.calls.findLast(c=>c.name==='tvplayer_control'&&c.args.action==='subtitle').args.value,'C:/fixture/a.srt');
+});
+
+test('subtitle archive offers individual files without loading the first automatically',async t=>{
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_subtitle_search')return [{title:'字幕包',url:'https://sub.test/archive.zip'}];
+    if(name==='tvbox_subtitle_prepare')return [{name:'中文.srt',path:'C:/fixture/zh.srt'},{name:'English.srt',path:'C:/fixture/en.srt'}];
+    return catalogue(name,args);
+  });
+  await episode(a);await a.get('sub-online').onclick();await a.get('sub-list').querySelector('button').onclick();
+  assert.match(a.get('sub-hint').textContent,/请选择字幕包/);
+  assert.equal(a.calls.filter(c=>c.name==='tvplayer_control'&&c.args.action==='subtitle').length,0);
+  await [...a.get('sub-list').querySelectorAll('button')].find(b=>b.textContent==='English.srt').onclick();
+  assert.equal(a.calls.findLast(c=>c.name==='tvplayer_control'&&c.args.action==='subtitle').args.value,'C:/fixture/en.srt');
+  assert.equal(a.calls.filter(c=>c.name==='tvbox_subtitle_prepare').length,1);
+  assert.equal(a.w.document.querySelector('.tv-sub-dialog'),null);
+});
+
+
+test('Assrt file choices download only the selected remote subtitle',async t=>{
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_subtitle_search')return [{title:'字幕集合',url:'https://api.assrt.net/detail'}];
+    if(name==='tvbox_subtitle_prepare')return args.url==='https://api.assrt.net/detail'
+      ?[{name:'中文.srt',url:'https://sub.test/zh.srt'},{name:'English.srt',url:'https://sub.test/en.srt'}]
+      :[{name:'English.srt',path:'C:/fixture/en.srt'}];
+    return catalogue(name,args);
+  });
+  await episode(a);await a.get('sub-online').onclick();await a.get('sub-list').querySelector('button').onclick();
+  assert.equal(a.calls.filter(c=>c.name==='tvbox_subtitle_prepare').length,1);
+  await [...a.get('sub-list').querySelectorAll('button')].find(b=>b.textContent==='English.srt').onclick();
+  assert.deepEqual(a.calls.filter(c=>c.name==='tvbox_subtitle_prepare').map(c=>c.args.url),['https://api.assrt.net/detail','https://sub.test/en.srt']);
+  assert.equal(a.calls.findLast(c=>c.name==='tvplayer_control'&&c.args.action==='subtitle').args.value,'C:/fixture/en.srt');
+});
+
+
+test('failed stale load-more preserves the new category page and status',async t=>{
+  let rejectOld;
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_fetch'){
+      const url=new URL(args.url);
+      if(url.searchParams.get('pg')==='2'&&!url.searchParams.get('t'))return new Promise((resolve,reject)=>rejectOld=reject);
+      return JSON.stringify({class:[{type_id:'1',type_name:'新分类'}],list:[{vod_id:'new',vod_name:'新影片'}],pagecount:5});
+    }
+  });
+  await a.get('home').onclick();
+  a.events.intersection([{isIntersecting:true}]);await tick();
+  assert.equal(typeof rejectOld,'function');
+  a.get('category').value='1';await a.get('category').onchange();
+  const status=a.get('status').textContent;
+  rejectOld(new Error('old page failed'));await tick();
+  assert.equal(a.get('status').textContent,status);
+  await a.get('next').onclick();
+  const request=new URL(a.calls.findLast(c=>c.name==='tvbox_fetch').args.url);
+  assert.equal(request.searchParams.get('t'),'1');
+  assert.equal(request.searchParams.get('pg'),'2');
+});
+
+
+test('current load-more failure still rolls back and retries the same page',async t=>{
+  let attempts=0;
+  const a=await app(t,{sites:[source]},(name,args)=>{
+    if(name==='tvbox_fetch'){
+      if(new URL(args.url).searchParams.get('pg')==='2'&&++attempts===1)throw new Error('temporary outage');
+      return JSON.stringify({class:[],list:[{vod_id:String(attempts),vod_name:'影片'}],pagecount:5});
+    }
+  });
+  await a.get('home').onclick();
+  a.events.intersection([{isIntersecting:true}]);await tick();
+  assert.match(a.get('status').textContent,/加载更多失败：temporary outage/);
+  a.events.intersection([{isIntersecting:true}]);await tick();
+  assert.equal(attempts,2);
+  assert.match(a.get('page').textContent,/第 2 页/);
 });

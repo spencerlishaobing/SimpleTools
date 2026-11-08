@@ -30,6 +30,11 @@ struct EndFile {
     reason: c_int,
     error: c_int,
 }
+#[repr(C)]
+struct ClientMessage {
+    count: c_int,
+    args: *const *const c_char,
+}
 pub struct Player {
     handle: usize,
     wid: usize,
@@ -57,12 +62,35 @@ pub(crate) mod surface_win {
     use super::*;
     use std::ffi::c_void;
     use windows::core::w;
-    use windows::Win32::Foundation::HWND;
+    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
     use windows::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows::Win32::UI::WindowsAndMessaging::{
-        CreateWindowExW, SetWindowPos, ShowWindow, HWND_TOP, SWP_NOACTIVATE, SWP_SHOWWINDOW,
-        SW_HIDE, WINDOW_EX_STYLE, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE,
+        CreateWindowExW, SetWindowPos, ShowWindow, HWND_TOP, HWND_BOTTOM, SWP_NOACTIVATE, SWP_SHOWWINDOW,
+        SW_HIDE, WINDOW_EX_STYLE, WS_CHILD, WS_CLIPCHILDREN, WS_VISIBLE,
+        SetWindowLongPtrW, CallWindowProcW, GWLP_WNDPROC, WNDPROC, WM_LBUTTONUP, WM_NCHITTEST,
     };
+    pub static WEB_CONTROLS_OVERLAY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    static SURFACE_APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+    static OLD_PROC: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+    unsafe extern "system" fn surface_proc(hwnd: HWND, msg:u32, w:WPARAM, l:LPARAM)->LRESULT {
+        // STATIC otherwise reports HTTRANSPARENT without SS_NOTIFY, routing
+        // clicks to the parent WebView rather than this video host.
+        if msg==WM_NCHITTEST { return LRESULT(1); }
+        if msg==WM_LBUTTONUP {
+            if let Some(app)=SURFACE_APP.get() {
+                let app=app.clone();let x=(l.0 as u16) as i16;let y=((l.0>>16) as u16) as i16;
+                tauri::async_runtime::spawn_blocking(move || {
+                    let state=app.state::<PlayerState>();
+                    if let Ok(guard)=state.0.lock(){if let Some(player)=guard.as_ref(){
+                        let _=player.command(&["script-message","simpletools-pointer",&x.to_string(),&y.to_string()]);
+                    }};
+                });
+            }
+            return LRESULT(0);
+        }
+        let prior:WNDPROC=std::mem::transmute(OLD_PROC.load(std::sync::atomic::Ordering::Relaxed));
+        CallWindowProcW(prior,hwnd,msg,w,l)
+    }
 
     fn hwnd_of(app: &tauri::AppHandle) -> Result<HWND, String> {
         let w = app.get_window("main").ok_or("主窗口不存在")?;
@@ -74,6 +102,7 @@ pub(crate) mod surface_win {
     }
 
     pub fn ensure(app: &tauri::AppHandle, x: f64, y: f64, width: f64, height: f64) -> Result<HWND, String> {
+        let _=SURFACE_APP.set(app.clone());
         let state = app.state::<SurfaceState>();
         let existing = *state.0.lock().map_err(|_| "视频区域锁异常")?;
         let (xi, yi, wi, hi) = (
@@ -99,7 +128,7 @@ pub(crate) mod surface_win {
                             WINDOW_EX_STYLE(0),
                             w!("static"),
                             w!(""),
-                            WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+                            WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
                             xi,
                             yi,
                             wi,
@@ -113,7 +142,11 @@ pub(crate) mod surface_win {
                     }
                 };
                 unsafe {
-                    let _ = SetWindowPos(hwnd, Some(HWND_TOP), xi, yi, wi, hi, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+                    if existing.is_none(){
+                        let previous=SetWindowLongPtrW(hwnd,GWLP_WNDPROC,surface_proc as *const () as isize);
+                        OLD_PROC.store(previous,std::sync::atomic::Ordering::Relaxed);
+                    }
+                    let _ = SetWindowPos(hwnd, Some(if WEB_CONTROLS_OVERLAY.load(std::sync::atomic::Ordering::Relaxed) { HWND_BOTTOM } else { HWND_TOP }), xi, yi, wi, hi, SWP_NOACTIVATE | SWP_SHOWWINDOW);
                 }
                 Ok(hwnd.0 as isize)
             })();
@@ -332,15 +365,23 @@ pub async fn tvplayer_play(
                 ("cache-pause", "yes".into()),
                 ("cache-pause-wait", "3".into()),
                 ("network-timeout", "20".into()),
-                ("osc", "yes".into()),
+                ("osc", "no".into()),
                 ("input-default-bindings", "yes".into()),
                 ("input-vo-keyboard", "yes".into()),
+                ("input-cursor", "yes".into()),
                 ("idle", "yes".into()),
                 ("config", "no".into()),
             ] {
                 player.set(key, &value)?;
             }
             check(initialize(handle))?;
+            player.command(&["define-section", "simpletools-ui",
+                "MBTN_LEFT script-message tvbox-controls\nESC script-message tvbox-exit-fullscreen\nf script-message tvbox-fullscreen", "force"])?;
+            player.command(&["enable-section", "simpletools-ui"])?;
+            let ui_path = app.path().app_cache_dir().map_err(|e|e.to_string())?.join("tvplayer-ui.lua");
+            if let Some(parent)=ui_path.parent(){std::fs::create_dir_all(parent).map_err(|e|e.to_string())?;}
+            std::fs::write(&ui_path, include_str!("tvplayer-ui.lua")).map_err(|e|e.to_string())?;
+            player.command(&["load-script", &ui_path.to_string_lossy()])?;
             *guard = Some(player);
         }
         let pump_app = app.clone();
@@ -360,6 +401,13 @@ pub async fn tvplayer_play(
                         break;
                     }
                     let message = match (*event).id {
+                        16 if !(*event).data.is_null() => {
+                            let data = &*((*event).data as *const ClientMessage);
+                            if data.count > 0 && !data.args.is_null() && !(*data.args).is_null() {
+                                let action = CStr::from_ptr(*data.args).to_string_lossy();
+                                Some(serde_json::json!({"kind":"input","action":action,"session":player.session}))
+                            } else { None }
+                        }
                         8 => Some(serde_json::json!({"kind":"loaded","session":player.session})),
                         7 if !(*event).data.is_null() => {
                             let end = &*((*event).data as *const EndFile);
@@ -459,6 +507,7 @@ pub async fn tvplayer_control(
     let player = guard.as_ref().ok_or("请先播放视频")?;
     match action.as_str() {
         "pause" => player.command(&["cycle", "pause"]),
+        "set-pause" => player.set("pause", if value.as_ref().and_then(|v|v.as_bool()).ok_or("需要暂停状态")? { "yes" } else { "no" }),
         "stop" => player.command(&["stop"]),
         "forward" => player.command(&["seek", "10", "relative"]),
         "backward" => player.command(&["seek", "-10", "relative"]),
@@ -541,6 +590,13 @@ pub async fn tvplayer_fullscreen(
     fullscreen: bool,
 ) -> Result<(), String> {
     let window = app.get_window("main").ok_or("主窗口不存在")?;
+    #[cfg(windows)]
+    {
+        if let Some(webview) = app.get_webview("main") {
+            webview.set_background_color(Some(tauri::window::Color(0, 0, 0, 0))).map_err(|e| e.to_string())?;
+        }
+        surface_win::WEB_CONTROLS_OVERLAY.store(fullscreen, std::sync::atomic::Ordering::Relaxed);
+    }
     window.set_fullscreen(fullscreen).map_err(|e| e.to_string())
 }
 

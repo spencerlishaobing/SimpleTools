@@ -672,7 +672,7 @@ mod tests {
             }
         });
         let path = std::env::temp_dir().join(format!("simpletools-wogg-{}.js", std::process::id()));
-        let script = include_str!("../resources/tvspiders/wogg.js").replace("http://www.wogg.live", &format!("http://{address}"));
+        let script = include_str!("../resources/tvspiders/wogg.js").replace("https://www.wogg.net", &format!("http://{address}"));
         std::fs::write(&path, script).unwrap();
         let api = reqwest::Url::from_file_path(&path).unwrap().to_string();
         let state = path.with_extension("json");

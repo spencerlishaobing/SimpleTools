@@ -49,10 +49,22 @@ fn load_cookie(app: &tauri::AppHandle, host: &str) -> String {
 }
 
 fn client() -> Result<reqwest::Client, String> {
-    apply_dns(reqwest::Client::builder())
+    // Share TLS connections between detail and playback requests. Cookies are
+    // still loaded per request; changing DNS mode replaces the pool immediately.
+    static POOL: std::sync::OnceLock<std::sync::Mutex<Option<(u8, reqwest::Client)>>> = std::sync::OnceLock::new();
+    let mode = crate::tvbox::current_dns_mode();
+    let mut pool = POOL.get_or_init(Default::default).lock().map_err(|_| "网盘连接池锁异常")?;
+    if let Some((cached_mode, client)) = pool.as_ref() {
+        if *cached_mode == mode { return Ok(client.clone()); }
+    }
+    let client = apply_dns(reqwest::Client::builder())
         .timeout(Duration::from_secs(20))
+        .connect_timeout(Duration::from_secs(6))
+        .pool_idle_timeout(Duration::from_secs(90))
         .build()
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    *pool = Some((mode, client.clone()));
+    Ok(client)
 }
 
 /// 从分享链接提取 (类型, id, 密码)
@@ -193,15 +205,26 @@ async fn quark_refresh_file(
     stoken: &str,
     cookie: &str,
     target_fid: &str,
+    parent_hint: Option<&str>,
 ) -> Result<(String, String, i64), String> {
     let mut dirs = std::collections::VecDeque::from(["0".to_string()]);
+    if let Some(parent) = parent_hint.filter(|v| !v.is_empty() && *v != "0") {
+        dirs.push_front(parent.to_string());
+    }
+    let mut visited = std::collections::HashSet::new();
     let mut scanned = 0usize;
     while let Some(pdir) = dirs.pop_front() {
+        if !visited.insert(pdir.clone()) { continue; }
         scanned += 1;
         if scanned > 100 {
             break;
         }
-        for item in quark_list(http, kind, id, stoken, cookie, &pdir).await? {
+        let items = match quark_list(http, kind, id, stoken, cookie, &pdir).await {
+            Ok(items) => items,
+            Err(_) if parent_hint == Some(pdir.as_str()) && pdir != "0" => continue,
+            Err(error) => return Err(error),
+        };
+        for item in items {
             let fid = item.get("fid").and_then(Value::as_str).unwrap_or("");
             if fid.is_empty() {
                 continue;
@@ -253,7 +276,7 @@ async fn quark_video_files(http: &reqwest::Client, kind: &str, id: &str, stoken:
             let size = item.get("size").and_then(Value::as_i64).unwrap_or(0);
             let fid_token = item.get("share_fid_token").and_then(Value::as_str).unwrap_or("");
             let payload = json!({
-                "sId": id, "sToken": stoken, "fid": fid,
+                "sId": id, "sToken": stoken, "fid": fid, "parent_fid": pdir,
                 "share_fid_token": fid_token,
                 "size": size, "flag": if kind == "uc" { "UC" } else { "夸父" }
             });
@@ -489,13 +512,23 @@ async fn quark_save_and_link(http: &reqwest::Client, kind: &str, id: &str, stoke
             if save_msg.is_empty() { "服务端未返回成功任务" } else { save_msg.as_str() }
         ));
     }
-    // 2) 等任务完成（最多 12 秒）
+    // 2) Bound the entire polling phase, including slow HTTP responses.
     if !task_id.is_empty() {
-        for _ in 0..12 {
-            tokio::time::sleep(Duration::from_secs(1)).await;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+        for attempt in 0..12 {
+            // Most small transfers are ready by the first response; do not impose
+            // an unconditional extra second before checking the task.
+            if attempt > 0 { tokio::time::sleep(Duration::from_secs(1)).await; }
             let u = format!("{base}/1/clouddrive/share/sharepage/task?pr=ucpro&fr=pc&task_id={task_id}&retry_index=0");
-            let Ok(r) = http.get(&u).header("Cookie", cookie).header("User-Agent", UA_PC).send().await else { continue };
-            let Ok(v) = r.json::<Value>().await else { continue };
+            let response = tokio::time::timeout_at(deadline, async {
+                http.get(&u).header("Cookie", cookie).header("User-Agent", UA_PC)
+                    .send().await?.json::<Value>().await
+            }).await;
+            let v = match response {
+                Ok(Ok(v)) => v,
+                Ok(Err(_)) => continue,
+                Err(_) => return Err("网盘转存任务等待超时，请稍后重试".into()),
+            };
             let status = v.pointer("/data/status").and_then(|x| x.as_i64()).unwrap_or(0);
             if status == 2 {
                 if file_fid.is_empty() {
@@ -811,7 +844,20 @@ pub async fn tvbox_cloud_play(app: tauri::AppHandle, url: String) -> Result<serd
                 }
                 let http = client()?;
                 let size = v.get("size").and_then(|x| x.as_i64()).unwrap_or(0);
-                // ep 里的 sToken 是详情接口下发的，容易过期（实测）：用 sId 重新获取新鲜 stoken，拿不到再用 ep 的
+                let resolve_started = std::time::Instant::now();
+                // Recent detail results already contain both tokens. Avoid a new
+                // share-token request and directory walk on every episode click.
+                // Retry only a definite rejected save, never a network timeout or
+                // a later playback-link failure (the save may already have run).
+                let fast_link = if !s_token.is_empty() && !fid_token.is_empty() {
+                    match quark_save_and_link(&http, kind, &s_id, &s_token, &cookie, &fid, &fid_token, size).await {
+                        Ok(link) => Some(link),
+                        Err(error) if error.starts_with("转存失败：") => None,
+                        Err(error) => return Err(error),
+                    }
+                } else { None };
+                let used_detail_tokens = fast_link.is_some();
+                let (link, fresh_name) = if let Some(link) = fast_link { (link, String::new()) } else {
                 let fresh_stoken = match quark_stoken(&http, kind, &s_id, "").await {
                     Ok(s) if !s.is_empty() => s,
                     _ => s_token,
@@ -819,7 +865,8 @@ pub async fn tvbox_cloud_play(app: tauri::AppHandle, url: String) -> Result<serd
                 // ep JSON 中的 share_fid_token 与 stoken 一样会过期。必须按 fid 从
                 // 当前分享目录刷新 token，避免转存 41020 后误播网盘里的其他文件。
                 let (fresh_fid_token, fresh_name, fresh_size) =
-                    quark_refresh_file(&http, kind, &s_id, &fresh_stoken, &cookie, &fid).await?;
+                    quark_refresh_file(&http, kind, &s_id, &fresh_stoken, &cookie, &fid,
+                        v.get("parent_fid").and_then(Value::as_str)).await?;
                 let link = quark_save_and_link(
                     &http,
                     kind,
@@ -831,6 +878,8 @@ pub async fn tvbox_cloud_play(app: tauri::AppHandle, url: String) -> Result<serd
                     if fresh_size > 0 { fresh_size } else { size },
                 )
                 .await?;
+                (link, fresh_name)
+                };
                 let mut parts = link.splitn(3, '\n');
                 let real = parts.next().unwrap_or("").to_string();
                 let save_name = parts.next().unwrap_or("").to_string();
@@ -841,7 +890,8 @@ pub async fn tvbox_cloud_play(app: tauri::AppHandle, url: String) -> Result<serd
                     format!("{cookie}; {media_cookie}")
                 };
                 // cookie 一并返回：夸克 CDN（m3u8 分片）校验登录态，播放器请求必须携带，否则 412
-                return Ok(json!({"url": real, "name": if name.is_empty() { if fresh_name.is_empty() { save_name } else { fresh_name } } else { name }, "site": kind, "cookie": playback_cookie}));
+                return Ok(json!({"url": real, "name": if name.is_empty() { if fresh_name.is_empty() { save_name } else { fresh_name } } else { name }, "site": kind, "cookie": playback_cookie,
+                    "resolveMs": resolve_started.elapsed().as_millis(), "usedDetailTokens": used_detail_tokens}));
             }
         }
     }
@@ -982,7 +1032,7 @@ pub fn tvbox_cloud_qr(app: tauri::AppHandle) -> Result<serde_json::Value, String
 
 // ---------------------------------------------------------------------------
 // 夸克官方扫码登录（小程序体系）：手机夸克 App 扫码 → 自动换 Cookie，无需手动填
-// 链路：quark.uuxiao.cn/api/mini/generate 取 token + request_id（配对使用）
+// 链路：夸克 CAS getTokenForQrcodeLogin 直接签发 token，本机生成 request_id
 //      → 二维码内容 https://su.quark.cn/4_eMHBJ?token=<token>
 //      → 手机扫码确认 → 轮询 getServiceTicketByQrcodeToken 拿 service_ticket
 //      → pan.quark.cn/account/info?st=<ticket>&lw=scan 换取登录 Cookie（__puus 等）
@@ -1012,22 +1062,34 @@ fn quark_http() -> Result<reqwest::Client, String> {
 #[tauri::command]
 pub async fn tvbox_quark_qr_start(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let http = quark_http()?;
-    let resp = http
-        .get("https://quark.uuxiao.cn/api/mini/generate")
-        .send()
-        .await
-        .map_err(|e| format!("获取扫码 token 失败：{e}"))?;
+    let mut random = [0u8; 16];
+    getrandom::fill(&mut random).map_err(|e| format!("生成登录会话失败：{e}"))?;
+    random[6] = (random[6] & 0x0f) | 0x40;
+    random[8] = (random[8] & 0x3f) | 0x80;
+    let hex: String = random.iter().map(|b| format!("{b:02x}")).collect();
+    let request_id = format!("{}-{}-{}-{}-{}", &hex[..8], &hex[8..12], &hex[12..16], &hex[16..20], &hex[20..]);
+    // Obtain a fresh token directly from the same CAS service used for polling.
+    let mut endpoint = reqwest::Url::parse("https://uop.quark.cn/cas/ajax/getTokenForQrcodeLogin").map_err(|e| e.to_string())?;
+    endpoint.query_pairs_mut().append_pair("client_id", "532").append_pair("v", "1.2").append_pair("request_id", &request_id);
+    let resp = http.get(endpoint)
+        .header("Referer", "https://pan.quark.cn/")
+        .header("Cache-Control", "no-cache")
+        .send().await.map_err(|e| format!("获取扫码 token 失败：{e}"))?
+        .error_for_status().map_err(|e| format!("获取扫码 token 失败：{e}"))?;
     let data: Value = resp.json().await.map_err(|e| format!("扫码 token 解析失败：{e}"))?;
-    let token = data.get("token").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let request_id = data.get("request_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    if token.is_empty() {
-        return Err(format!("扫码 token 为空：{data}"));
+    let token = data.pointer("/data/members/token").and_then(Value::as_str).unwrap_or("").to_string();
+    if data["status"].as_i64() != Some(2000000) || token.is_empty() {
+        return Err(format!("夸克未签发登录二维码（状态 {}），请重试", data["status"]));
     }
     // 新码替换旧会话：旧轮询任务检测到 token 变化会自行退出
     if let Ok(mut slot) = quark_qr_slot().lock() {
         *slot = Some(QuarkQrSession { token: token.clone() });
     }
-    let url = format!("https://su.quark.cn/4_eMHBJ?token={token}");
+    let mut qr_url = reqwest::Url::parse("https://su.quark.cn/4_eMHBJ").map_err(|e| e.to_string())?;
+    qr_url.query_pairs_mut().append_pair("token", &token).append_pair("client_id", "532")
+        .append_pair("ssb", "weblogin").append_pair("uc_param_str", "")
+        .append_pair("uc_biz_str", "S:custom|OPT:SAREA@0|OPT:IMMERSIVE@1|OPT:BACK_BTN_STYLE@0");
+    let url = qr_url.to_string();
     // 始终在本机生成标准 SVG。二维码内容仍是夸克官方扫码地址，但不再依赖第三方
     // 图片接口和 data: PNG，WebView2 中展示稳定，也不会出现“弹窗里不是二维码”。
     let svg = qrcode::QrCode::new(url.as_bytes())
@@ -1066,6 +1128,8 @@ async fn poll_quark_qr(app: tauri::AppHandle, token: String, request_id: String)
             if let Some(ticket) = json["data"]["members"]["service_ticket"].as_str() {
                 if save_quark_cookies(&http, &app, ticket).await {
                     let _ = app.emit("cloud-login-done", "quark");
+                } else {
+                    let _ = app.emit("cloud-login-error", "手机授权已收到，但网盘登录会话初始化失败，尚未完成登录");
                 }
             }
             return;
@@ -1087,7 +1151,12 @@ async fn save_quark_cookies(http: &reqwest::Client, app: &tauri::AppHandle, tick
     let mut next = Some(url);
     for _ in 0..4 {
         let Some(target) = next.take() else { break };
-        let resp = match http.get(target.clone()).header("Referer", "https://pan.quark.cn/").send().await {
+        let host = target.host_str().unwrap_or("");
+        if host != "quark.cn" && !host.ends_with(".quark.cn") { return false; }
+        let cookies = groups.iter().filter(|(domain, _)| host == domain.as_str() || host.ends_with(&format!(".{domain}")))
+            .flat_map(|(_, values)| values.iter().cloned()).collect::<Vec<_>>().join("; ");
+        let resp = match http.get(target.clone()).header("Referer", "https://pan.quark.cn/")
+            .header("Cookie", cookies).send().await {
             Ok(r) => r,
             Err(_) => return false,
         };
@@ -1096,14 +1165,16 @@ async fn save_quark_cookies(http: &reqwest::Client, app: &tauri::AppHandle, tick
             let mut parts = text.split(';');
             let Some(pair) = parts.next() else { continue };
             let Some((name, val)) = pair.split_once('=') else { continue };
-            let mut domain = "pan.quark.cn".to_string();
+            let mut domain = target.host_str().unwrap_or("pan.quark.cn").to_string();
             for attr in parts {
                 let attr = attr.trim();
                 if let Some(d) = attr.strip_prefix("Domain=").or_else(|| attr.strip_prefix("domain=")) {
                     domain = d.trim().trim_start_matches('.').to_lowercase();
                 }
             }
-            groups.entry(domain).or_default().push(format!("{}={}", name.trim(), val.trim()));
+            let values = groups.entry(domain).or_default();
+            values.retain(|old| old.split_once('=').map(|(key, _)| key) != Some(name.trim()));
+            values.push(format!("{}={}", name.trim(), val.trim()));
         }
         if resp.status().is_redirection() {
             if let Some(location) = resp.headers().get(reqwest::header::LOCATION).and_then(|v| v.to_str().ok()) {
@@ -1111,9 +1182,14 @@ async fn save_quark_cookies(http: &reqwest::Client, app: &tauri::AppHandle, tick
                     next = Some(joined);
                 }
             }
+        } else if target.host_str() == Some("pan.quark.cn") && target.path() == "/account/info" {
+            // CAS returns account cookies (__pus/__kps), not the drive session.
+            // Initialize the drive session using those cookies and retain the
+            // __puus returned by member before announcing login success.
+            next = reqwest::Url::parse("https://drive-pc.quark.cn/1/clouddrive/member?pr=ucpro&fr=pc").ok();
         }
     }
-    if groups.values().all(|v| v.is_empty()) {
+    if !groups.values().flatten().any(|pair| pair.strip_prefix("__puus=").is_some_and(|value| !value.is_empty())) {
         return false;
     }
     let Ok(dir) = crate::datadir::data_dir(app) else { return false };

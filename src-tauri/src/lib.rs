@@ -148,6 +148,7 @@ pub fn run() {
                 cloudrive::tvbox_cloud_play,cloudrive::tvbox_cloud_detail,cloudrive::tvbox_cloud_qr,cloudrive::tvbox_cloud_is_share,tvbox::tvbox_cloud_login,cloudrive::tvbox_quark_qr_start,cloudrive::tvbox_cloud_apply,cloudrive::tvbox_cloud_find,
                 tvbox::tvbox_dns_set,
                 tvbox::tvbox_subtitle_load,
+                tvbox::tvbox_subtitle_prepare,
                 tvbox::tvbox_subtitle_search,
                 tvspider::tvbox_spider,
                 tvsniff::tvbox_sniff,

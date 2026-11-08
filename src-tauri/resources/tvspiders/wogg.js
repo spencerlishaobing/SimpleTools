@@ -1,7 +1,7 @@
 /** 玩偶哥哥：影片目录、筛选、搜索、详情及网盘线路。 */
 // 玩偶域名会轮换。饭太硬 JAR 会把最新可用域写入 wogg_site；本机适配器不依赖
 // 该 Android SharedPreferences，改为 ext 优先 + 内置候选自动探测。
-const DEFAULT_BASES = ['http://www.wogg.live','https://woggpan.888484.xyz','https://www.wogg.net','https://wogg.xxooo.cf','https://woggpan.xxooo.cf'];
+const DEFAULT_BASES = ['https://www.wogg.net','https://woggpan.888484.xyz','https://www.wogg.live','https://wogg.xxooo.cf','https://woggpan.xxooo.cf'];
 let bases=DEFAULT_BASES.slice(), activeBase=bases[0];
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/135 Safari/537.36';
 const CATS = [['1','电影'],['2','剧集'],['44','臻彩'],['6','短漫剧'],['3','动漫'],['4','综艺'],['46','纪录片'],['5','音乐']];
@@ -27,7 +27,7 @@ function get(path){
 }
 function idOf(v){ const m=String(v||'').match(/(?:voddetail\/)?(\d+)/); return m?m[1]:String(v||''); }
 function cards(doc){
-  const out=[],seen={}; let m; const re=/<div\b[^>]*class=["'][^"']*module-item(?:\s|["'])[^>]*>([\s\S]*?)(?=<div\b[^>]*class=["'][^"']*module-item(?:\s|["'])|<\/main>|$)/gi;
+  const out=[],seen={}; let m; const re=/<div\b[^>]*class=["'][^"']*module-(?:search-)?item(?:\s|["'])[^>]*>([\s\S]*?)(?=<div\b[^>]*class=["'][^"']*module-(?:search-)?item(?:\s|["'])|<\/main>|$)/gi;
   while((m=re.exec(doc))){ const b=m[1], href=(b.match(/href=["']([^"']*\/voddetail\/\d+\.html)/i)||[])[1], name=decode((b.match(/class=["'][^"']*module-item-title[^"']*["'][^>]*title=["']([^"']+)/i)||b.match(/href=["'][^"']*\/voddetail\/\d+\.html["'][^>]*title=["']([^"']+)/i)||[])[1]), pic=(b.match(/<img\b[^>]*data-src=["']([^"']+)/i)||b.match(/<img\b[^>]*src=["']([^"']+)/i)||[])[1], remark=clean((b.match(/class=["'][^"']*module-item-text[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)||[])[1]), year=clean((b.match(/class=["'][^"']*module-item-caption[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>/i)||[])[1]); if(!href||!name||seen[href])continue; seen[href]=1; out.push({vod_id:idOf(href),vod_name:name,vod_pic:abs(pic||''),vod_remarks:remark,vod_year:year}); }
   return out;
 }
