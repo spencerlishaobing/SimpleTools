@@ -289,7 +289,7 @@
 .tv-settings-links { margin-top: -2px; }
 .tv-settings-links button { font-size: 12.5px; min-height: 32px; color: var(--tv-muted); }
 .tv-settings { margin: 14px 0; padding: 15px 18px; border: 1px solid var(--tv-line); border-radius: 13px; background: var(--tv-surface); }
-.tv-settings summary { cursor: pointer; font-weight: 650; font-size: 13px; }
+.tv-settings summary { cursor: pointer; font-weight: 650; font-size: 13px; display: flex; align-items: center; min-height: 28px; }
 .tv-settings[open] summary { margin-bottom: 13px; }
 #panel-tvbox textarea { display: block; width: 100%; min-height: 150px; max-height: 400px; resize: vertical; padding: 12px; margin: 12px 0; border: 1px solid var(--tv-line); border-radius: 10px; background: var(--input-bg); color: var(--tv-text); font: 12px/1.6 Consolas, monospace; }
 .tv-phone { display: flex; flex-wrap: wrap; gap: 16px; padding: 14px; border: 1px solid var(--tv-line); border-radius: 10px; background: var(--tv-surface); }
@@ -362,6 +362,12 @@
 .tv-player-head #tv-info { color: var(--tv-muted); font-size: 11px; }
 .tv-player-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #panel-tvbox .tv-player-main button { min-height: 34px; padding: 5px 12px; font-size: 12.5px; }
+.tv-filter-toggle,
+#tv-more-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.tv-filter-toggle::after,
+#tv-more-toggle::after { content: ''; width: 7px; height: 7px; box-sizing: border-box; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transform-origin: center; transition: transform .16s ease; }
+.tv-filter-toggle.is-expanded::after,
+#tv-more-toggle.is-expanded::after { transform: translateY(2px) rotate(225deg); }
 #tv-controls-more { margin-top: 9px; padding-top: 7px; border-top: 1px dashed var(--tv-line); }
 #tv-controls-more .tv-toolbar { margin: 6px 0; }
 #panel-tvbox label { display: inline-flex; align-items: center; gap: 6px; }

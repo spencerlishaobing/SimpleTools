@@ -155,6 +155,7 @@ pub fn run() {
                 tvplayer::tvplayer_surface,
                 tvplayer::tvplayer_surface_hide,
                 tvplayer::tvplayer_control,
+                tvplayer::tvplayer_fullscreen,
                 tvplayer::tvplayer_status,
                 tvp2p::tvbox_prepare_media,
                 tvp2p::tvbox_cancel_p2p,

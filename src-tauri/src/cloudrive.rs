@@ -378,8 +378,10 @@ async fn quark_transcode(http: &reqwest::Client, kind: &str, cookie: &str, fid: 
         .collect::<Vec<_>>()
         .join("; ");
     let value: Value = resp.json().await.map_err(|e| e.to_string())?;
-    // data.video_list[].video_info.url（snake_case），兼容 camelCase；优先 super（源分辨率，体积适中），否则取第一个
-    let mut first = String::new();
+    // data.video_list[].video_info.url（snake_case），兼容 camelCase。
+    // 请求中包含 2k/4k 时必须选择服务端实际返回的最高档；旧逻辑固定选 super，
+    // 会把标称 2K/4K 的文件降到较低转码，界面看似高清但实际分辨率不足。
+    let mut best: Option<(u8, String)> = None;
     for list_key in ["/data/video_list", "/data/videoList"] {
         if let Some(list) = value.pointer(list_key).and_then(|v| v.as_array()) {
             for item in list {
@@ -387,14 +389,19 @@ async fn quark_transcode(http: &reqwest::Client, kind: &str, cookie: &str, fid: 
                 for info_key in ["video_info", "videoInfo"] {
                     if let Some(url) = item.get(info_key).and_then(|v| v.get("url")).and_then(|v| v.as_str()) {
                         if url.is_empty() { continue; }
-                        if resolution == "super" { return Ok((url.to_string(), media_cookie)); }
-                        if first.is_empty() { first = url.to_string(); }
+                        let rank = match resolution.to_ascii_lowercase().as_str() {
+                            "8k" => 7, "4k" => 6, "2k" => 5, "super" => 4,
+                            "high" => 3, "normal" => 2, "low" => 1, _ => 0,
+                        };
+                        if best.as_ref().map(|(old, _)| rank > *old).unwrap_or(true) {
+                            best = Some((rank, url.to_string()));
+                        }
                     }
                 }
             }
         }
     }
-    if !first.is_empty() { return Ok((first, media_cookie)); }
+    if let Some((_, url)) = best { return Ok((url, media_cookie)); }
     // 直接返回 url 的兼容路径
     for key in ["/data/play_url", "/data/download_url", "/data/url"] {
         if let Some(url) = value.pointer(key).and_then(|v| v.as_str()) {

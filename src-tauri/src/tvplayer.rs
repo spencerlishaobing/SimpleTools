@@ -534,6 +534,16 @@ pub async fn tvplayer_control(
     }
 }
 
+/// 显式设置主窗口全屏，避免“切换”语义导致 Escape/退出播放后按钮与窗口状态相反。
+#[tauri::command]
+pub async fn tvplayer_fullscreen(
+    app: tauri::AppHandle,
+    fullscreen: bool,
+) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("主窗口不存在")?;
+    window.set_fullscreen(fullscreen).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn tvplayer_status(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, String> {
     let state = app.state::<PlayerState>();

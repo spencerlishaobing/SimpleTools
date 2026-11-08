@@ -329,7 +329,8 @@
       return opt?`${group.name}=${opt.n}`:null;
     }).filter(Boolean);
     const head=el('div',undefined,'tv-filter-head');
-    const toggle=button(`${filterPanelOpen?'收起 ⌃':'筛选 ⌄'}${chosen.length?` (${chosen.length})`:''}`,()=>{filterPanelOpen=!filterPanelOpen;renderFilters();},'tv-filter-toggle');
+    const toggle=button(`${filterPanelOpen?'收起':'筛选'}${chosen.length?` (${chosen.length})`:''}`,()=>{filterPanelOpen=!filterPanelOpen;renderFilters();},'tv-filter-toggle');
+    toggle.classList.toggle('is-expanded',filterPanelOpen);
     if(filterPanelOpen)toggle.classList.add('is-open');
     head.append(toggle,el('span',chosen.length?chosen.join(' · '):'全部','tv-filter-summary'));
     box.append(head);
@@ -1139,8 +1140,8 @@
     $('episode-prev').textContent=live?'上一个':'上一集';$('episode-next').textContent=live?'下一个':'下一集';
     syncSurface();
   }
-  // 视频区全屏（应用内，v0.58.5）：隐藏导航/列表/侧栏，视频区占满面板，控制条固定底部；不动应用窗口
-  function stageFullscreen(on){
+  // 真全屏：内容区铺满的同时显式切换 Windows 主窗口全屏；mpv 子窗口继续跟随 surface。
+  async function stageFullscreen(on){
     const panel=document.getElementById('panel-tvbox');
     const active=on===undefined?!panel.classList.contains('tv-stage-full'):!!on;
     panel.classList.toggle('tv-stage-full',active);
@@ -1152,12 +1153,17 @@
       panel.classList.remove('tv-stage-full-more');
       panel.style.removeProperty('--tv-full-bottom');
     }
+    if(invoke){
+      try{await invoke('tvplayer_fullscreen',{fullscreen:active});}
+      catch(_){/* 开发预览环境保留应用内铺满兜底 */}
+    }
     setTimeout(()=>{syncSurface();startSurfaceLoop();},120);
   }
   function hideSurface(){if(invoke)invoke('tvplayer_surface_hide').catch(()=>{});}
   function exitStage(){
     const panel=document.getElementById('panel-tvbox');panel.classList.remove('tv-player-mode','tv-stage-full','tv-stage-full-more','tv-live-mode','tv-vod-mode');
     panel.style.removeProperty('--tv-full-bottom');$('fullscreen').textContent='全屏';
+    if(invoke)invoke('tvplayer_fullscreen',{fullscreen:false}).catch(()=>{});
     cancelAnimationFrame(surfaceRaf);surfaceRaf=0;lastSurfaceRect='';
     $('stage').classList.add('hidden');$('controls').classList.add('hidden');$('stage-side').replaceChildren();hideSurface();
   }
@@ -1302,11 +1308,26 @@
     const session=stamp();sniffPending={session,url,name,meta:{...meta,raw:meta.raw||url,sniffPage:url},token,seen:new Set()};
     await invoke('tvbox_sniff',{url:address(url),session});status('已打开网页解析窗口。在网页中点击播放，识别到的地址会显示在此处。');
   }
+  function actualQuality(width,height){
+    const w=Number(width)||0,h=Number(height)||0;
+    if(w>=7000||h>=4000)return '8K';
+    if(w>=3800||h>=2100)return '4K';
+    if(w>=2500||h>=1400)return '2K/QHD';
+    if(w>=2000&&h>=1000)return 'DCI 2K';
+    if(w>=1900||h>=1050)return '1080P';
+    if(w>=1200||h>=700)return '720P';
+    return w&&h?'标清':'';
+  }
+  function mediaSummary(snapshot){
+    const w=Number(snapshot.width)||0,h=Number(snapshot.height)||0,fps=Number(snapshot.fps)||0;
+    const fpsText=fps>0?`${fps.toFixed(Math.abs(fps-Math.round(fps))<.05?0:2)} FPS${fps>=50?' · 高帧率':''}`:'';
+    return [actualQuality(w,h),w&&h?`${w} × ${h}`:'',fpsText,snapshot.hwdec&&snapshot.hwdec!=='no'?`硬解 ${snapshot.hwdec}`:'软件解码',snapshot.codec||'',snapshot.buffer?`缓存 ${Math.round(snapshot.buffer)} 秒`:''].filter(Boolean).join(' · ');
+  }
   function updateProgress(snapshot) {
     if(!current||snapshot.session!==current.session)return;
     // 内置音轨/字幕轨：只要拿到轨道列表就刷新（不依赖观看记录，老片/直接播也能切换）
     if(Array.isArray(snapshot.tracks))renderTracks(snapshot.tracks);
-    const mediaInfo=[snapshot.width?`${snapshot.width} × ${snapshot.height}`:'',snapshot.hwdec&&snapshot.hwdec!=='no'?`硬解 ${snapshot.hwdec}`:'软件解码',snapshot.codec||'',snapshot.buffer?`缓存 ${Math.round(snapshot.buffer)} 秒`:''].filter(Boolean).join(' · ');
+    const mediaInfo=mediaSummary(snapshot);
     if(current.meta?.live){
     $('skip-intro-btn').classList.add('hidden');$('skip-outro-btn').classList.add('hidden');
       // 直播：mpv 的 FILE_LOADED 只代表打开了输入流（坏源也会触发），
@@ -1323,7 +1344,7 @@
     $('skip-intro-btn').classList.toggle('hidden',!(introSec>0&&position<introSec-1));
     $('skip-outro-btn').classList.toggle('hidden',!(outroSec>0&&duration>outroSec+10&&position>=duration-outroSec-1));
     $('time').textContent=`${time(position)} / ${time(duration)}`;$('seek').max=String(duration||100);$('seek').value=String(position);
-    $('info').textContent=[snapshot.width?`${snapshot.width} × ${snapshot.height}`:'',snapshot.hwdec&&snapshot.hwdec!=='no'?`硬解 ${snapshot.hwdec}`:'软件解码',snapshot.codec||'',snapshot.buffer?`缓存 ${Math.round(snapshot.buffer)} 秒`:''].filter(Boolean).join(' · ');
+    $('info').textContent=mediaInfo;
     if(Date.now()-lastSave>5000){persist();lastSave=Date.now();}
     const outro=Number(db.prefs.skipOutro)||0;
     if(outro>0&&duration>outro*2&&position>=duration-outro&&db.prefs.autoNext&&queue&&!current.eofTriggered){current.eofTriggered=true;run(()=>nextEpisode());}
@@ -1355,8 +1376,6 @@
   async function control(action,value) {
     if(action==='stop')return stopStage();
     if(action==='fullscreen'){
-      // 全屏 = 视频区域全屏（不动应用窗口）：web 用 video 元素全屏，mpv 用应用内视频区全屏
-      if($('engine').value==='web'){const v=$('video');if(document.fullscreenElement)return document.exitFullscreen();return v.requestFullscreen?.();}
       return stageFullscreen();
     }
     if($('engine').value==='web'){
@@ -1437,9 +1456,18 @@
     try{
       let channels=[];
       if(source.builtin){
-        const data=await invoke('tvbox_live_builtin');
-        for(const group of (data&&Array.isArray(data.groups)?data.groups:[])){
-          for(const c of (group.channels||[]))channels.push({name:c.name,group:group.name,logo:c.logo||'',urls:Array.isArray(c.urls)?c.urls:[],source:'内置源'});
+        // 使用每 15 分钟自动更新的公开频道表；直连失败再试镜像，均失败才回退随包静态表。
+        const remotes=['https://raw.githubusercontent.com/hujingguang/ChinaIPTV/main/cnTV_AutoUpdate.m3u8','https://peterhchina.github.io/iptv/CNTV-V4.m3u'];
+        const refreshed=await Promise.allSettled(remotes.map(async remote=>{
+          const text=await withTimeout(fetchText(remote,{}),12000,'内置直播更新超时');
+          return C.playlist(text,remote);
+        }));
+        for(const result of refreshed)if(result.status==='fulfilled')for(const c of result.value)channels.push({...c,urls:Array.isArray(c.urls)?c.urls:[c.url],source:'内置每日更新'});
+        if(!channels.length){
+          const data=await invoke('tvbox_live_builtin');
+          for(const group of (data&&Array.isArray(data.groups)?data.groups:[])){
+            for(const c of (group.channels||[]))channels.push({name:c.name,group:group.name,logo:c.logo||'',urls:Array.isArray(c.urls)?c.urls:[],source:'内置离线备份'});
+          }
         }
       }else{
         const item=source.item||{};
@@ -1712,7 +1740,8 @@
   $('play').onclick=()=>run(()=>play($('direct').value.trim(),'网络视频'));
   $('sniff').onclick=()=>run(()=>sniff($('direct').value.trim(),'网页视频',{}));
   for(const action of ['pause','stop','forward','backward','fullscreen'])$(action).onclick=()=>run(()=>control(action));
-  $('more-toggle').onclick=()=>{const more=$('controls-more');const collapsed=more.classList.toggle('hidden');$('more-toggle').textContent=collapsed?'更多 ⌄':'收起 ⌃';const panel=document.getElementById('panel-tvbox');if(panel.classList.contains('tv-stage-full')){panel.classList.toggle('tv-stage-full-more',!collapsed);setTimeout(()=>{const h=Math.ceil($('controls').getBoundingClientRect().height+10);panel.style.setProperty('--tv-full-bottom',h+'px');syncSurface();},120);}};
+  $('more-toggle').textContent='更多';
+  $('more-toggle').onclick=()=>{const more=$('controls-more');const collapsed=more.classList.toggle('hidden');$('more-toggle').textContent=collapsed?'更多':'收起';$('more-toggle').classList.toggle('is-expanded',!collapsed);const panel=document.getElementById('panel-tvbox');if(panel.classList.contains('tv-stage-full')){panel.classList.toggle('tv-stage-full-more',!collapsed);setTimeout(()=>{const h=Math.ceil($('controls').getBoundingClientRect().height+10);panel.style.setProperty('--tv-full-bottom',h+'px');syncSurface();},120);}};
   $('episode-prev').onclick=()=>run(()=>nextEpisode(-1));$('episode-next').onclick=()=>run(()=>nextEpisode(1));
   for(const [id,action]of [['speed','speed'],['volume','volume'],['sub-delay','sub-delay'],['audio','aid'],['subtitles','sid'],['aspect','aspect']])$(id).onchange=()=>run(async()=>{const value=['speed','volume','sub-delay'].includes(id)?Number($(id).value):$(id).value;if(id==='speed'||id==='volume'){db.prefs[id]=value;persist();}if(current)await control(action,value);});
   $('seek').onchange=()=>run(()=>control('seek',Number($('seek').value)));

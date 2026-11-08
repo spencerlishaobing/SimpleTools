@@ -116,9 +116,13 @@ if ($Tvbox) {
 $portableSha = (Get-FileHash -LiteralPath $PortableExe -Algorithm SHA256).Hash
 $portableMB = [math]::Round($portable.Length / 1MB, 2)
 $assets = @(
-  @{ Name = $assetName;         File = $Installer;   MB = $sizeMB;     Sha = $sha },
-  @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
+  @{ Name = $assetName; File = $Installer; MB = $sizeMB; Sha = $sha }
 )
+# 标准版的免安装包是单 EXE；TVBOX 必须携带 resources/JVM/Python/libmpv，
+# 单独上传 EXE 会得到无法完整工作的“伪便携版”，因此 TVBOX 只发布完整 ZIP。
+if (-not $Tvbox) {
+  $assets += @{ Name = $portableAssetName; File = $PortableExe; MB = $portableMB; Sha = $portableSha }
+}
 if ($Tvbox) {
   # TVBOX 版附带便携包（exe + resources，免安装用户使用）：不存在则自动生成
   $portableZipPath = Join-Path $RepoDir "src-tauri\target\release\bundle\SimpleTools_${v}_${flavor}_portable.zip"
@@ -254,6 +258,12 @@ else { Write-Output "STEP remote tag exists, skip push" }
 # ---------- 2) Release ----------
 $zipSection = ''
 foreach ($a in $assets) { if ($a.Name -like '*_portable.zip') { $zipSection = "`nWindows x64 便携包（免安装，完整解压后使用，请保持 resources 目录与 EXE 同目录）：`n`n- 便携包：$($a.Name)（$($a.MB) MB）`n- SHA256：``$($a.Sha)``" } }
+$portableReleaseSection = if ($Tvbox) {
+  $zipAsset = $assets | Where-Object { $_.Name -like '*_portable.zip' } | Select-Object -First 1
+  "Windows x64 免安装完整便携包（解压后运行，必须保留 resources 目录）：`n`n- 免安装：$($zipAsset.Name)（$($zipAsset.MB) MB）`n- SHA256：``$($zipAsset.Sha)``"
+} else {
+  "Windows x64 免安装单文件（双击即用，无需安装）：`n`n- 免安装：$portableAssetName（$portableMB MB）`n- SHA256：``$portableSha``"
+}
 $releaseNotes = @"
 ## SimpleTools $tag
 
@@ -262,11 +272,7 @@ Windows x64 安装包（NSIS 向导安装）：
 - 安装包：$assetName（$sizeMB MB）
 - SHA256：``$sha``
 
-Windows x64 免安装单文件（双击即用，无需安装）：
-
-- 免安装：$portableAssetName（$portableMB MB）
-- SHA256：``$portableSha``
-$zipSection
+$portableReleaseSection
 $Notes
 "@
 $releaseNotes = $releaseNotes.Trim()
