@@ -15,6 +15,13 @@ SimpleTools 是一款基于 Tauri 2 + Rust 的 Windows 桌面工具箱，安装�
 
 ![SimpleTools 功能界面](screenshots/notes.png)
 
+## 分支用途
+
+- `main`：标准轻量版，只包含常用工具，不携带 TVBOX、JVM、Python 和 libmpv 影音运行时。
+- `tvbox`：影音增强版，在标准版基础上增加 TVBOX、多仓/单仓片源、网盘、直播及原生播放器功能。
+
+项目只长期维护以上两个分支；饭太硬破解、反编译和多仓维护资料存放在独立的私有资料仓库，不再使用单独的影视仓开发分支。
+
 ## 更新日志
 
 版本变化统一维护在 [更新日志](CHANGELOG.md)。
