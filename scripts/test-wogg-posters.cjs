@@ -11,3 +11,8 @@ assert(c.adapter.search('Film',1).list[0].vod_pic.startsWith('https://img.douban
 html="<div class='video-cover'><img data-src='/db.php?url=https://img.doubanio.com/a.jpg'></div><h1 class='page-title'>Film</h1><a href='https://pan.quark.cn/s/test'>Play</a>";
 assert(c.adapter.detail('42').list[0].vod_pic.startsWith('https://img.doubanio.com/a.jpg@'));
 console.log('10 WoGG image normalization and adapter-path assertions passed');
+
+html="<div class='module-search-item'><div class='video-info-header'><h3><a href='/voddetail/77.html'>A &amp; B</a></h3></div><div class='module-item-pic'><img data-src='/plain.jpg'></div></div>";
+const result=c.adapter.search('A',1).list;
+assert.equal(result.length,1);assert.equal(result[0].vod_name,'A & B');assert.equal(result[0].vod_id,'77');
+console.log('Search without title attribute: 3 assertions passed');
